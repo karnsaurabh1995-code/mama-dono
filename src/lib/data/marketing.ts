@@ -1,0 +1,302 @@
+import {
+  Announcement,
+  EmailTemplate,
+  RedirectRule,
+  DynamicForm,
+  ManualDonation,
+  ThemeConfig,
+  RolePermission,
+} from '../types';
+
+export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: 'ann-01',
+    title: 'Emergency Medical Match',
+    message: '🚨 All pediatric cardiac surgeries receive 100% CSR matching grant up to ₹5,00,000 this week.',
+    link: '/causes/medical',
+    type: 'urgent',
+    placement: 'top_banner',
+    isActive: true,
+    startDate: '2026-10-20T00:00:00Z',
+  },
+  {
+    id: 'ann-02',
+    title: 'Diwali Ration Drive',
+    message: '✨ Support 5,000 underprivileged families with Diwali dry ration & nutrition hampers.',
+    link: '/product-giving',
+    type: 'info',
+    placement: 'home_hero',
+    isActive: true,
+    startDate: '2026-10-18T00:00:00Z',
+  },
+];
+
+export const INITIAL_EMAIL_TEMPLATES: EmailTemplate[] = [
+  {
+    id: 'tpl-donation-receipt',
+    name: 'Donation Receipt & Section 80G Tax Exemption Certificate',
+    triggerEvent: 'payment.succeeded',
+    subject: 'Thank You for Your Donation of ₹{{amount}} — 80G Tax Receipt #{{receipt_number}}',
+    bodyHtml: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #E8E6E1; border-radius: 8px;">
+  <div style="text-align: center; margin-bottom: 24px;">
+    <h2 style="color: #E84B45; margin: 0;">SevaSetu Foundation</h2>
+    <p style="color: #555B63; font-size: 13px;">Government Registered Charitable Trust | NITI Aayog Darpan Verified</p>
+  </div>
+  <p>Dear <strong>{{donor_name}}</strong>,</p>
+  <p>We gratefully acknowledge receipt of your donation of <strong>₹{{amount}}</strong> towards the campaign <em>"{{campaign_title}}"</em>.</p>
+  <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Receipt Number:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{receipt_number}}</td></tr>
+    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Date:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{date}}</td></tr>
+    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Payment Mode:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">{{payment_method}}</td></tr>
+    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>80G Tax Exemption:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee; color: #25845B; font-weight: bold;">Eligible (50% Deduction under Sec 80G)</td></tr>
+  </table>
+  <p style="font-size: 12px; color: #777;">This is a computer-generated receipt valid for income tax deduction under Section 80G of the Income Tax Act, 1961.</p>
+</div>`,
+    variables: ['donor_name', 'amount', 'campaign_title', 'receipt_number', 'date', 'payment_method'],
+    isActive: true,
+    updatedAt: '2026-10-15T12:00:00Z',
+  },
+  {
+    id: 'tpl-campaign-approved',
+    name: 'Campaign Approval Notification',
+    triggerEvent: 'campaign.approved',
+    subject: 'Good News! Your Fundraiser "{{campaign_title}}" is Now LIVE on SevaSetu',
+    bodyHtml: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+  <h2 style="color: #25845B;">Your Fundraiser Has Been Verified & Approved!</h2>
+  <p>Dear {{organizer_name}},</p>
+  <p>Our review panel has verified your medical estimates and documents. Your campaign <strong>"{{campaign_title}}"</strong> is now actively accepting donations.</p>
+  <p><a href="{{campaign_url}}" style="background: #E84B45; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">View Live Campaign</a></p>
+</div>`,
+    variables: ['organizer_name', 'campaign_title', 'campaign_url', 'goal_amount'],
+    isActive: true,
+    updatedAt: '2026-10-10T10:00:00Z',
+  },
+  {
+    id: 'tpl-recurring-cycle',
+    name: 'Monthly Giving Cycle Charged',
+    triggerEvent: 'recurring.charged',
+    subject: 'Your Monthly Contribution of ₹{{amount}} for {{campaign_title}} was Processed',
+    bodyHtml: `<p>Dear {{donor_name}}, thank you for your sustained monthly pledge of ₹{{amount}}.</p>`,
+    variables: ['donor_name', 'amount', 'campaign_title', 'date', 'next_date'],
+    isActive: true,
+    updatedAt: '2026-10-01T08:00:00Z',
+  },
+];
+
+export const INITIAL_REDIRECT_RULES: RedirectRule[] = [
+  {
+    id: 'red-01',
+    fromPath: '/covid-relief',
+    toPath: '/causes/medical',
+    statusCode: 301,
+    hits: 1420,
+    isActive: true,
+    createdAt: '2026-08-01T00:00:00Z',
+  },
+  {
+    id: 'red-02',
+    fromPath: '/diwali2026',
+    toPath: '/product-giving',
+    statusCode: 302,
+    hits: 890,
+    isActive: true,
+    createdAt: '2026-10-01T00:00:00Z',
+  },
+  {
+    id: 'red-03',
+    fromPath: '/give-monthly',
+    toPath: '/monthly-giving',
+    statusCode: 301,
+    hits: 3210,
+    isActive: true,
+    createdAt: '2026-06-15T00:00:00Z',
+  },
+];
+
+export const INITIAL_DYNAMIC_FORMS: DynamicForm[] = [
+  {
+    id: 'form-csr',
+    slug: 'csr-partnerships',
+    title: 'CSR Corporate Giving & Partnership Application',
+    description: 'Connect with our institutional donor relations team for Section 135 Companies Act CSR fulfillment.',
+    submissionsCount: 14,
+    isActive: true,
+    fields: [
+      { name: 'companyName', label: 'Company / Foundation Name', type: 'text', required: true },
+      { name: 'contactPerson', label: 'Contact Person Name', type: 'text', required: true },
+      { name: 'workEmail', label: 'Official Corporate Email', type: 'email', required: true },
+      { name: 'phone', label: 'Contact Phone Number', type: 'phone', required: true },
+      {
+        name: 'csrBudget',
+        label: 'Approximate Annual CSR Budget (INR)',
+        type: 'select',
+        required: true,
+        options: ['₹10 Lakh - ₹25 Lakh', '₹25 Lakh - ₹1 Crore', '₹1 Crore - ₹5 Crore', '₹5 Crore+'],
+      },
+      { name: 'preferredCauses', label: 'Focus Areas (e.g. Health, Education, Environment)', type: 'text', required: true },
+      { name: 'comments', label: 'Project Scope or Notes', type: 'textarea', required: false },
+    ],
+  },
+  {
+    id: 'form-hospital-onboarding',
+    slug: 'hospital-partner',
+    title: 'Hospital & Healthcare Provider Verification',
+    description: 'Empanel your hospital or medical trust for direct cashless medical crowdfunding escrows.',
+    submissionsCount: 8,
+    isActive: true,
+    fields: [
+      { name: 'hospitalName', label: 'Hospital / Trust Name', type: 'text', required: true },
+      { name: 'rohiniCode', label: 'ROHINI / NABH Identification Code', type: 'text', required: true },
+      { name: 'medicalSuperintendent', label: 'Medical Superintendent / Billing Head', type: 'text', required: true },
+      { name: 'officialEmail', label: 'Institutional Email', type: 'email', required: true },
+      { name: 'city', label: 'City & State', type: 'text', required: true },
+    ],
+  },
+];
+
+export const INITIAL_MANUAL_DONATIONS: ManualDonation[] = [
+  {
+    id: 'man-don-01',
+    campaignId: 'camp-aarav-heart-surgery',
+    campaignTitle: 'Emergency Pediatric Cardiac Surgery for 3-Year-Old Aarav',
+    donorName: 'Tata Memorial Welfare Trust (CSR)',
+    donorEmail: 'csr.grants@tatawelfare.org',
+    donorPhone: '+91 22 6665 8282',
+    donorPan: 'AAATT1234F',
+    amount: 150000,
+    paymentReference: 'NEFT-HDFC-N3091823901',
+    bankName: 'HDFC Bank, Fort Mumbai Branch',
+    depositDate: '2026-10-21',
+    supportingProofUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
+    notes: 'Direct corporate grant transferred into hospital designated beneficiary escrow account.',
+    status: 'approved',
+    taxExemption80G: true,
+    reconciledBy: 'Finance Head (Rajesh V.)',
+    reconciledAt: '2026-10-21T16:30:00Z',
+    createdAt: '2026-10-21T14:00:00Z',
+  },
+  {
+    id: 'man-don-02',
+    campaignId: 'camp-delhi-slum-school',
+    campaignTitle: 'Digital Classrooms & Nutritious Meals for 400 Slum Children in East Delhi',
+    donorName: 'Dr. Vikramaditya Singhania',
+    donorEmail: 'v.singhania.dr@gmail.com',
+    donorPhone: '+91 98110 44220',
+    donorPan: 'BKFPS4412K',
+    amount: 50000,
+    paymentReference: 'RTGS-SBI-20261022091',
+    bankName: 'State Bank of India, Parliament Street Branch',
+    depositDate: '2026-10-22',
+    supportingProofUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
+    notes: 'Cheque cleared in SBI trust account. Bank advice slip attached.',
+    status: 'approved',
+    taxExemption80G: true,
+    reconciledBy: 'Finance Ops (Pooja S.)',
+    reconciledAt: '2026-10-22T11:45:00Z',
+    createdAt: '2026-10-22T10:15:00Z',
+  },
+  {
+    id: 'man-don-03',
+    campaignId: 'camp-roti-bank-feed-hungry',
+    campaignTitle: 'Daily Nutritious Meals for 1,200 Destitute Elders and Hospital Caregivers',
+    donorName: 'Sunita & Harsh Vardhan Goel',
+    donorEmail: 'harsh.goel@goeltextiles.in',
+    donorPhone: '+91 98200 11994',
+    donorPan: 'AHIPG9901M',
+    amount: 25000,
+    paymentReference: 'IMPS-ICICI-66291823019',
+    bankName: 'ICICI Bank, Nariman Point',
+    depositDate: '2026-10-23',
+    notes: 'Awaiting bank statement confirmation. Receipt pending generation.',
+    status: 'pending',
+    taxExemption80G: true,
+    createdAt: '2026-10-23T09:00:00Z',
+  },
+];
+
+export const DEFAULT_THEME_CONFIG: ThemeConfig = {
+  primaryColor: '#E84B45',
+  primaryDarkColor: '#BD302D',
+  headingColor: '#202124',
+  bodyColor: '#555B63',
+  backgroundColor: '#FAF9F6',
+  cardBackgroundColor: '#FFFFFF',
+  borderColor: '#E8E6E1',
+  successColor: '#25845B',
+  urgentColor: '#DC2626',
+  fontFamily: 'Inter',
+  borderRadius: 'lg',
+  buttonRadius: 'full',
+  cardShadow: 'subtle',
+  headerStyle: 'sticky',
+  announcementBarVisible: true,
+  announcementText: '🚨 All pediatric cardiac surgeries receive 100% CSR matching grant up to ₹5,00,000 this week.',
+  announcementLink: '/causes/medical',
+  announcementBg: '#FEF2F2',
+};
+
+export const INITIAL_ROLE_PERMISSIONS: RolePermission[] = [
+  {
+    role: 'super_admin',
+    name: 'Super Administrator',
+    description: 'Full unconstrained platform control, code-free website builder, billing, gateways & audit ledgers.',
+    permissions: [
+      'manage_website_builder',
+      'manage_campaigns',
+      'approve_campaigns',
+      'manage_finances',
+      'process_refunds',
+      'manage_gateways',
+      'manage_theme',
+      'manage_users',
+      'view_audit_logs',
+      'manage_settings',
+    ],
+  },
+  {
+    role: 'ops_admin',
+    name: 'Operations Administrator',
+    description: 'Manages ongoing fundraisers, organization verifications, and daily platform operations.',
+    permissions: [
+      'manage_campaigns',
+      'approve_campaigns',
+      'manage_organizations',
+      'view_analytics',
+      'view_audit_logs',
+    ],
+  },
+  {
+    role: 'reviewer',
+    name: 'Medical & NGO Trust Reviewer',
+    description: 'Verifies hospital certificates, doctor estimates, and Government NGO Darpan compliance.',
+    permissions: [
+      'approve_campaigns',
+      'verify_organizations',
+      'review_documents',
+    ],
+  },
+  {
+    role: 'finance',
+    name: 'Finance & Compliance Officer',
+    description: 'Reconciles bank settlements, oversees 80G tax certificates, processes refunds and offline wires.',
+    permissions: [
+      'manage_finances',
+      'reconcile_offline_donations',
+      'process_refunds',
+      'export_reports',
+      'view_audit_logs',
+    ],
+  },
+  {
+    role: 'content_editor',
+    name: 'Content & Editorial Lead',
+    description: 'Visual website builder, publishing blogs, stories, testimonials and announcements.',
+    permissions: [
+      'manage_website_builder',
+      'manage_blogs',
+      'manage_stories',
+      'manage_media',
+      'manage_announcements',
+    ],
+  },
+];

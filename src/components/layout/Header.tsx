@@ -29,6 +29,12 @@ export function Header() {
   const pathname = usePathname();
   const { user, role, logout, switchRole } = useAuth();
 
+  // If in admin dashboard, public header is hidden in favor of the admin layout header
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
+
+
   const navLinks = [
     { label: 'Explore Causes', href: '/causes' },
     { label: 'Campaigns', href: '/campaigns' },

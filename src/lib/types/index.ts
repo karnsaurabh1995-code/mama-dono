@@ -283,4 +283,218 @@ export interface SiteSettings {
   tipPercentageOptions: number[];
   minimumDonationINR: number;
   enableTax80G: boolean;
+  maintenanceMode?: boolean;
+  maintenanceMessage?: string;
+  ipAllowlist?: string[];
+  sessionTimeoutMinutes?: number;
 }
+
+// ----------------- MASTER PROMPT 2 EXTENSIONS -----------------
+
+export type PageSectionType =
+  | 'hero'
+  | 'urgent_strip'
+  | 'categories'
+  | 'featured_campaigns'
+  | 'monthly_missions'
+  | 'products'
+  | 'live_ticker'
+  | 'stats'
+  | 'testimonials'
+  | 'faq'
+  | 'cta_box'
+  | 'rich_text';
+
+export interface PageSection {
+  id: string;
+  pageSlug: string; // e.g. 'home', 'campaigns', 'about'
+  type: PageSectionType;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  content?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  order: number;
+  isVisible: boolean;
+  settings: {
+    bgColor?: string;
+    textColor?: string;
+    padding?: 'compact' | 'normal' | 'spacious';
+    columns?: number;
+    itemLimit?: number;
+    showBadge?: boolean;
+    layout?: 'grid' | 'carousel' | 'cards' | 'banner';
+  };
+}
+
+export interface PageVersion {
+  id: string;
+  pageSlug: string;
+  versionNumber: number;
+  sections: PageSection[];
+  publishedAt: string;
+  publishedBy: string;
+  notes?: string;
+}
+
+export interface ThemeConfig {
+  primaryColor: string;
+  primaryDarkColor: string;
+  headingColor: string;
+  bodyColor: string;
+  backgroundColor: string;
+  cardBackgroundColor: string;
+  borderColor: string;
+  successColor: string;
+  urgentColor: string;
+  fontFamily: 'Inter' | 'Manrope' | 'Plus Jakarta Sans' | 'Outfit' | 'System';
+  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  buttonRadius: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  cardShadow: 'none' | 'subtle' | 'medium' | 'elevated';
+  headerStyle: 'sticky' | 'static';
+  announcementBarVisible: boolean;
+  announcementText?: string;
+  announcementLink?: string;
+  announcementBg?: string;
+}
+
+export interface MediaItem {
+  id: string;
+  title: string;
+  url: string;
+  filename: string;
+  fileType: 'image' | 'document' | 'icon' | 'video';
+  mimeType: string;
+  fileSizeKB: number;
+  dimensions?: string;
+  altText: string;
+  tags: string[];
+  usedIn: string[];
+  uploadedAt: string;
+}
+
+export interface PaymentGatewayConfig {
+  id: 'razorpay' | 'stripe' | 'cashfree' | 'bank_wire';
+  name: string;
+  description: string;
+  isEnabled: boolean;
+  isTestMode: boolean;
+  keyId: string;
+  secretKey: string;
+  webhookSecret: string;
+  supportedMethods: ('upi' | 'card' | 'netbanking' | 'wallet' | 'emi' | 'bank_wire')[];
+  minAmountINR: number;
+  maxAmountINR: number;
+  platformFeePercent: number;
+  gatewayFeePercent: number;
+  healthStatus: 'healthy' | 'degraded' | 'offline';
+  lastHealthCheck: string;
+  recentWebhooks: {
+    id: string;
+    event: string;
+    payloadPreview: string;
+    status: 'processed' | 'failed' | 'ignored';
+    timestamp: string;
+  }[];
+}
+
+export interface ManualDonation {
+  id: string;
+  campaignId: string;
+  campaignTitle: string;
+  donorName: string;
+  donorEmail: string;
+  donorPhone?: string;
+  donorPan?: string;
+  amount: number;
+  paymentReference: string;
+  bankName: string;
+  depositDate: string;
+  supportingProofUrl?: string;
+  notes?: string;
+  status: 'approved' | 'pending' | 'rejected';
+  taxExemption80G: boolean;
+  reconciledBy?: string;
+  reconciledAt?: string;
+  createdAt: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  link?: string;
+  type: 'info' | 'urgent' | 'success';
+  placement: 'top_banner' | 'home_hero' | 'modal';
+  isActive: boolean;
+  startDate: string;
+  endDate?: string;
+}
+
+export interface DynamicFormField {
+  name: string;
+  label: string;
+  type: 'text' | 'email' | 'phone' | 'textarea' | 'select' | 'checkbox';
+  required: boolean;
+  options?: string[];
+}
+
+export interface DynamicForm {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  fields: DynamicFormField[];
+  submissionsCount: number;
+  isActive: boolean;
+}
+
+export interface FormSubmission {
+  id: string;
+  formId: string;
+  formSlug: string;
+  data: Record<string, any>;
+  status: 'new' | 'in_review' | 'contacted' | 'resolved';
+  notes?: string;
+  submittedAt: string;
+}
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  triggerEvent: string;
+  subject: string;
+  bodyHtml: string;
+  variables: string[];
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface RedirectRule {
+  id: string;
+  fromPath: string;
+  toPath: string;
+  statusCode: 301 | 302;
+  hits: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CustomLandingPage {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  status: 'published' | 'draft';
+  publishedAt?: string;
+  sections: PageSection[];
+}
+
+export interface RolePermission {
+  role: UserRole;
+  name: string;
+  description: string;
+  permissions: string[];
+}
+

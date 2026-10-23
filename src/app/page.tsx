@@ -27,11 +27,13 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
+  const sections = db.getPageSections('home').filter((s) => s.isVisible);
   const urgentCampaigns = db.getCampaigns({ urgent: true, status: 'active' }).slice(0, 3);
   const featuredCampaigns = db.getCampaigns({ featured: true, status: 'active' }).slice(0, 4);
   const products = db.getProducts().slice(0, 3);
   const stories = db.getStories().slice(0, 3);
   const stats = db.getPlatformStats();
+
 
   const missions = [
     {
@@ -69,6 +71,15 @@ export default function HomePage() {
     },
   ];
 
+  // Builder section overrides
+  const urgentSection = sections.find((s) => s.type === 'urgent_strip');
+  const featuredSection = sections.find((s) => s.type === 'featured_campaigns');
+  const monthlySection = sections.find((s) => s.type === 'monthly_missions');
+  const productSection = sections.find((s) => s.type === 'products');
+  const statsSection = sections.find((s) => s.type === 'stats');
+  const ctaSection = sections.find((s) => s.type === 'cta_box');
+  const categoriesSection = sections.find((s) => s.type === 'categories');
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Live Donation Activity Strip */}
@@ -83,67 +94,78 @@ export default function HomePage() {
       </div>
 
       {/* Cause Categories */}
-      <CauseGrid />
+      {categoriesSection && <CauseGrid />}
 
       {/* Section D: Urgent Needs */}
-      <section className="py-16 bg-[#FFF9F8] border-b border-[#FEE2E2]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
-            <div>
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E84B45] bg-[#FFEBEA] px-3 py-1 rounded-full mb-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E84B45] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E84B45]"></span>
-                </span>
-                <span>Critical Deadlines</span>
+      {urgentSection && (
+        <section
+          className="py-16 border-b border-[#FEE2E2]"
+          style={{ backgroundColor: urgentSection.settings.bgColor || '#FFF9F8' }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#E84B45] bg-[#FFEBEA] px-3 py-1 rounded-full mb-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E84B45] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E84B45]"></span>
+                  </span>
+                  <span>{urgentSection.badge || 'Critical Deadlines'}</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-[#202124] tracking-tight">
+                  {urgentSection.title}
+                </h2>
+                <p className="text-sm text-[#555B63] mt-1 max-w-2xl">
+                  {urgentSection.subtitle || 'Every minute counts for these patients and emergency relief missions.'}
+                </p>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#202124] tracking-tight">
-                Urgent Appeals Needing Your Help Right Now
-              </h2>
-              <p className="text-sm text-[#555B63] mt-1 max-w-2xl">
-                Every minute counts for these patients and emergency relief missions. Verified medical estimates and direct hospital disbursements.
-              </p>
+              <Link href="/campaigns?filter=urgent" className="text-sm font-semibold text-[#E84B45] hover:underline shrink-0">
+                View All Urgent Appeals &rarr;
+              </Link>
             </div>
-            <Link href="/campaigns?filter=urgent" className="text-sm font-semibold text-[#E84B45] hover:underline shrink-0">
-              View All Urgent Appeals &rarr;
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {urgentCampaigns.map((camp) => (
-              <CampaignCard key={camp.id} campaign={camp} />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {urgentCampaigns.map((camp) => (
+                <CampaignCard key={camp.id} campaign={camp} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Section E: Featured Campaigns */}
-      <section className="py-16 bg-white border-b border-[#E8E6E1]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#E84B45]">
-                Staff Picks
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#202124] tracking-tight mt-1">
-                Featured Verified Campaigns
-              </h2>
-              <p className="text-sm text-[#555B63] mt-1 max-w-2xl">
-                Reviewed campaigns with high transparency, active milestone updates, and documented impact.
-              </p>
+      {featuredSection && (
+        <section
+          className="py-16 border-b border-[#E8E6E1]"
+          style={{ backgroundColor: featuredSection.settings.bgColor || '#FFFFFF' }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#E84B45]">
+                  {featuredSection.badge || 'Staff Picks'}
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-black text-[#202124] tracking-tight mt-1">
+                  {featuredSection.title}
+                </h2>
+                <p className="text-sm text-[#555B63] mt-1 max-w-2xl">
+                  {featuredSection.subtitle || 'Reviewed campaigns with high transparency, active milestone updates, and documented impact.'}
+                </p>
+              </div>
+              <Link href={featuredSection.ctaLink || '/campaigns'} className="text-sm font-semibold text-[#E84B45] hover:underline shrink-0">
+                {featuredSection.ctaText || 'Browse All Campaigns'} &rarr;
+              </Link>
             </div>
-            <Link href="/campaigns" className="text-sm font-semibold text-[#E84B45] hover:underline shrink-0">
-              Browse All Campaigns &rarr;
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredCampaigns.map((camp) => (
-              <CampaignCard key={camp.id} campaign={camp} featured />
-            ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredCampaigns.map((camp) => (
+                <CampaignCard key={camp.id} campaign={camp} featured />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
 
       {/* Section F & G: Browse by Mission & Monthly Giving (Give.do inspired) */}
       <section className="py-16 bg-[#FAF9F6] border-b border-[#E8E6E1]">
