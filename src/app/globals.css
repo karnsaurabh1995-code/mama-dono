@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+:root {
+  --background: #FAF9F6;
+  --foreground: #202124;
+  --primary: #E84B45;
+  --primary-hover: #BD302D;
+  --primary-subtle: #FFF0EF;
+  --heading: #202124;
+  --body: #555B63;
+  --card-bg: #FFFFFF;
+  --border-color: #E8E6E1;
+  --success: #25845B;
+  --success-subtle: #EBF7F1;
+  --warning: #D97706;
+  --warning-subtle: #FEF3C7;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--body);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--heading);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F1EFEA;
+}
+::-webkit-scrollbar-thumb {
+  background: #D5D1C8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B8B3A7;
+}
+
+/* Ticker marquee animation */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 35s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Accessible focus ring */
+*:focus-visible {
+  outline: 2px solid #E84B45;
+  outline-offset: 2px;
+}
