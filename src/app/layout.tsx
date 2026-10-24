@@ -6,10 +6,11 @@ import { Footer } from '@/components/layout/Footer';
 import { AuthProvider } from '@/lib/auth/context';
 
 export const metadata: Metadata = {
-  title: 'SevaSetu — India’s Trusted Crowdfunding Platform for Medical & Social Causes',
+  title: 'dokind — Transparent Crowdfunding & Compassionate Giving in India',
   description:
-    'Support urgent pediatric surgeries, hospital food missions, girl child scholarships, and verified grassroots NGOs across India. 100% verified campaigns with Section 80G tax benefits.',
+    'Small acts. Real impact. Support urgent pediatric surgeries, rural child education, hospital meals, and verified grassroots non-profits across India with 100% transparent Section 80G tax benefits.',
   keywords: [
+    'dokind',
     'crowdfunding India',
     'medical fundraiser',
     '80G tax benefit donation',
@@ -17,21 +18,27 @@ export const metadata: Metadata = {
     'Give.do alternative',
     'DonateKart alternative',
     'monthly giving India',
+    'product giving',
   ],
-  authors: [{ name: 'SevaSetu Foundation' }],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://sevasetu.org.in'),
+  authors: [{ name: 'dokind Foundation' }],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://dokind.org.in'),
+  icons: {
+    icon: '/dokind-icon.svg',
+    shortcut: '/dokind-icon.svg',
+    apple: '/dokind-icon.svg',
+  },
   openGraph: {
-    title: 'SevaSetu — Bridging Trust, Transforming Lives in India',
+    title: 'dokind — Small acts. Real impact. Transparent Indian Crowdfunding',
     description:
       'Verified crowdfunding for emergency surgeries, child education, food relief, and audited grassroots non-profits.',
-    url: 'https://sevasetu.org.in',
-    siteName: 'SevaSetu',
+    url: 'https://dokind.org.in',
+    siteName: 'dokind',
     images: [
       {
         url: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80',
         width: 1200,
         height: 630,
-        alt: 'SevaSetu India Crowdfunding',
+        alt: 'dokind India Crowdfunding',
       },
     ],
     locale: 'en_IN',
@@ -39,7 +46,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SevaSetu — India’s Trusted Giving Platform',
+    title: 'dokind — India’s Trusted Giving Platform',
     description:
       'Support verified medical and educational campaigns in India with 80G tax deduction receipts.',
   },

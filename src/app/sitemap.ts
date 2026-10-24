@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { CAUSES_DATA } from '@/lib/data/causes';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sevasetu.org.in';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://dokind.org.in';
 
   const staticRoutes = [
     '',

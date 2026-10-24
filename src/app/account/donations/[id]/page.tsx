@@ -59,10 +59,10 @@ export default function TaxReceiptViewPage() {
           <div className="flex items-start justify-between border-b-2 border-[#202124] pb-6 gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#E84B45] text-white flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-lg bg-[#EF4949] text-white flex items-center justify-center font-bold">
                   <Heart className="w-5 h-5 fill-white" />
                 </div>
-                <span className="text-xl font-black text-[#202124]">SevaSetu Foundation</span>
+                <span className="text-xl font-black text-[#202124]">dokind Foundation</span>
               </div>
               <p className="text-[11px] text-[#555B63] max-w-sm">
                 Registered under Societies Registration Act XXI of 1860.
@@ -150,6 +150,28 @@ export default function TaxReceiptViewPage() {
               </span>
             </div>
           </div>
+
+          {/* Itemized Sponsored Goods if present */}
+          {donation.itemAllocations && donation.itemAllocations.length > 0 && (
+            <div className="border border-emerald-200 bg-emerald-50/50 p-5 rounded-2xl space-y-2 text-xs">
+              <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                Item-Designated Product Allocation
+              </span>
+              <div className="divide-y divide-emerald-100">
+                {donation.itemAllocations.map((it, idx) => (
+                  <div key={idx} className="py-2 flex items-center justify-between text-neutral-800">
+                    <span className="font-medium">
+                      {it.quantity}× {it.itemName} (@ {formatINR(it.unitPrice)})
+                    </span>
+                    <span className="font-mono font-bold">{formatINR(it.unitPrice * it.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-[10px] text-emerald-700 pt-1">
+                Designated strictly for vendor procurement and direct field distribution.
+              </div>
+            </div>
+          )}
 
           {/* Amount Paid Box */}
           <div className="p-5 bg-white border-2 border-[#202124] rounded-2xl flex items-center justify-between">

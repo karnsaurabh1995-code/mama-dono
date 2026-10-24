@@ -1,33 +1,75 @@
 @import "tailwindcss";
 
 :root {
+  /* Surface and Background Tokens */
   --background: #FAF9F6;
   --foreground: #202124;
-  --primary: #E84B45;
-  --primary-hover: #BD302D;
-  --primary-subtle: #FFF0EF;
-  --heading: #202124;
-  --body: #555B63;
   --card-bg: #FFFFFF;
-  --border-color: #E8E6E1;
-  --success: #25845B;
+  --border-color: #EAE7E2;
+
+  /* Brand and Accent Tokens */
+  --primary: #EF4949;
+  --primary-hover: #D9363E;
+  --primary-subtle: #FFF0EF;
+  --primary-dark: #C92A2A;
+
+  /* Typography Contrast Tokens */
+  --heading: #202124;
+  --heading-inverse: #FFFFFF;
+  --body: #555B63;
+  --body-inverse: #E2E4E9;
+  --text-muted: #72777F;
+  --text-muted-inverse: #A1A7B2;
+
+  /* Feedback & Semantic States */
+  --success: #1B6E4A;
   --success-subtle: #EBF7F1;
-  --warning: #D97706;
+  --warning: #B45309;
   --warning-subtle: #FEF3C7;
+  --danger: #B91C1C;
+  --danger-subtle: #FEF2F2;
+
+  /* Glassmorphism Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(234, 231, 226, 0.85);
 }
 
-body {
-  background-color: var(--background);
-  color: var(--body);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--body);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-h1, h2, h3, h4, h5, h6 {
-  color: var(--heading);
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  /* Default heading styling in base layer so Tailwind utilities properly override */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+
+  /* In dark surfaces / dark classes, headings automatically inherit pure white contrast */
+  .dark,
+  [data-theme="dark"],
+  .bg-neutral-900,
+  .bg-black {
+    --heading: #FFFFFF;
+    --body: #E2E4E9;
+    --text-muted: #A1A7B2;
+  }
+
+  /* Ensure explicit text-white class always forces white heading text */
+  .text-white,
+  .text-white h1,
+  .text-white h2,
+  .text-white h3,
+  .text-white h4,
+  .text-white h5,
+  .text-white h6 {
+    color: #FFFFFF;
+  }
 }
 
 /* Custom Scrollbar */
@@ -64,6 +106,18 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Accessible focus ring */
 *:focus-visible {
-  outline: 2px solid #E84B45;
+  outline: 2px solid #EF4949;
   outline-offset: 2px;
+}
+
+/* Reduced Motion Compliance */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -39,7 +39,7 @@ export function ProgressBar({
       >
         <div
           className={cn(
-            'h-full bg-[#E84B45] rounded-full transition-all duration-700 ease-out',
+            'h-full bg-[#EF4949] rounded-full transition-all duration-700 ease-out',
             clamped >= 100 && 'bg-[#25845B]',
             barClassName
           )}

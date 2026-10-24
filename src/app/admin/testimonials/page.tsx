@@ -1,49 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import { db } from '@/lib/db';
+import { Testimonial } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Quote, Plus, Star, CheckCircle2, Trash2, X } from 'lucide-react';
 
-interface Testimonial {
-  id: string;
-  authorName: string;
-  role: string;
-  avatarUrl: string;
-  quote: string;
-  rating: number;
-  featured: boolean;
-}
-
 export default function TestimonialsAdminPage() {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([
-    {
-      id: 't-1',
-      authorName: 'Dr. Suresh Sen, Chief Cardiac Surgeon',
-      role: 'AIIMS Child Heart Centre',
-      avatarUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=300&q=80',
-      quote: 'SevaSetu has eliminated delays for underprivileged children requiring emergency heart surgery. Funds reach the hospital account directly before surgery begins.',
-      rating: 5,
-      featured: true,
-    },
-    {
-      id: 't-2',
-      authorName: 'Kiran Bedi Verma',
-      role: 'Regular Monthly Donor (Bengaluru)',
-      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80',
-      quote: 'Getting instant 80G tax receipts and verified video updates of children receiving books and mid-day meals gives me 100% confidence in my monthly pledge.',
-      rating: 5,
-      featured: true,
-    },
-    {
-      id: 't-3',
-      authorName: 'Aarav’s Father, Ramesh',
-      role: 'Beneficiary Caregiver',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-      quote: 'When my 3-year-old son collapsed with cardiac failure, I had no money. 24,000 generous people across India funded his surgery through SevaSetu within 48 hours.',
-      rating: 5,
-      featured: true,
-    },
-  ]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => db.getTestimonials());
 
   const [toastMessage, setToastMessage] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -57,6 +21,10 @@ export default function TestimonialsAdminPage() {
   };
 
   const handleToggleFeatured = (id: string) => {
+    const current = testimonials.find((t) => t.id === id);
+    if (current) {
+      db.updateTestimonial(id, { featured: !current.featured });
+    }
     setTestimonials((prev) =>
       prev.map((t) => (t.id === id ? { ...t, featured: !t.featured } : t))
     );
@@ -64,6 +32,7 @@ export default function TestimonialsAdminPage() {
   };
 
   const handleDelete = (id: string) => {
+    db.deleteTestimonial(id);
     setTestimonials((prev) => prev.filter((t) => t.id !== id));
     notify('Testimonial removed.');
   };
@@ -72,17 +41,18 @@ export default function TestimonialsAdminPage() {
     e.preventDefault();
     if (!authorName.trim() || !quote.trim()) return;
 
-    const newT: Testimonial = {
-      id: `t-${Date.now()}`,
+    const created = db.createTestimonial({
       authorName: authorName.trim(),
       role: role.trim() || 'Supporter',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
       quote: quote.trim(),
       rating: 5,
       featured: true,
-    };
+      badge: 'Verified',
+      date: new Date().toISOString().split('T')[0],
+    });
 
-    setTestimonials((prev) => [newT, ...prev]);
+    setTestimonials((prev) => [created, ...prev]);
     setShowAddModal(false);
     setAuthorName('');
     setRole('');

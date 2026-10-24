@@ -16,6 +16,10 @@ export async function POST(request: Request) {
       paymentMethod = 'upi',
       isRecurring = false,
       message,
+      itemAllocations,
+      dokindContributionPercent,
+      dokindContributionAmount,
+      platformFeePercent,
     } = body;
 
     // Server-side validation
@@ -61,6 +65,10 @@ export async function POST(request: Request) {
       paymentMethod,
       isRecurring: Boolean(isRecurring),
       message,
+      itemAllocations,
+      dokindContributionPercent: dokindContributionPercent !== undefined ? Number(dokindContributionPercent) : undefined,
+      dokindContributionAmount: dokindContributionAmount !== undefined ? Number(dokindContributionAmount) : undefined,
+      platformFeePercent: platformFeePercent !== undefined ? Number(platformFeePercent) : undefined,
     });
 
     const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_SevaSetu2026';
@@ -73,6 +81,12 @@ export async function POST(request: Request) {
       donationId: donation.id,
       orderId: donation.razorpayOrderId,
       amount: donation.amount,
+      grossAmount: donation.grossAmount,
+      platformFeeAmount: donation.platformFeeAmount,
+      platformFeePercent: donation.platformFeePercent,
+      netCampaignAmount: donation.netCampaignAmount,
+      dokindContributionAmount: donation.dokindContributionAmount,
+      dokindContributionPercent: donation.dokindContributionPercent,
       tipAmount: donation.tipAmount,
       totalAmount: donation.totalAmount,
       currency: donation.currency,

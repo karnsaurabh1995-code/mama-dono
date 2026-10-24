@@ -18,7 +18,7 @@ export default function DonationPolicyPage() {
 
           <div className="prose text-xs sm:text-sm text-[#404348] space-y-4 leading-relaxed whitespace-pre-line">
             <h3 className="text-base font-bold text-[#202124]">1. 0% Platform Fee Model</h3>
-            SevaSetu charges 0% platform commission on emergency individual medical campaigns. Voluntary tips provided by donors help maintain tech infrastructure and medical auditing staff.
+            dokind charges 0% platform commission on emergency individual medical campaigns. Voluntary tips provided by donors help maintain tech infrastructure and medical auditing staff.
 
             <h3 className="text-base font-bold text-[#202124]">2. Section 80G Tax Deductions</h3>
             Donations made to campaigns affiliated with 80G-certified partner NGOs qualify for up to 50% tax deductions under Section 80G of the Indian Income Tax Act. Donors must provide a valid 10-digit PAN during checkout to enable Form 10BD reporting and generation of Form 10BE tax certificates.

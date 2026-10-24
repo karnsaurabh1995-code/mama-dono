@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { db } from '@/lib/db';
 import { UserRole } from '@/lib/types';
+import { DokindLogo, DokindMark } from '@/components/common/DokindLogo';
 import {
   LayoutDashboard,
   Paintbrush,
@@ -36,6 +37,7 @@ import {
   Workflow,
   Settings,
   Shield,
+  Tag,
   Search,
   Bell,
   ChevronDown,
@@ -45,6 +47,7 @@ import {
   ExternalLink,
   Lock,
   UserCheck,
+  HelpCircle,
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -130,7 +133,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     {
       groupTitle: 'Intelligence & Team',
       items: [
-        { id: '15', label: 'Analytics Hub', href: '/admin/analytics', icon: BarChart3 },
+        { id: '15', label: 'Financial Analytics', href: '/admin/analytics', icon: BarChart3 },
+        { id: '15b', label: 'Campaign Analytics', href: '/admin/analytics/campaigns', icon: BarChart3 },
         { id: '16', label: 'Export Reports', href: '/admin/reports', icon: FileSpreadsheet },
         { id: '17', label: 'Users & Permissions', href: '/admin/users', icon: Users },
       ],
@@ -139,6 +143,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       groupTitle: 'CMS & Growth',
       items: [
         { id: '18', label: 'Blog & Impact Stories', href: '/admin/blogs', icon: BookOpen },
+        { id: '18b', label: 'FAQ Management', href: '/admin/faqs', icon: HelpCircle },
         { id: '19', label: 'Testimonials', href: '/admin/testimonials', icon: Quote },
         { id: '20', label: 'Forms & Leads', href: '/admin/forms', icon: FileInput },
         { id: '21', label: 'Email Templates', href: '/admin/email-templates', icon: Mail },
@@ -154,6 +159,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { id: '26', label: 'Audit Logs Ledger', href: '/admin/audit-logs', icon: History },
         { id: '27', label: 'Integrations & Webhooks', href: '/admin/integrations', icon: Workflow },
         { id: '28', label: 'Settings & Backups', href: '/admin/settings', icon: Settings },
+        { id: '28b', label: 'Badge & Tag Styles', href: '/admin/settings/badge-styles', icon: Tag },
       ],
     },
   ];
@@ -203,24 +209,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Brand Header */}
         <div className="h-16 border-b border-[#E2E4E9] flex items-center justify-between px-4 bg-white">
           {!collapsed ? (
-            <Link href="/admin" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#E84B45] to-[#BD302D] flex items-center justify-center text-white shadow-sm">
-                <Shield className="w-5 h-5 fill-white/20 stroke-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-black tracking-tight text-[#202124] leading-none">
-                  Seva<span className="text-[#E84B45]">Setu</span>
-                </span>
-                <span className="text-[10px] uppercase font-bold text-[#25845B] tracking-wider mt-0.5">
-                  Admin Command
-                </span>
-              </div>
+            <Link href="/admin" className="flex items-center gap-2">
+              <DokindLogo size="sm" showTagline tagline="Admin Command" />
             </Link>
           ) : (
-            <Link href="/admin" className="mx-auto">
-              <div className="w-9 h-9 rounded-xl bg-[#E84B45] flex items-center justify-center text-white">
-                <Shield className="w-5 h-5" />
-              </div>
+            <Link href="/admin" className="mx-auto" title="dokind Admin">
+              <DokindMark size={32} />
             </Link>
           )}
 

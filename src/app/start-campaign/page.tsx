@@ -146,7 +146,7 @@ export default function StartCampaignWizardPage() {
             Campaign Submitted for Review!
           </h1>
           <p className="text-sm text-[#555B63] leading-relaxed">
-            Your campaign <strong>"{title}"</strong> has been received by SevaSetu’s medical verification team.
+            Your campaign <strong>"{title}"</strong> has been received by dokind’s medical verification team.
           </p>
 
           <div className="p-5 bg-white rounded-2xl border border-[#E8E6E1] text-left text-xs space-y-2">
@@ -642,7 +642,7 @@ export default function StartCampaignWizardPage() {
               <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  By submitting, you confirm that all hospital estimates, clinical documents, and personal details provided are authentic. SevaSetu verifies all claims with treating doctors before activating public donations.
+                  By submitting, you confirm that all hospital estimates, clinical documents, and personal details provided are authentic. dokind verifies all claims with treating doctors before activating public donations.
                 </span>
               </div>
             </div>

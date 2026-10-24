@@ -240,7 +240,7 @@ export default function CampaignsPage() {
           {filteredCampaigns.length > 0 && (
             <span className="text-[#25845B] font-medium flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              All campaigns verified by SevaSetu Medical Social Work team
+              All campaigns verified by dokind Medical Social Work team
             </span>
           )}
         </div>

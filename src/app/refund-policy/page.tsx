@@ -18,7 +18,7 @@ export default function RefundPolicyPage() {
 
           <div className="prose text-xs sm:text-sm text-[#404348] space-y-4 leading-relaxed whitespace-pre-line">
             <h3 className="text-base font-bold text-[#202124]">1. Unintentional or Erroneous Transactions</h3>
-            If a donor makes an unintended duplicate payment or enters an erroneous donation amount, they may request a refund within 7 days of the transaction date by emailing support@sevasetu.org.in with the transaction reference ID, provided the funds have not already been disbursed to the treating hospital.
+            If a donor makes an unintended duplicate payment or enters an erroneous donation amount, they may request a refund within 7 days of the transaction date by emailing support@dokind.org.in with the transaction reference ID, provided the funds have not already been disbursed to the treating hospital.
 
             <h3 className="text-base font-bold text-[#202124]">2. Suspended or Rejected Campaigns</h3>
             If a campaign is suspended or found non-compliant during our post-audit verification, all undistributed funds are automatically refunded back to donors' original payment methods.

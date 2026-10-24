@@ -39,7 +39,7 @@ export const INITIAL_EMAIL_TEMPLATES: EmailTemplate[] = [
     subject: 'Thank You for Your Donation of ₹{{amount}} — 80G Tax Receipt #{{receipt_number}}',
     bodyHtml: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #E8E6E1; border-radius: 8px;">
   <div style="text-align: center; margin-bottom: 24px;">
-    <h2 style="color: #E84B45; margin: 0;">SevaSetu Foundation</h2>
+    <h2 style="color: #EF4949; margin: 0;">dokind Foundation</h2>
     <p style="color: #555B63; font-size: 13px;">Government Registered Charitable Trust | NITI Aayog Darpan Verified</p>
   </div>
   <p>Dear <strong>{{donor_name}}</strong>,</p>
@@ -60,7 +60,7 @@ export const INITIAL_EMAIL_TEMPLATES: EmailTemplate[] = [
     id: 'tpl-campaign-approved',
     name: 'Campaign Approval Notification',
     triggerEvent: 'campaign.approved',
-    subject: 'Good News! Your Fundraiser "{{campaign_title}}" is Now LIVE on SevaSetu',
+    subject: 'Good News! Your Fundraiser "{{campaign_title}}" is Now LIVE on dokind',
     bodyHtml: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
   <h2 style="color: #25845B;">Your Fundraiser Has Been Verified & Approved!</h2>
   <p>Dear {{organizer_name}},</p>
@@ -297,6 +297,19 @@ export const INITIAL_ROLE_PERMISSIONS: RolePermission[] = [
       'manage_stories',
       'manage_media',
       'manage_announcements',
+    ],
+  },
+  {
+    role: 'head_staff',
+    name: 'Head Staff (Field & Campaign Operations)',
+    description: 'Field & content coordinator: create campaign drafts, propose content/poster updates, prepare progress updates for admin approval.',
+    permissions: [
+      'draft_campaigns',
+      'propose_campaign_updates',
+      'submit_field_updates',
+      'view_assigned_campaigns',
+      'upload_campaign_media',
+      'manage_item_fulfillment_notes',
     ],
   },
 ];

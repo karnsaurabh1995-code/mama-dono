@@ -84,7 +84,7 @@ export const INITIAL_GATEWAYS_DATA: PaymentGatewayConfig[] = [
     description: 'For high-value HNI or CSR corporate contributions directly deposited into dedicated trust accounts.',
     isEnabled: true,
     isTestMode: false,
-    keyId: 'SEVASETU_HDFC_00019283',
+    keyId: 'DOKIND_HDFC_00019283',
     secretKey: 'N/A (Offline Direct)',
     webhookSecret: 'N/A (Manual Reconciliation)',
     supportedMethods: ['bank_wire'],

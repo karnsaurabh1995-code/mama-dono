@@ -13,19 +13,19 @@ export default function AboutPage() {
             Home
           </Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-[#202124] font-semibold">About SevaSetu</span>
+          <span className="text-[#202124] font-semibold">About dokind</span>
         </nav>
 
         {/* Hero */}
         <div className="space-y-4 max-w-3xl">
-          <span className="bg-[#FFF0EF] text-[#E84B45] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+          <span className="bg-[#FFF0EF] text-[#EF4949] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
             Our Mission & Governance
           </span>
           <h1 className="text-3xl sm:text-5xl font-black text-[#202124] tracking-tight">
             Building India’s Most Transparent Bridge for Generous Giving
           </h1>
-          <p className="text-sm sm:text-base text-[#555B63] leading-relaxed">
-            SevaSetu was founded with a singular conviction: when an Indian family faces an unbearable medical catastrophe, they should never have to suffer alone in silence.
+          <p className="text-sm sm:text-base text-[#62666D] leading-relaxed">
+            dokind was founded with a singular conviction: when an Indian family faces an unbearable medical catastrophe or social hardship, they should never have to suffer alone in silence. Every kind act counts.
           </p>
         </div>
 

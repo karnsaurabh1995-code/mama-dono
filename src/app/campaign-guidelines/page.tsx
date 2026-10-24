@@ -18,7 +18,7 @@ export default function CampaignGuidelinesPage() {
 
           <div className="prose text-xs sm:text-sm text-[#404348] space-y-4 leading-relaxed whitespace-pre-line">
             <h3 className="text-base font-bold text-[#202124]">1. Permissible Causes</h3>
-            SevaSetu hosts campaigns for critical medical emergencies, pediatric surgeries, organ transplants, cancer care, education scholarships, food security, disability mobility aids, disaster relief, animal welfare, and community development.
+            dokind hosts campaigns for critical medical emergencies, pediatric surgeries, organ transplants, cancer care, education scholarships, food security, disability mobility aids, disaster relief, animal welfare, and community development.
 
             <h3 className="text-base font-bold text-[#202124]">2. Prohibited Content & Causes</h3>
             We strictly prohibit campaigns involving political campaigns, religious conversion drives, speculative financial schemes, weapons, hate speech, or defamatory allegations.

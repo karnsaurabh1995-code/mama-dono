@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { Button } from '@/components/ui/Button';
+import { DokindLogo } from '@/components/common/DokindLogo';
 import { Heart, Lock, Mail, User, Phone, CheckCircle2 } from 'lucide-react';
 
 export default function SignUpPage() {
@@ -36,13 +37,8 @@ export default function SignUpPage() {
     <div className="py-12 bg-[#FAF9F6] min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-6">
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#E84B45] to-[#BD302D] flex items-center justify-center text-white shadow-md">
-              <Heart className="w-6 h-6 fill-white" />
-            </div>
-            <span className="text-2xl font-black text-[#202124]">
-              Seva<span className="text-[#E84B45]">Setu</span>
-            </span>
+          <Link href="/" className="inline-flex items-center group mb-1">
+            <DokindLogo size="lg" />
           </Link>
           <h1 className="text-2xl font-bold text-[#202124]">Create Your Account</h1>
           <p className="text-xs text-[#555B63]">

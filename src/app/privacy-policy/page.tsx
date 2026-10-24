@@ -24,10 +24,10 @@ export default function PrivacyPolicyPage() {
             If you check "Make my donation anonymous" during checkout, your name and identity details will be completely hidden from public campaign supporters lists, ticker feeds, and search engines. However, in compliance with Central Board of Direct Taxes (CBDT) regulations, your PAN and transaction references are confidentially maintained in non-profit statutory audit records for Form 10BD/10BE filing.
 
             <h3 className="text-base font-bold text-[#202124]">3. Security & Payment Data</h3>
-            SevaSetu does not store raw credit/debit card numbers or bank account passwords on our servers. All financial transactions are securely tokenized and processed via RBI-licensed payment gateways (Razorpay) utilizing 256-bit bank-grade SSL encryption.
+            dokind does not store raw credit/debit card numbers or bank account passwords on our servers. All financial transactions are securely tokenized and processed via RBI-licensed payment gateways (Razorpay) utilizing 256-bit bank-grade SSL encryption.
 
             <h3 className="text-base font-bold text-[#202124]">4. Data Retention & Deletion</h3>
-            You may request deletion or correction of non-statutory personal data at any time by writing to privacy@sevasetu.org.in. Statutory financial records are preserved for the minimum period mandated under Indian tax law.
+            You may request deletion or correction of non-statutory personal data at any time by writing to privacy@dokind.org.in. Statutory financial records are preserved for the minimum period mandated under Indian tax law.
           </div>
         </div>
       </div>

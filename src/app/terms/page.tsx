@@ -18,10 +18,10 @@ export default function TermsOfUsePage() {
 
           <div className="prose text-xs sm:text-sm text-[#404348] space-y-4 leading-relaxed whitespace-pre-line">
             <h3 className="text-base font-bold text-[#202124]">1. Acceptance of Terms</h3>
-            By accessing or using SevaSetu, you agree to comply with and be bound by these Terms of Use, our Privacy Policy, and our Verification Standards.
+            By accessing or using dokind, you agree to comply with and be bound by these Terms of Use, our Privacy Policy, and our Verification Standards.
 
             <h3 className="text-base font-bold text-[#202124]">2. Fundraiser Accuracy & Zero Fraud Policy</h3>
-            Campaigners agree that all medical estimates, diagnostic reports, and personal circumstances represented on SevaSetu are genuine and truthful. Falsification of hospital documentation constitutes criminal fraud under Section 420 of the Indian Penal Code and will result in immediate campaign suspension, forfeiture of funds, and reporting to law enforcement authorities.
+            Campaigners agree that all medical estimates, diagnostic reports, and personal circumstances represented on dokind are genuine and truthful. Falsification of hospital documentation constitutes criminal fraud under Section 420 of the Indian Penal Code and will result in immediate campaign suspension, forfeiture of funds, and reporting to law enforcement authorities.
 
             <h3 className="text-base font-bold text-[#202124]">3. Direct Hospital Disbursement</h3>
             To ensure complete trust and prevent diversion, donations collected for major individual medical treatments are wired directly to the designated hospital or licensed medical supplier accounts rather than individual personal accounts wherever feasible.

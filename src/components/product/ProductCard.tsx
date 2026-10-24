@@ -124,14 +124,12 @@ export function ProductCard({ product }: ProductCardProps) {
             href={`/donate/${product.campaignId}?amount=${totalAmount}&product=${encodeURIComponent(
               product.name
             )}&qty=${quantity}`}
-            className="block w-full"
+            className="w-full inline-flex items-center justify-between font-bold bg-[#EF4949] hover:bg-[#D9363E] text-white py-2.5 px-4 rounded-xl text-sm transition-colors cursor-pointer shadow-xs active:scale-[0.99]"
           >
-            <Button variant="primary" size="md" className="w-full justify-between font-bold">
-              <span>Sponsor {quantity} {quantity === 1 ? product.unit.replace(/s$/, '') : product.unit}</span>
-              <span className="bg-black/20 px-2 py-0.5 rounded text-xs">
-                {formatINR(totalAmount)}
-              </span>
-            </Button>
+            <span>Sponsor {quantity} {quantity === 1 ? product.unit.replace(/s$/, '') : product.unit}</span>
+            <span className="bg-black/20 px-2 py-0.5 rounded text-xs font-mono">
+              {formatINR(totalAmount)}
+            </span>
           </Link>
         </div>
       </div>

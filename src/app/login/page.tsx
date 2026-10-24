@@ -2,18 +2,34 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth, DEMO_USERS } from '@/lib/auth/context';
 import { Button } from '@/components/ui/Button';
-import { Heart, Lock, Mail, ChevronRight, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Heart, Lock, Mail, ChevronRight, ArrowRight, ShieldCheck, Info } from 'lucide-react';
 import { UserRole } from '@/lib/types';
+import { DokindLogo } from '@/components/common/DokindLogo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, switchRole } = useAuth();
+
+  const rawReturnUrl = searchParams.get('returnUrl');
+  const actionParam = searchParams.get('action');
+
+  const getSafeRedirectUrl = () => {
+    if (rawReturnUrl && rawReturnUrl.startsWith('/') && !rawReturnUrl.startsWith('//')) {
+      if (actionParam && !rawReturnUrl.includes('action=')) {
+        const separator = rawReturnUrl.includes('?') ? '&' : '?';
+        return `${rawReturnUrl}${separator}action=${encodeURIComponent(actionParam)}`;
+      }
+      return rawReturnUrl;
+    }
+    return null;
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,11 +38,18 @@ export default function LoginPage() {
       return;
     }
     login(email);
-    router.push('/account');
+    const targetUrl = getSafeRedirectUrl() || '/account';
+    router.push(targetUrl);
   };
 
   const handleQuickDemoLogin = (role: UserRole) => {
     switchRole(role);
+    const safeTarget = getSafeRedirectUrl();
+    if (safeTarget) {
+      router.push(safeTarget);
+      return;
+    }
+
     if (role === 'super_admin' || role === 'ops_admin') {
       router.push('/admin');
     } else if (role === 'fundraiser' || role === 'organization_manager') {
@@ -41,13 +64,8 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-6">
         {/* Brand */}
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#E84B45] to-[#BD302D] flex items-center justify-center text-white shadow-md">
-              <Heart className="w-6 h-6 fill-white" />
-            </div>
-            <span className="text-2xl font-black text-[#202124]">
-              Seva<span className="text-[#E84B45]">Setu</span>
-            </span>
+          <Link href="/" className="inline-flex items-center group mb-1">
+            <DokindLogo size="lg" />
           </Link>
           <h1 className="text-2xl font-bold text-[#202124]">Welcome Back</h1>
           <p className="text-xs text-[#555B63]">
@@ -57,6 +75,15 @@ export default function LoginPage() {
 
         {/* Login Form Card */}
         <div className="bg-white rounded-3xl border border-[#E8E6E1] p-7 shadow-xs space-y-5">
+          {actionParam && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs flex items-center gap-2">
+              <Info className="w-4 h-4 text-[#EF4949] shrink-0" />
+              <span>
+                Please sign in to complete your requested action on the campaign.
+              </span>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
               {error}

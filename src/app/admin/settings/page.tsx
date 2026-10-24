@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { SiteSettings } from '@/lib/types';
@@ -16,6 +17,8 @@ import {
   Save,
   Server,
   Database,
+  Activity,
+  Tag,
 } from 'lucide-react';
 
 export default function PlatformSettingsPage() {
@@ -83,7 +86,13 @@ export default function PlatformSettingsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link href="/admin/settings/badge-styles">
+            <Button size="sm" variant="outline" className="text-xs text-[#EF4949] border-[#EF4949]/30 hover:bg-[#FFF0EF]">
+              <Tag className="w-3.5 h-3.5 mr-1" />
+              Badge & Tag Styles
+            </Button>
+          </Link>
           <Button size="sm" variant="outline" onClick={handleExportBackup} className="text-xs">
             <Download className="w-3.5 h-3.5 mr-1" />
             Download DB Snapshot
@@ -226,6 +235,131 @@ export default function PlatformSettingsPage() {
                   onChange={(e) => setSettings({ ...settings, minimumDonationINR: Number(e.target.value) || 50 })}
                   className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-2 text-xs font-mono font-bold"
                 />
+              </div>
+
+              {/* Master Prompt 8: Donation Accounting & Platform Fee Settings */}
+              <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Platform Fee & Contribution Rules</span>
+                  </span>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.platformFeeEnabled !== false}
+                      onChange={(e) => setSettings({ ...settings, platformFeeEnabled: e.target.checked })}
+                      className="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-[11px] font-semibold text-emerald-900">Fee Active</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-bold text-emerald-900 mb-0.5">
+                      Default Platform Fee (%)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={20}
+                      step={0.5}
+                      value={settings.defaultPlatformFeePercent ?? 5}
+                      onChange={(e) => setSettings({ ...settings, defaultPlatformFeePercent: Number(e.target.value) || 0 })}
+                      className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold"
+                    />
+                    <span className="text-[10px] text-emerald-700 block mt-0.5">Deducted from campaign gross (default 5%)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-emerald-900 mb-0.5">
+                      Dokind Extra Support Options
+                    </label>
+                    <input
+                      type="text"
+                      value={(settings.dokindFoundationContributionOptions || [0, 1, 2, 3, 5]).join(', ')}
+                      onChange={(e) => {
+                        const arr = e.target.value.split(',').map((v) => Number(v.trim())).filter((v) => !isNaN(v));
+                        setSettings({ ...settings, dokindFoundationContributionOptions: arr });
+                      }}
+                      className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold"
+                    />
+                    <span className="text-[10px] text-emerald-700 block mt-0.5">Comma-separated % (e.g. 0, 1, 2, 3, 5)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Master Prompt 10: Live Ticker & Trust Strip Configuration (DonateKart Inspired) */}
+              <div className="p-4 bg-rose-50/70 rounded-xl border border-rose-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-rose-950 flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-[#E84B45]" />
+                    <span>Live Donation & Trust Ticker (DonateKart Style)</span>
+                  </span>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.liveTickerEnabled !== false}
+                      onChange={(e) => setSettings({ ...settings, liveTickerEnabled: e.target.checked })}
+                      className="w-3.5 h-3.5 rounded text-[#E84B45] focus:ring-[#E84B45]"
+                    />
+                    <span className="text-[11px] font-semibold text-rose-900">Ticker Active</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-rose-900 mb-0.5">
+                    Display Mode
+                  </label>
+                  <select
+                    value={settings.tickerMode || 'live_donations'}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        tickerMode: e.target.value as 'live_donations' | 'trust_messages' | 'hybrid',
+                      })
+                    }
+                    className="w-full bg-white border border-rose-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-800"
+                  >
+                    <option value="live_donations">Mode 1: Verified Live Donations Only</option>
+                    <option value="trust_messages">Mode 2: Platform Trust & Assurance Statements</option>
+                    <option value="hybrid">Mode 3: Hybrid (Interleaved Donations & Trust Statements)</option>
+                  </select>
+                  <span className="text-[10px] text-rose-700 block mt-0.5">
+                    Controls what scrolls across the full-width strip under the hero carousel.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-rose-900 mb-0.5">
+                    Platform Trust Statements (One per line)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={(
+                      settings.trustMessages || [
+                        '100% Tax Deductible under Section 80G with Instant Receipts',
+                        'Direct Hospital & Verified NGO Escrow Disbursements',
+                        'Zero Platform Fee On Emergency Pediatric & Cancer Surgeries',
+                        'Wholesale Item Giving With Zero Markup & Live Tracking',
+                        'NITI Aayog NGO-Darpan Verified Grassroots Partners',
+                      ]
+                    ).join('\n')}
+                    onChange={(e) => {
+                      const lines = e.target.value
+                        .split('\n')
+                        .map((l) => l.trim())
+                        .filter(Boolean);
+                      setSettings({ ...settings, trustMessages: lines });
+                    }}
+                    className="w-full bg-white border border-rose-300 rounded-lg p-2 text-xs font-sans text-neutral-800"
+                    placeholder="Enter verifiable statements..."
+                  />
+                  <span className="text-[10px] text-rose-700 block mt-0.5">
+                    Displayed with dokind brand mark separators across the strip.
+                  </span>
+                </div>
               </div>
 
               <div>

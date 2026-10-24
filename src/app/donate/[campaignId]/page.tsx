@@ -22,6 +22,7 @@ import {
   CreditCard,
   Smartphone,
   Building,
+  Package,
 } from 'lucide-react';
 
 export default function DonationCheckoutPage() {
@@ -39,10 +40,24 @@ export default function DonationCheckoutPage() {
     : 1001;
   const productName = searchParams?.get('product') || null;
   const productQty = searchParams?.get('qty') || null;
+  const itemsParam = searchParams?.get('items') || null;
 
-  const [amount, setAmount] = useState<number>(initialAmount);
+  let initialAllocations: { itemId: string; itemName: string; unitPrice: number; quantity: number }[] = [];
+  if (itemsParam) {
+    try {
+      initialAllocations = JSON.parse(decodeURIComponent(itemsParam));
+    } catch (e) {
+      // fallback if simple object
+    }
+  }
+
+  const [itemAllocations, setItemAllocations] = useState(initialAllocations);
+  const itemsSubtotal = itemAllocations.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+
+  const [amount, setAmount] = useState<number>(itemsSubtotal > 0 ? itemsSubtotal : initialAmount);
   const [customAmount, setCustomAmount] = useState<string>('');
-  const [tipPercent, setTipPercent] = useState<number>(8); // default 8% tip
+  const [tipPercent, setTipPercent] = useState<number>(0); // voluntary tip
+  const [dokindContribPercent, setDokindContribPercent] = useState<number>(2); // optional 2% Dokind Foundation fund
   const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
   const [isRecurring, setIsRecurring] = useState<boolean>(campaign?.campaignType === 'monthly');
   const [donorName, setDonorName] = useState<string>(user?.name || '');
@@ -82,8 +97,12 @@ export default function DonationCheckoutPage() {
   }
 
   const effectiveAmount = customAmount ? Number(customAmount) : amount;
+  const platformFeePercent = 5;
+  const platformFeeAmount = Math.round((effectiveAmount * platformFeePercent) / 100);
+  const netCampaignAmount = Math.max(0, effectiveAmount - platformFeeAmount);
+  const dokindContribAmount = Math.round((effectiveAmount * dokindContribPercent) / 100);
   const tipAmount = Math.round((effectiveAmount * tipPercent) / 100);
-  const totalPayable = effectiveAmount + tipAmount;
+  const totalPayable = effectiveAmount + dokindContribAmount + tipAmount;
 
   // Form validation
   const validateForm = () => {
@@ -118,6 +137,9 @@ export default function DonationCheckoutPage() {
           campaignId: campaign.id,
           amount: effectiveAmount,
           tipAmount,
+          dokindContributionPercent: dokindContribPercent,
+          dokindContributionAmount: dokindContribAmount,
+          platformFeePercent,
           donorName: isAnonymous ? 'Anonymous Donor' : donorName,
           donorEmail,
           donorPhone,
@@ -126,6 +148,7 @@ export default function DonationCheckoutPage() {
           paymentMethod,
           isRecurring,
           message,
+          itemAllocations: itemAllocations.length > 0 ? itemAllocations : undefined,
         }),
       });
 
@@ -230,9 +253,43 @@ export default function DonationCheckoutPage() {
                 </span>
               </div>
               {completedPanOrText(completedDonation)}
+              {completedDonation.itemAllocations && completedDonation.itemAllocations.length > 0 && (
+                <div className="border-t border-neutral-200 pt-2 space-y-1">
+                  <span className="text-neutral-500 font-semibold uppercase text-[10px] tracking-wider block">
+                    Sponsored Relief Products
+                  </span>
+                  {completedDonation.itemAllocations.map((it: any, idx: number) => (
+                    <div key={idx} className="flex justify-between text-neutral-800">
+                      <span>{it.quantity}× {it.itemName}</span>
+                      <span className="font-mono font-bold">{formatINR(it.unitPrice * it.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Transparent Financial Allocation in Receipt */}
+              <div className="border-t border-neutral-200 pt-2 space-y-1 text-[11px] text-[#555B63]">
+                <div className="flex justify-between">
+                  <span>Gross Donation:</span>
+                  <span className="font-mono">{formatINR(completedDonation.grossAmount || completedDonation.amount)}</span>
+                </div>
+                <div className="flex justify-between text-emerald-700 font-medium">
+                  <span>Net Allocated to Campaign:</span>
+                  <span className="font-mono font-bold">{formatINR(completedDonation.netCampaignAmount ?? Math.round((completedDonation.grossAmount || completedDonation.amount) * 0.95))}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Dokind Platform Operational Fee (5%):</span>
+                  <span className="font-mono">{formatINR(completedDonation.platformFeeAmount ?? Math.round((completedDonation.grossAmount || completedDonation.amount) * 0.05))}</span>
+                </div>
+                {(completedDonation.dokindContributionAmount ?? 0) > 0 && (
+                  <div className="flex justify-between text-[#EF4949]">
+                    <span>Dokind Foundation Extra Support:</span>
+                    <span className="font-mono font-bold">+ {formatINR(completedDonation.dokindContributionAmount)}</span>
+                  </div>
+                )}
+              </div>
               <div className="flex justify-between border-t border-neutral-200 pt-2 font-bold text-sm">
-                <span>Total Amount Paid:</span>
-                <span className="text-[#E84B45]">{formatINR(completedDonation.totalAmount)}</span>
+                <span>Total Amount Charged:</span>
+                <span className="text-[#EF4949]">{formatINR(completedDonation.totalAmount)}</span>
               </div>
             </div>
 
@@ -313,7 +370,30 @@ export default function DonationCheckoutPage() {
           </div>
         </div>
 
-        {productName && (
+        {itemAllocations.length > 0 && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-900 space-y-2">
+            <div className="flex items-center justify-between font-bold border-b border-emerald-200 pb-1.5">
+              <span className="flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-emerald-700" />
+                <span>Selected Relief Product Allocation</span>
+              </span>
+              <span className="font-mono text-emerald-800">{formatINR(itemsSubtotal)}</span>
+            </div>
+            {itemAllocations.map((it, idx) => (
+              <div key={idx} className="flex justify-between items-center text-[11px]">
+                <span>
+                  {it.quantity}× {it.itemName} (@ {formatINR(it.unitPrice)})
+                </span>
+                <span className="font-mono font-bold">{formatINR(it.unitPrice * it.quantity)}</span>
+              </div>
+            ))}
+            <div className="text-[10px] text-emerald-700 pt-1">
+              ✓ 100% routed directly to verified vendor procurement and direct beneficiary handover.
+            </div>
+          </div>
+        )}
+
+        {productName && itemAllocations.length === 0 && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
             <span>Sponsoring: <strong>{productQty} x {productName}</strong></span>
             <span className="font-bold">{formatINR(effectiveAmount)}</span>
@@ -380,35 +460,64 @@ export default function DonationCheckoutPage() {
             </div>
           </div>
 
-          {/* Section 2: Platform Voluntary Tip */}
-          <div className="bg-white p-6 rounded-2xl border border-[#E8E6E1] shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-[#202124]">
-                  Support SevaSetu’s Operations (Optional Tip)
-                </h3>
-                <p className="text-xs text-[#555B63]">
-                  We charge 0% platform fee for medical patients. Your tip helps fund our medical verification team and server bandwidth.
-                </p>
+          {/* Section 2: Transparent Accounting & Optional Dokind Foundation Support */}
+          <div className="bg-white p-6 rounded-2xl border border-[#E8E6E1] shadow-2xs space-y-4">
+            {/* Transparent 5% Platform Fee Deduction Display */}
+            <div className="bg-[#FAF9F6] p-4 rounded-xl border border-[#E8E6E1] space-y-2.5 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-neutral-200">
+                <span className="font-bold text-[#202124] flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Transparent Campaign Allocation</span>
+                </span>
+                <span className="text-[11px] font-mono text-neutral-500">5% Operational Platform Fee</span>
               </div>
-              <span className="text-xs font-bold text-[#E84B45]">{formatINR(tipAmount)}</span>
+              <div className="flex justify-between text-[#555B63]">
+                <span>Base Donation Amount:</span>
+                <span className="font-mono font-semibold text-[#202124]">{formatINR(effectiveAmount)}</span>
+              </div>
+              <div className="flex justify-between text-[#555B63]">
+                <span>dokind Platform Fee (5% deducted):</span>
+                <span className="font-mono font-semibold text-rose-600">- {formatINR(platformFeeAmount)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-dashed border-neutral-200">
+                <span>Net Raised For This Campaign:</span>
+                <span className="font-mono">{formatINR(netCampaignAmount)}</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap text-xs">
-              {[0, 5, 8, 10, 15].map((pct) => (
-                <button
-                  key={pct}
-                  type="button"
-                  onClick={() => setTipPercent(pct)}
-                  className={`px-3 py-1.5 rounded-lg font-semibold border transition-colors cursor-pointer ${
-                    tipPercent === pct
-                      ? 'bg-[#202124] text-white border-[#202124]'
-                      : 'bg-[#FAF9F6] text-[#555B63] border-[#E8E6E1] hover:bg-neutral-200'
-                  }`}
-                >
-                  {pct === 0 ? 'No tip' : `${pct}%`}
-                </button>
-              ))}
+            {/* Optional Additional Contribution to Dokind Foundation Donation Fund */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-[#202124] flex items-center gap-1.5">
+                    <Heart className="w-4 h-4 text-[#EF4949] fill-[#EF4949]" />
+                    <span>Dokind Foundation Support (Optional Extra)</span>
+                  </h3>
+                  <p className="text-xs text-[#555B63] mt-0.5">
+                    dokind coordinates medical verifications and emergency donor support across India. Add an optional voluntary contribution on top of your gift.
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-[#EF4949] font-mono">
+                  + {formatINR(dokindContribAmount)}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap text-xs">
+                {[0, 1, 2, 3, 5].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => setDokindContribPercent(pct)}
+                    className={`px-3 py-1.5 rounded-lg font-semibold border transition-all cursor-pointer ${
+                      dokindContribPercent === pct
+                        ? 'bg-[#202124] text-white border-[#202124] shadow-xs'
+                        : 'bg-[#FAF9F6] text-[#555B63] border-[#E8E6E1] hover:bg-neutral-200'
+                    }`}
+                  >
+                    {pct === 0 ? '0% (No extra)' : pct === 2 ? '2% (Recommended)' : `${pct}%`}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -572,11 +681,11 @@ export default function DonationCheckoutPage() {
               <span className="text-xs text-neutral-400 uppercase tracking-wider block">
                 Total Amount Payable
               </span>
-              <span className="text-2xl font-black text-white">
+              <span className="text-2xl font-black text-white font-mono">
                 {formatINR(totalPayable)}
               </span>
               <span className="text-[11px] text-neutral-400 block">
-                Includes {formatINR(effectiveAmount)} donation + {formatINR(tipAmount)} tip
+                {formatINR(effectiveAmount)} base donation {dokindContribAmount > 0 ? `+ ${formatINR(dokindContribAmount)} Dokind Foundation` : ''} (Net {formatINR(netCampaignAmount)} to cause)
               </span>
             </div>
 
@@ -625,7 +734,7 @@ export default function DonationCheckoutPage() {
             <div className="p-3.5 bg-[#FAF9F6] rounded-xl text-xs space-y-1.5">
               <div className="flex justify-between">
                 <span className="text-neutral-500">Merchant:</span>
-                <span className="font-semibold text-[#202124]">SevaSetu Foundation</span>
+                <span className="font-semibold text-[#202124]">dokind Foundation</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Order ID:</span>

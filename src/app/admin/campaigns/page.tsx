@@ -22,6 +22,10 @@ import {
   Sparkles,
   ExternalLink,
   Plus,
+  Copy,
+  Package,
+  Clock,
+  Inbox,
 } from 'lucide-react';
 
 export default function AdminCampaignsPage() {
@@ -79,6 +83,19 @@ export default function AdminCampaignsPage() {
     }
   };
 
+  const handleDuplicate = (campaign: Campaign) => {
+    try {
+      const cloned = db.duplicateCampaignAsDraft(campaign.id, user?.name || 'Admin');
+      setCampaigns([...db.getCampaigns()]);
+      notify(`Campaign duplicated as clean draft: "${cloned.title}". Raised amounts reset to 0.`);
+    } catch (err: any) {
+      notify(`Failed to duplicate: ${err.message}`);
+    }
+  };
+
+  const pendingSubmissionsCount = db.getRevisionSubmissions('pending_review').length;
+  const pendingUpdatesCount = db.getCampaignUpdates(undefined, true).filter((u) => u.status === 'pending_review').length;
+
   const handleConfirmModalAction = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCampaign || !modalAction) return;
@@ -116,16 +133,38 @@ export default function AdminCampaignsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link href="/admin/campaigns/approvals">
-            <Button size="sm" variant="outline" className="text-xs">
-              Approvals Queue ({campaigns.filter((c) => c.status === 'submitted' || c.status === 'under_review').length})
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/admin/campaigns/submissions">
+            <Button size="sm" variant="outline" className="text-xs relative">
+              <Inbox className="w-3.5 h-3.5 mr-1 text-[#E84B45]" />
+              Staff Proposals
+              {pendingSubmissionsCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-[#E84B45] text-white text-[10px] font-bold">
+                  {pendingSubmissionsCount}
+                </span>
+              )}
             </Button>
           </Link>
-          <Link href="/start-campaign" target="_blank">
-            <Button size="sm" className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs">
+          <Link href="/admin/campaigns/updates">
+            <Button size="sm" variant="outline" className="text-xs relative">
+              <Clock className="w-3.5 h-3.5 mr-1 text-blue-600" />
+              Field Updates
+              {pendingUpdatesCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[10px] font-bold">
+                  {pendingUpdatesCount}
+                </span>
+              )}
+            </Button>
+          </Link>
+          <Link href="/admin/campaigns/approvals">
+            <Button size="sm" variant="outline" className="text-xs">
+              Approvals ({campaigns.filter((c) => c.status === 'submitted' || c.status === 'under_review').length})
+            </Button>
+          </Link>
+          <Link href="/admin/campaigns/new">
+            <Button size="sm" className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs font-bold">
               <Plus className="w-3.5 h-3.5 mr-1" />
-              New Fundraiser
+              New Campaign (Wizard)
             </Button>
           </Link>
         </div>
@@ -326,6 +365,23 @@ export default function AdminCampaignsPage() {
                             Complete
                           </button>
                         )}
+
+                        <Link href={`/admin/campaigns/${camp.id}/items`}>
+                          <button
+                            className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-700"
+                            title="Manage Item Requirements & Delivery Fulfillment"
+                          >
+                            <Package className="w-4 h-4 text-emerald-600" />
+                          </button>
+                        </Link>
+
+                        <button
+                          onClick={() => handleDuplicate(camp)}
+                          className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-700"
+                          title="Duplicate Campaign as Draft (Zeroes out raised amount & donors)"
+                        >
+                          <Copy className="w-4 h-4 text-blue-600" />
+                        </button>
 
                         <Link href={`/admin/campaigns/${camp.id}/edit`}>
                           <button

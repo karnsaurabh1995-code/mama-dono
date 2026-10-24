@@ -73,7 +73,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <strong className="block text-[#202124]">Email Inquiries</strong>
-                    <span>support@sevasetu.org.in</span>
+                    <span>support@dokind.org.in</span>
                     <span className="block text-[11px] text-neutral-400">Average response time: 2 business hours</span>
                   </div>
                 </div>
@@ -84,7 +84,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <strong className="block text-[#202124]">Registered Foundation Address</strong>
-                    <span>SevaSetu Foundation, 4th Floor, Barakhamba Road, Connaught Place, New Delhi - 110001, India</span>
+                    <span>dokind Foundation, 4th Floor, Barakhamba Road, Connaught Place, New Delhi - 110001, India</span>
                   </div>
                 </div>
               </div>

@@ -32,7 +32,7 @@ export default function HowItWorksPage() {
             Transparent Giving Architecture
           </span>
           <h1 className="text-3xl sm:text-5xl font-black text-[#202124] tracking-tight">
-            How SevaSetu Bridges Donors & Genuine Causes
+            How dokind Bridges Donors & Genuine Causes
           </h1>
           <p className="text-sm text-[#555B63] leading-relaxed">
             A step-by-step breakdown of how medical verification, secure payments, and direct hospital disbursements happen in practice.

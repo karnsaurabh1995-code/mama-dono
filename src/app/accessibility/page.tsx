@@ -18,7 +18,7 @@ export default function AccessibilityStatementPage() {
 
           <div className="prose text-xs sm:text-sm text-[#404348] space-y-4 leading-relaxed whitespace-pre-line">
             <h3 className="text-base font-bold text-[#202124]">Our Standards & Architecture</h3>
-            SevaSetu is engineered to adhere strictly to the Web Content Accessibility Guidelines (WCAG) 2.2 Level AA standards to ensure all citizens can discover causes and donate without barriers.
+            dokind is engineered to adhere strictly to the Web Content Accessibility Guidelines (WCAG) 2.2 Level AA standards to ensure all citizens can discover causes and donate without barriers.
 
             <h3 className="text-base font-bold text-[#202124]">Key Accessibility Features Implemented</h3>
             - **Keyboard Navigation & Visible Focus**: Every interactive control, modal, and button has high-contrast 2px coral-red focus indicators.

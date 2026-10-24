@@ -8,6 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  as?: 'button' | 'span';
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -20,6 +21,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       leftIcon,
       rightIcon,
+      as = 'button',
       children,
       ...props
     },
@@ -29,13 +31,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       'inline-flex items-center justify-center font-medium rounded-lg transition-all focus:outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
 
     const variants = {
-      primary: 'bg-[#E84B45] text-white hover:bg-[#BD302D] shadow-sm active:scale-[0.99]',
+      primary: 'bg-[#EF4949] text-white hover:bg-[#D9363E] shadow-sm active:scale-[0.99]',
       secondary: 'bg-[#202124] text-white hover:bg-[#33353A] shadow-sm',
       outline:
-        'border border-[#E8E6E1] bg-white text-[#202124] hover:bg-[#FAF9F6] hover:border-[#D5D1C8]',
-      ghost: 'bg-transparent text-[#555B63] hover:text-[#202124] hover:bg-black/5',
+        'border border-[#EAE7E2] bg-white text-[#202124] hover:bg-[#FAF9F6] hover:border-[#D5D1C8]',
+      ghost: 'bg-transparent text-[#62666D] hover:text-[#202124] hover:bg-black/5',
       danger: 'bg-red-600 text-white hover:bg-red-700',
-      success: 'bg-[#25845B] text-white hover:bg-[#1E6B49]',
+      success: 'bg-[#238665] text-white hover:bg-[#1E6B49]',
     };
 
     const sizes = {
@@ -44,6 +46,20 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'text-base px-6 py-3.5 gap-2.5 h-12',
     };
 
+    if (as === 'span') {
+      return (
+        <span
+          className={cn(baseStyles, variants[variant], sizes[size], className)}
+          aria-disabled={disabled || isLoading}
+        >
+          {isLoading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+          {!isLoading && leftIcon}
+          <span>{children}</span>
+          {!isLoading && rightIcon}
+        </span>
+      );
+    }
+
     return (
       <button
         ref={ref}
@@ -51,7 +67,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       >
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {isLoading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
         {!isLoading && leftIcon}
         <span>{children}</span>
         {!isLoading && rightIcon}

@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { DokindLogo } from '../common/DokindLogo';
 
 export function Footer() {
   const pathname = usePathname();
@@ -42,13 +43,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-neutral-800">
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-2.5 group inline-flex">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#E84B45] to-[#BD302D] flex items-center justify-center text-white shadow-md">
-                <Heart className="w-6 h-6 fill-white stroke-white" />
-              </div>
-              <span className="text-2xl font-black tracking-tight text-white">
-                Seva<span className="text-[#E84B45]">Setu</span>
-              </span>
+            <Link href="/" className="flex items-center group inline-flex">
+              <DokindLogo variant="light" size="lg" />
             </Link>
 
             <p className="text-sm leading-relaxed text-[#B3B9C4] max-w-sm">
@@ -190,12 +186,12 @@ export function Footer() {
 
             <div className="pt-2 text-xs space-y-1.5 text-neutral-400">
               <div className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-[#E84B45]" />
+                <Phone className="w-3.5 h-3.5 text-[#EF4949]" />
                 <span>+91 80 4719 2300 (Mon-Sat, 9AM-7PM)</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-[#E84B45]" />
-                <span>support@sevasetu.org.in</span>
+                <Mail className="w-3.5 h-3.5 text-[#EF4949]" />
+                <span>support@dokind.org.in</span>
               </div>
             </div>
           </div>
@@ -226,7 +222,7 @@ export function Footer() {
 
         {/* Legal & Copyright */}
         <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <p>© 2026 SevaSetu Foundation. All rights reserved. Registered under Indian Societies Act.</p>
+          <p>© 2026 dokind Foundation. All rights reserved. Registered under Indian Societies Act.</p>
 
           <div className="flex items-center gap-5 flex-wrap">
             <Link href="/privacy-policy" className="hover:text-neutral-300 transition-colors">

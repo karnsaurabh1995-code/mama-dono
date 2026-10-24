@@ -37,6 +37,14 @@ export async function GET() {
 
     return NextResponse.json({
       enabled: true,
+      tickerMode: settings.tickerMode || 'live_donations',
+      trustMessages: settings.trustMessages || [
+        '100% Tax Deductible under Section 80G with Instant Receipts',
+        'Direct Hospital & Verified NGO Escrow Disbursements',
+        'Zero Platform Fee On Emergency Pediatric & Cancer Surgeries',
+        'Wholesale Item Giving With Zero Markup & Live Tracking',
+        'NITI Aayog NGO-Darpan Verified Grassroots Partners',
+      ],
       events,
       count: events.length,
     });

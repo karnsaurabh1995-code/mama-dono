@@ -1,6 +1,7 @@
 export type UserRole =
   | 'super_admin'
   | 'ops_admin'
+  | 'head_staff'
   | 'reviewer'
   | 'finance'
   | 'content_editor'
@@ -34,6 +35,42 @@ export type CampaignStatus =
 
 export type CampaignType = 'one-time' | 'monthly' | 'product';
 
+export interface CampaignStoryBlock {
+  id: string;
+  type:
+    | 'headline'
+    | 'paragraph'
+    | 'problem'
+    | 'solution'
+    | 'beneficiaries'
+    | 'budget_breakdown'
+    | 'quote'
+    | 'image'
+    | 'faq'
+    | 'cta';
+  title?: string;
+  content: string;
+  caption?: string;
+  imageUrl?: string;
+  order: number;
+}
+
+export interface CampaignArtworkConfig {
+  mainPosterUrl?: string;
+  heroImageUrl?: string;
+  thumbnailSquareUrl?: string;
+  socialShareUrl?: string;
+  bannerDesktopUrl?: string;
+  bannerMobileUrl?: string;
+  beforeAfter?: {
+    beforeUrl: string;
+    afterUrl: string;
+    caption: string;
+  };
+  gallery: string[];
+  videoUrl?: string;
+}
+
 export interface ItemizedBudgetItem {
   id: string;
   item: string;
@@ -51,6 +88,7 @@ export interface Campaign {
   campaignType: CampaignType;
   goalAmount: number;
   raisedAmount: number;
+  netRaisedAmount?: number;
   supporterCount: number;
   deadline?: string;
   featured: boolean;
@@ -78,6 +116,27 @@ export interface Campaign {
     url: string;
     verified: boolean;
   }[];
+  // Master Prompt 3 extensions
+  acceptsMonetary?: boolean;
+  acceptsItems?: boolean;
+  itemDonationMode?: 'financial_sponsor' | 'physical_goods' | 'both';
+  internalCampaignId?: string;
+  internalNotes?: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  campaignManager?: string;
+  scheduledPublishDate?: string;
+  startDate?: string;
+  endDate?: string;
+  storyBlocks?: CampaignStoryBlock[];
+  artwork?: CampaignArtworkConfig;
+  verificationChecklist?: {
+    contentReviewed: boolean;
+    docsReviewed: boolean;
+    orgVerified: boolean;
+    financialApproved: boolean;
+    readyToPublish: boolean;
+    reviewerComments?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -161,6 +220,79 @@ export type PaymentStatus =
   | 'refunded'
   | 'partially_refunded';
 
+export interface CampaignItemNeed {
+  id: string;
+  campaignId: string;
+  campaignSlug?: string;
+  name: string;
+  category: string;
+  description: string;
+  detailedNeed?: string;
+  imageUrl: string;
+  galleryUrls?: string[];
+  unit: string;
+  unitPrice: number;
+  quantityRequired: number;
+  quantityFunded: number;
+  quantityProcured: number;
+  quantityDelivered: number;
+  quantityReserved?: number;
+  maxPerOrder?: number;
+  minQuantity?: number;
+  order: number;
+  isFeatured?: boolean;
+  isActive: boolean;
+  donationMode: 'financial_sponsor' | 'physical_goods' | 'both';
+  fulfillmentStatus: 'pending' | 'procuring' | 'dispatched' | 'delivered';
+  fulfillmentDescription?: string;
+  internalNotes?: string;
+  physicalReceivingAddress?: string;
+  physicalInstructions?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PhysicalItemPledge {
+  id: string;
+  campaignId: string;
+  itemId: string;
+  donorName: string;
+  donorEmail: string;
+  donorPhone?: string;
+  quantity: number;
+  shippingCarrier?: string;
+  trackingNumber?: string;
+  status: 'pledged' | 'shipped' | 'received_verified' | 'cancelled';
+  receivedAt?: string;
+  verifiedBy?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CampaignRevisionSubmission {
+  id: string;
+  campaignId?: string; // undefined if proposing brand new campaign
+  title: string;
+  slug?: string;
+  submittedBy: string;
+  submittedByName: string;
+  submittedAt: string;
+  status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'changes_requested';
+  submissionNotes?: string;
+  reviewerNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  proposedTitle?: string;
+  proposedShortDescription?: string;
+  proposedStory?: string;
+  proposedStoryBlocks?: CampaignStoryBlock[];
+  proposedArtwork?: CampaignArtworkConfig;
+  proposedCategory?: CauseCategory;
+  proposedBeneficiaryName?: string;
+  proposedBeneficiaryLocation?: string;
+  proposedItems?: Omit<CampaignItemNeed, 'id' | 'createdAt' | 'updatedAt' | 'quantityFunded' | 'quantityProcured' | 'quantityDelivered'>[];
+}
+
 export interface Donation {
   id: string;
   campaignId: string;
@@ -172,6 +304,12 @@ export interface Donation {
   donorPan?: string;
   isAnonymous: boolean;
   amount: number;
+  grossAmount?: number;
+  platformFeePercent?: number;
+  platformFeeAmount?: number;
+  netCampaignAmount?: number;
+  dokindContributionPercent?: number;
+  dokindContributionAmount?: number;
   tipAmount: number;
   totalAmount: number;
   currency: 'INR';
@@ -185,6 +323,13 @@ export interface Donation {
   message?: string;
   isRecurring: boolean;
   recurringFrequency?: 'monthly';
+  itemAllocations?: {
+    itemId: string;
+    itemName: string;
+    unitPrice: number;
+    quantity: number;
+  }[];
+  itemDonationTotal?: number;
   createdAt: string;
 }
 
@@ -212,9 +357,15 @@ export interface CampaignUpdate {
   content: string;
   authorName: string;
   authorRole: string;
+  authorId?: string;
   mediaUrls?: string[];
+  videoUrl?: string;
   milestoneAchieved?: string;
+  eventDate?: string;
+  status?: 'draft' | 'pending_review' | 'published' | 'rejected';
+  reviewedBy?: string;
   publishedAt: string;
+  createdAt?: string;
 }
 
 export interface ImpactStory {
@@ -255,6 +406,9 @@ export interface FAQItem {
   question: string;
   answer: string;
   category: 'donor' | 'fundraiser' | 'tax_80g' | 'verification' | 'payments';
+  order?: number;
+  isActive?: boolean;
+  showOnHomepage?: boolean;
 }
 
 export interface AuditLog {
@@ -287,6 +441,13 @@ export interface SiteSettings {
   maintenanceMessage?: string;
   ipAllowlist?: string[];
   sessionTimeoutMinutes?: number;
+  // Master Prompt 8 fee & contribution configuration
+  defaultPlatformFeePercent: number; // default 5%
+  platformFeeEnabled: boolean; // default true
+  dokindFoundationContributionOptions: number[]; // default [0, 1, 2, 3, 5]
+  // Master Prompt 10 Top section & DonateKart ticker configuration
+  tickerMode?: 'live_donations' | 'trust_messages' | 'hybrid';
+  trustMessages?: string[];
 }
 
 // ----------------- MASTER PROMPT 2 EXTENSIONS -----------------
@@ -304,6 +465,18 @@ export type PageSectionType =
   | 'faq'
   | 'cta_box'
   | 'rich_text';
+
+export interface Testimonial {
+  id: string;
+  authorName: string;
+  role: string;
+  avatarUrl?: string;
+  quote: string;
+  rating: number;
+  featured: boolean;
+  date?: string;
+  badge?: string;
+}
 
 export interface PageSection {
   id: string;
@@ -496,5 +669,70 @@ export interface RolePermission {
   name: string;
   description: string;
   permissions: string[];
+}
+
+// ----------------- MASTER PROMPT 11 EXTENSIONS: CAMPAIGN BADGES & LOGIN GATES -----------------
+
+export type BadgeType =
+  | 'verified'
+  | 'tax_80g'
+  | 'urgent'
+  | 'cause_category'
+  | 'new'
+  | 'fully_funded'
+  | 'completed';
+
+export interface BadgeStyleConfig {
+  id: BadgeType;
+  label: string;
+  defaultText: string;
+  isEnabled: boolean;
+  backgroundColor: string;
+  textColor: string;
+  borderColor: string;
+  borderWidth: number; // in px
+  borderRadius: 'pill' | 'rounded-md' | 'rounded-lg' | 'square';
+  fontSize: number; // in px
+  fontWeight: 'medium' | 'semibold' | 'bold' | 'black';
+  letterSpacing: 'normal' | 'wide' | 'wider' | 'widest';
+  paddingX: number; // in px
+  paddingY: number; // in px
+  icon: 'shield' | 'flame' | 'award' | 'sparkles' | 'check' | 'percent' | 'clock' | 'tag' | 'none';
+  iconColor?: string;
+  iconSize: number; // in px
+  shadow: 'none' | 'xs' | 'sm' | 'md';
+  cardVariant: {
+    fontSize: number;
+    paddingX: number;
+    paddingY: number;
+    iconSize: number;
+  };
+  updatedAt?: string;
+}
+
+export interface CampaignReport {
+  id: string;
+  campaignId: string;
+  campaignTitle: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  reason: string;
+  explanation: string;
+  status: 'pending_review' | 'under_investigation' | 'resolved' | 'dismissed';
+  createdAt: string;
+}
+
+export interface CampaignUpdateRequest {
+  id: string;
+  campaignId: string;
+  campaignTitle: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  inquiryType: string;
+  message?: string;
+  status: 'received' | 'notified' | 'answered';
+  createdAt: string;
 }
 

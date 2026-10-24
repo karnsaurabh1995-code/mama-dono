@@ -37,7 +37,7 @@ export const DEMO_USERS: Record<UserRole, User> = {
   reviewer: {
     id: 'user-reviewer-1',
     name: 'Kavita Nair',
-    email: 'kavita.nair@sevasetu.org.in',
+    email: 'kavita.nair@dokind.org.in',
     role: 'reviewer',
     avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80',
     createdAt: '2025-01-10T00:00:00Z',
@@ -45,7 +45,7 @@ export const DEMO_USERS: Record<UserRole, User> = {
   finance: {
     id: 'user-finance-1',
     name: 'Anand Kulkarni',
-    email: 'anand.k@sevasetu.org.in',
+    email: 'anand.k@dokind.org.in',
     role: 'finance',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
     createdAt: '2025-01-10T00:00:00Z',
@@ -53,23 +53,32 @@ export const DEMO_USERS: Record<UserRole, User> = {
   content_editor: {
     id: 'user-editor-1',
     name: 'Meera Sen',
-    email: 'meera.sen@sevasetu.org.in',
+    email: 'meera.sen@dokind.org.in',
     role: 'content_editor',
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
     createdAt: '2025-01-10T00:00:00Z',
   },
+  head_staff: {
+    id: 'user-head-staff-1',
+    name: 'Priyanka Sharma (Field Lead)',
+    email: 'priyanka.staff@dokind.org.in',
+    role: 'head_staff',
+    phone: '+91 98200 44556',
+    avatarUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
+    createdAt: '2025-08-01T00:00:00Z',
+  },
   ops_admin: {
     id: 'user-ops-1',
     name: 'Arjun Singhal',
-    email: 'arjun.s@sevasetu.org.in',
+    email: 'arjun.s@dokind.org.in',
     role: 'ops_admin',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
     createdAt: '2024-11-01T00:00:00Z',
   },
   super_admin: {
     id: 'user-admin-1',
-    name: 'Chief Administrator (SevaSetu)',
-    email: 'admin@sevasetu.org.in',
+    name: 'Chief Administrator (dokind)',
+    email: 'admin@dokind.org.in',
     role: 'super_admin',
     avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=150&q=80',
     createdAt: '2024-01-01T00:00:00Z',
@@ -80,6 +89,7 @@ interface AuthContextType {
   user: User | null;
   role: UserRole | null;
   isAuthenticated: boolean;
+  isLoaded: boolean;
   login: (email: string, role?: UserRole) => void;
   logout: () => void;
   switchRole: (role: UserRole) => void;
@@ -90,26 +100,47 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
   isAuthenticated: false,
+  isLoaded: false,
   login: () => {},
   logout: () => {},
   switchRole: () => {},
   updateProfile: () => {},
 });
 
+function syncCookie(user: User | null) {
+  if (typeof document === 'undefined') return;
+  if (user) {
+    const sessionPayload = encodeURIComponent(
+      JSON.stringify({ id: user.id, role: user.role, name: user.name })
+    );
+    document.cookie = `dokind_session=${sessionPayload}; path=/; max-age=2592000; SameSite=Lax`;
+  } else {
+    document.cookie = 'dokind_session=; path=/; max-age=0; SameSite=Lax';
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('sevasetu_user');
+      const savedUser =
+        localStorage.getItem('dokind_user') || localStorage.getItem('sevasetu_user');
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+        syncCookie(parsed);
       } else {
-        // Default to demo donor for seamless preview
-        setUser(DEMO_USERS.donor);
+        // Unauthenticated visitor
+        setUser(null);
+        syncCookie(null);
       }
     } catch {
-      setUser(DEMO_USERS.donor);
+      setUser(null);
+      syncCookie(null);
+    } finally {
+      setIsLoaded(true);
     }
   }, []);
 
@@ -123,25 +154,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: email.split('@')[0],
     };
     setUser(selectedUser);
-    localStorage.setItem('sevasetu_user', JSON.stringify(selectedUser));
+    localStorage.setItem('dokind_user', JSON.stringify(selectedUser));
+    syncCookie(selectedUser);
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('dokind_user');
     localStorage.removeItem('sevasetu_user');
+    syncCookie(null);
   };
 
   const switchRole = (newRole: UserRole) => {
     const demoUser = DEMO_USERS[newRole];
     setUser(demoUser);
-    localStorage.setItem('sevasetu_user', JSON.stringify(demoUser));
+    localStorage.setItem('dokind_user', JSON.stringify(demoUser));
+    syncCookie(demoUser);
   };
 
   const updateProfile = (data: Partial<User>) => {
     if (!user) return;
     const updated = { ...user, ...data };
     setUser(updated);
-    localStorage.setItem('sevasetu_user', JSON.stringify(updated));
+    localStorage.setItem('dokind_user', JSON.stringify(updated));
+    syncCookie(updated);
   };
 
   return (
@@ -150,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         role: user ? user.role : null,
         isAuthenticated: !!user,
+        isLoaded,
         login,
         logout,
         switchRole,
