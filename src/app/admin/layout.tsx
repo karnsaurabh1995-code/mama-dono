@@ -9,6 +9,7 @@ import { UserRole } from '@/lib/types';
 import { DokindLogo, DokindMark } from '@/components/common/DokindLogo';
 import {
   LayoutDashboard,
+  LayoutList,
   Paintbrush,
   Layers,
   Palette,
@@ -116,6 +117,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       groupTitle: 'Core & Experience',
       items: [
         { id: '1', label: 'Overview', href: '/admin', icon: LayoutDashboard },
+        { id: '2c', label: 'Homepage Placements', href: '/admin/homepage-curation', icon: LayoutList },
         { id: '2', label: 'Website Builder', href: '/admin/website-builder', icon: Paintbrush },
         { id: '3', label: 'Pages & Content', href: '/admin/pages', icon: Layers },
         { id: '4', label: 'Theme & Appearance', href: '/admin/theme', icon: Palette },

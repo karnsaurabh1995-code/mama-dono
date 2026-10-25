@@ -296,24 +296,100 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
               </label>
             </div>
 
-            {/* Poster Image */}
-            <div className="bg-white p-5 rounded-2xl border border-[#E2E4E9] shadow-2xs space-y-3">
-              <h3 className="text-sm font-bold text-[#202124] pb-2 border-b border-neutral-100">
-                Campaign Poster Image
-              </h3>
-
-              <div className="aspect-video rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200">
-                <img src={campaign.imageUrl} alt={campaign.title} className="w-full h-full object-cover" />
+            {/* Multi-Poster Carousel Gallery (2-3 Posters) */}
+            <div className="bg-white p-5 rounded-2xl border border-[#E2E4E9] shadow-2xs space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+                <h3 className="text-sm font-bold text-[#202124]">
+                  Campaign Poster Carousel (2–3 Posters)
+                </h3>
+                <span className="text-[10px] font-mono font-bold text-[#EF4949] bg-rose-50 px-2 py-0.5 rounded-full">
+                  Multi-Poster Slider
+                </span>
               </div>
+              <p className="text-xs text-[#555B63]">
+                Provide 2 to 3 high-resolution poster images for the campaign page header carousel.
+              </p>
 
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">Image URL</label>
+              {/* Poster 1 (Main) */}
+              <div className="space-y-1.5 p-3 rounded-xl bg-[#FAF9F6] border border-[#EAE7E2]">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#202124]">Poster #1 (Main Hero Artwork)</label>
+                  <span className="text-[10px] font-bold text-emerald-700">Primary</span>
+                </div>
                 <input
                   type="url"
                   value={campaign.imageUrl}
-                  onChange={(e) => setCampaign({ ...campaign, imageUrl: e.target.value })}
+                  onChange={(e) => {
+                    const newUrl = e.target.value;
+                    const posters = [...(campaign.posterImages || [campaign.imageUrl])];
+                    posters[0] = newUrl;
+                    setCampaign({ ...campaign, imageUrl: newUrl, posterImages: posters });
+                  }}
+                  placeholder="https://..."
                   className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-[#E84B45]"
                 />
+                {campaign.imageUrl && (
+                  <div className="aspect-video rounded-lg overflow-hidden border border-neutral-200 mt-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={campaign.imageUrl} alt="Poster 1" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+
+              {/* Poster 2 */}
+              <div className="space-y-1.5 p-3 rounded-xl bg-[#FAF9F6] border border-[#EAE7E2]">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#202124]">Poster #2 (Medical Estimate / Diagnosis)</label>
+                  <span className="text-[10px] text-neutral-500">Optional</span>
+                </div>
+                <input
+                  type="url"
+                  value={campaign.posterImages?.[1] || ''}
+                  onChange={(e) => {
+                    const posters = [
+                      campaign.imageUrl,
+                      e.target.value,
+                      campaign.posterImages?.[2] || '',
+                    ].filter(Boolean);
+                    setCampaign({ ...campaign, posterImages: posters });
+                  }}
+                  placeholder="https://..."
+                  className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-[#E84B45]"
+                />
+                {campaign.posterImages?.[1] && (
+                  <div className="aspect-video rounded-lg overflow-hidden border border-neutral-200 mt-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={campaign.posterImages[1]} alt="Poster 2" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+
+              {/* Poster 3 */}
+              <div className="space-y-1.5 p-3 rounded-xl bg-[#FAF9F6] border border-[#EAE7E2]">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#202124]">Poster #3 (Patient / Beneficiary Verification)</label>
+                  <span className="text-[10px] text-neutral-500">Optional</span>
+                </div>
+                <input
+                  type="url"
+                  value={campaign.posterImages?.[2] || ''}
+                  onChange={(e) => {
+                    const posters = [
+                      campaign.imageUrl,
+                      campaign.posterImages?.[1] || '',
+                      e.target.value,
+                    ].filter(Boolean);
+                    setCampaign({ ...campaign, posterImages: posters });
+                  }}
+                  placeholder="https://..."
+                  className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-[#E84B45]"
+                />
+                {campaign.posterImages?.[2] && (
+                  <div className="aspect-video rounded-lg overflow-hidden border border-neutral-200 mt-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={campaign.posterImages[2]} alt="Poster 3" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -38,6 +38,7 @@ import {
   CampaignUpdateRequest,
   MediaRecognition,
   ApiKeyRecord,
+  HomepageCurationConfig,
 } from '../types';
 import { CAUSES_DATA } from '../data/causes';
 import { ORGANIZATIONS_DATA } from '../data/organizations';
@@ -716,6 +717,30 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     newsletterFocalPoint: 'center',
     newsletterImagePosition: 'right',
     newsletterFrameSize: 'normal',
+    homepageCuration: {
+      heroCampaignIds: [
+        'camp-aarav-cancer',
+        'camp-girl-education-rural',
+        'camp-hunger-mumbai-hospital',
+      ],
+      featuredCampaignIds: [
+        'camp-aarav-cancer',
+        'camp-girl-education-rural',
+        'camp-hunger-mumbai-hospital',
+        'camp-stray-dog-shelter',
+        'camp-elderly-care-pune',
+        'camp-tribal-school-assam',
+      ],
+      monthlyMissionIds: [
+        'mission-zero-hunger',
+        'mission-girl-scholarship',
+        'mission-animal-rescue',
+      ],
+      urgentCampaignIds: [
+        'camp-aarav-cancer',
+        'camp-hunger-mumbai-hospital',
+      ],
+    },
   };
   private badgeStyles: Record<BadgeType, BadgeStyleConfig> = { ...DEFAULT_BADGE_STYLES };
   private campaignReports: CampaignReport[] = [
@@ -1941,6 +1966,50 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Settings updated: ${Object.keys(newSettings).join(', ')}`,
     });
     return this.settings;
+  }
+
+  getHomepageCuration(): HomepageCurationConfig {
+    if (!this.settings.homepageCuration) {
+      this.settings.homepageCuration = {
+        heroCampaignIds: [
+          'camp-aarav-cancer',
+          'camp-girl-education-rural',
+          'camp-hunger-mumbai-hospital',
+        ],
+        featuredCampaignIds: [
+          'camp-aarav-cancer',
+          'camp-girl-education-rural',
+          'camp-hunger-mumbai-hospital',
+          'camp-stray-dog-shelter',
+          'camp-elderly-care-pune',
+          'camp-tribal-school-assam',
+        ],
+        monthlyMissionIds: [
+          'mission-zero-hunger',
+          'mission-girl-scholarship',
+          'mission-animal-rescue',
+        ],
+        urgentCampaignIds: [
+          'camp-aarav-cancer',
+          'camp-hunger-mumbai-hospital',
+        ],
+      };
+    }
+    return { ...this.settings.homepageCuration };
+  }
+
+  updateHomepageCuration(curation: Partial<HomepageCurationConfig>, actorName = 'Admin'): HomepageCurationConfig {
+    const current = this.getHomepageCuration();
+    this.settings.homepageCuration = { ...current, ...curation };
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'HOMEPAGE_CURATION_UPDATED',
+      targetType: 'settings',
+      targetId: 'homepage-curation',
+      details: `Updated homepage campaign placements: ${Object.keys(curation).join(', ')}`,
+    });
+    return { ...this.settings.homepageCuration };
   }
 
   getAuditLogs(): AuditLog[] {

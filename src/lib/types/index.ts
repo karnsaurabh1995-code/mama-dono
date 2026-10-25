@@ -154,6 +154,7 @@ export interface Campaign {
   verifiedStatus: 'verified' | 'pending' | 'unverified';
   has80G: boolean;
   imageUrl: string;
+  posterImages?: string[]; // Multiple high-res posters (up to 2-3 posters for campaign carousel)
   galleryUrls?: string[];
   beneficiaryName: string;
   beneficiaryLocation: string;
@@ -310,6 +311,7 @@ export interface CampaignItemNeed {
   description: string;
   detailedNeed?: string;
   imageUrl: string;
+  posterImages?: string[]; // Multiple high-res posters (up to 2-3 posters for campaign carousel)
   galleryUrls?: string[];
   unit: string;
   unitPrice: number;
@@ -586,6 +588,15 @@ export interface SiteSettings {
   newsletterFocalPoint?: 'center' | 'top' | 'bottom' | 'left' | 'right';
   newsletterImagePosition?: 'left' | 'right';
   newsletterFrameSize?: 'normal' | 'large' | 'compact';
+  // Admin-Curated Campaign Placement & Section Configuration
+  homepageCuration?: HomepageCurationConfig;
+}
+
+export interface HomepageCurationConfig {
+  heroCampaignIds: string[]; // Campaigns featured in the Top Hero Carousel
+  featuredCampaignIds: string[]; // Campaigns featured in the Cause & Campaign Discovery Grid
+  monthlyMissionIds: string[]; // Campaigns or missions in the Monthly Giving Section
+  urgentCampaignIds?: string[]; // Campaigns highlighted with emergency/urgent banners
 }
 
 export interface MediaRecognition {

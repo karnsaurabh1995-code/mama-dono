@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth/context';
 import { useLoginModal } from '@/providers/AuthUIProvider';
 import { formatINR, calculatePercentage, formatDate, formatTimeAgo } from '@/lib/utils';
 import { CampaignBadgeGroup } from '@/components/campaign/CampaignBadge';
+import { CampaignPosterCarousel } from '@/components/campaign/CampaignPosterCarousel';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Button } from '@/components/ui/Button';
 import { DualDonationModule } from '@/components/campaign/DualDonationModule';
@@ -427,26 +428,20 @@ export default function CampaignDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* ================= LEFT COLUMN: MAIN CAMPAIGN CONTENT (8 Cols) ================= */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-8">
-            {/* 1. Campaign Hero Image & Factual Badges Overlay */}
+            {/* 1. Campaign Main Poster Carousel (Interactive Multi-Poster Gallery Supporting 2-3 Posters) */}
             <div className="space-y-4">
-              <div className="relative aspect-[16/10] rounded-3xl overflow-hidden bg-neutral-900 shadow-md border border-[#E8E6E1]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={campaign.imageUrl}
-                  alt={campaign.title}
-                  className="w-full h-full object-cover object-center"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-
-                {/* Badges Overlay at Top Left of Image (Admin-Managed Appearance + Factual Truth) */}
-                <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 pointer-events-none">
-                  <CampaignBadgeGroup
-                    campaign={campaign}
-                    variant="detail"
-                    includeCategory={true}
-                  />
-                </div>
-              </div>
+              <CampaignPosterCarousel
+                campaign={campaign}
+                posters={
+                  campaign.posterImages && campaign.posterImages.length > 0
+                    ? campaign.posterImages
+                    : [
+                        campaign.imageUrl,
+                        ...(campaign.galleryUrls || []).filter((u) => u !== campaign.imageUrl).slice(0, 2),
+                      ]
+                }
+                onOpenLightbox={(url) => setPreviewImage(url)}
+              />
 
               {/* 2. Headline & Metadata */}
               <div className="space-y-3">

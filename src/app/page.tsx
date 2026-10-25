@@ -1,6 +1,7 @@
 import React from 'react';
 import { db } from '@/lib/db';
 import { formatINR, formatTimeAgo } from '@/lib/utils';
+import { Campaign } from '@/lib/types';
 import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { FeaturedCausesAndCampaigns } from '@/components/home/FeaturedCausesAndCampaigns';
 import { MonthlyDonationSection } from '@/components/home/MonthlyDonationSection';
@@ -19,6 +20,70 @@ export default function HomePage() {
   const recentDonations = db.getDonations({ status: 'succeeded' });
   const faqs = db.getFAQs(undefined, true, true);
   const siteSettings = db.getSiteSettings();
+  const curation = db.getHomepageCuration();
+
+  // Curated Hero Campaigns
+  const heroCampaigns = (curation.heroCampaignIds || [])
+    .map((id) => activeCampaigns.find((c) => c.id === id || c.slug === id))
+    .filter((c): c is Campaign => Boolean(c));
+
+  // Curated Featured Campaigns (for Cause & Campaign Grid)
+  const featuredCampaigns = (curation.featuredCampaignIds || [])
+    .map((id) => activeCampaigns.find((c) => c.id === id || c.slug === id))
+    .filter((c): c is Campaign => Boolean(c));
+
+  const allMissions = [
+    {
+      id: 'mission-zero-hunger',
+      slug: 'mission-zero-hunger',
+      title: 'Mission 1000: Daily Hospital Meals',
+      cause: 'food-hunger',
+      tagline: 'Provide hot hygienic food to patient attendants outside major municipal cancer hospitals.',
+      monthlyAmount: 501,
+      supportersCount: 420,
+      impactNote: 'Feeds 15 impoverished caregivers every month',
+      imageUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      id: 'mission-girl-scholarship',
+      slug: 'mission-girl-scholarship',
+      title: 'Mission Shiksha: Educate a Girl Child',
+      cause: 'education',
+      tagline: 'Sponsor school uniforms, bridge tutoring, and STEM digital tablets in rural eastern UP.',
+      monthlyAmount: 1001,
+      supportersCount: 310,
+      impactNote: 'Covers full schooling and textbooks for 1 girl student',
+      imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      id: 'mission-animal-rescue',
+      slug: 'mission-animal-rescue',
+      title: 'Mission Karuna: Stray Animal Hospital Care',
+      cause: 'animals',
+      tagline: 'Fund round-the-clock emergency veterinary surgeries and rehabilitation for injured stray animals.',
+      monthlyAmount: 751,
+      supportersCount: 260,
+      impactNote: 'Sponsors medical treatments and food for 2 rescued dogs',
+      imageUrl: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      id: 'mission-elder-care',
+      slug: 'mission-elder-care',
+      title: 'Mission Vardaan: Senior Citizen Healthcare & Shelter',
+      cause: 'elderly',
+      tagline: 'Fund monthly geriatric medicines, physiotherapy, and clean dormitories for abandoned elders.',
+      monthlyAmount: 850,
+      supportersCount: 195,
+      impactNote: 'Provides daily nursing and medicines for 3 senior citizens',
+      imageUrl: 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?auto=format&fit=crop&w=800&q=80',
+    },
+  ];
+
+  const curatedMissions = (curation.monthlyMissionIds || [])
+    .map((id) => allMissions.find((m) => m.id === id || m.slug === id))
+    .filter((m): m is (typeof allMissions)[0] => Boolean(m));
+
+  const displayMissions = curatedMissions.length > 0 ? curatedMissions : allMissions.slice(0, 3);
 
   const initialTickerEvents = recentDonations.slice(0, 15).map((d) => {
     let displayName = 'Anonymous Donor';
@@ -41,46 +106,10 @@ export default function HomePage() {
     };
   });
 
-  const missions = [
-    {
-      id: 'm1',
-      slug: 'mission-zero-hunger',
-      title: 'Mission 1000: Daily Hospital Meals',
-      cause: 'food-hunger',
-      tagline: 'Provide hot hygienic food to patient attendants outside major municipal cancer hospitals.',
-      monthlyAmount: 501,
-      supportersCount: 420,
-      impactNote: 'Feeds 15 impoverished caregivers every month',
-      imageUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 'm2',
-      slug: 'mission-girl-scholarship',
-      title: 'Mission Shiksha: Educate a Girl Child',
-      cause: 'education',
-      tagline: 'Sponsor school uniforms, bridge tutoring, and STEM digital tablets in rural eastern UP.',
-      monthlyAmount: 1001,
-      supportersCount: 310,
-      impactNote: 'Covers full schooling and textbooks for 1 girl student',
-      imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 'm3',
-      slug: 'mission-animal-rescue',
-      title: 'Mission Karuna: Stray Animal Hospital Care',
-      cause: 'animals',
-      tagline: 'Fund round-the-clock emergency veterinary surgeries and rehabilitation for injured stray animals.',
-      monthlyAmount: 751,
-      supportersCount: 260,
-      impactNote: 'Sponsors medical treatments and food for 2 rescued dogs',
-      imageUrl: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=800&q=80',
-    },
-  ];
-
   return (
     <div className="flex flex-col min-h-screen">
-      {/* 1. Hero Campaign Carousel (True Hope Foundation Split Layout) */}
-      <HeroCarousel />
+      {/* 1. Hero Campaign Carousel (Clicking or Tapping anywhere opens campaign detail page) */}
+      <HeroCarousel initialCampaigns={heroCampaigns.length > 0 ? heroCampaigns : undefined} />
 
       {/* 2. Full-Width Horizontal Live Donation & Trust Ticker (DonateKart Reference - Directly beneath Hero) */}
       <div className="mt-4 sm:mt-6">
@@ -91,11 +120,13 @@ export default function HomePage() {
         />
       </div>
 
-      {/* 3. Featured Cause and Campaign Discovery Section */}
-      <FeaturedCausesAndCampaigns initialCampaigns={activeCampaigns} />
+      {/* 3. Featured Cause and Campaign Discovery Section (Curated by Admin) */}
+      <FeaturedCausesAndCampaigns
+        initialCampaigns={featuredCampaigns.length > 0 ? featuredCampaigns : activeCampaigns}
+      />
 
-      {/* 4. Monthly Donation Programs Section */}
-      <MonthlyDonationSection missions={missions} />
+      {/* 4. Monthly Donation Programs Section (Curated by Admin) */}
+      <MonthlyDonationSection missions={displayMissions} />
 
       {/* 5. Start a Campaign Promotional Section */}
       <StartCampaignSection />

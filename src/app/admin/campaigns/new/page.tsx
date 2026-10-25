@@ -376,6 +376,7 @@ export default function AdminNewCampaignWizardPage() {
         verifiedStatus: isSuperAdmin && finalStatus === 'active' ? 'verified' : 'pending',
         has80G,
         imageUrl: mainPosterUrl,
+        posterImages: [mainPosterUrl, ...galleryUrls.slice(0, 2)],
         galleryUrls,
         beneficiaryName: beneficiaryName.trim() || 'Deserving Beneficiary',
         beneficiaryLocation: beneficiaryLocation.trim(),
