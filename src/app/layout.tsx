@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import React, { Suspense } from 'react';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
@@ -7,6 +7,14 @@ import { AuthProvider } from '@/lib/auth/context';
 import { getServerSession } from '@/lib/auth/server';
 import { AuthUIProvider } from '@/providers/AuthUIProvider';
 import { LoginModal } from '@/components/auth/LoginModal';
+import { ScreenFitProvider } from '@/components/common/ScreenFitProvider';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#FAF9F6',
+};
 
 export const metadata: Metadata = {
   title: 'dokind — Transparent Crowdfunding & Compassionate Giving in India',
@@ -67,16 +75,18 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-[#FAF9F6] text-[#202124]">
         <AuthProvider initialUser={initialUser}>
           <AuthUIProvider>
-            <Suspense fallback={<div className="h-20 bg-white border-b border-[#E8E6E1]" />}>
-              <Header />
-            </Suspense>
-            <main className="flex-1">
-              <Suspense fallback={<div className="py-20 text-center text-xs text-neutral-400">Loading...</div>}>
-                {children}
+            <ScreenFitProvider>
+              <Suspense fallback={<div className="h-20 bg-white border-b border-[#E8E6E1]" />}>
+                <Header />
               </Suspense>
-            </main>
-            <Footer />
-            <LoginModal />
+              <main className="flex-1">
+                <Suspense fallback={<div className="py-20 text-center text-xs text-neutral-400">Loading...</div>}>
+                  {children}
+                </Suspense>
+              </main>
+              <Footer />
+              <LoginModal />
+            </ScreenFitProvider>
           </AuthUIProvider>
         </AuthProvider>
       </body>
