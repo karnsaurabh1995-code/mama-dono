@@ -6,14 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "security:check": "tsx security/runner.ts",
+    "security:test:payment": "tsx security/tests/razorpay-security.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
+    "@types/dompurify": "^3.0.5",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
+    "dompurify": "^3.4.17",
     "lucide-react": "^1.61.0",
     "next": "16.4.2",
+    "nodemailer": "^10.2.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tailwind-merge": "^3.7.0"
@@ -22,6 +27,7 @@
     "@tailwindcss/turbopack": "^4",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

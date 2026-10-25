@@ -52,7 +52,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create database donation order
+    if (itemAllocations && !Array.isArray(itemAllocations)) {
+      return NextResponse.json({ error: 'itemAllocations must be an array' }, { status: 400 });
+    }
+
+    // Create database donation order with authoritative server calculations
     const donation = db.createDonationOrder({
       campaignId,
       donorName: donorName || (isAnonymous ? 'Generous Donor' : 'Well Wisher'),
@@ -97,9 +101,14 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('Error creating donation order:', error);
+    const isValidationError =
+      error.message?.includes('amount') ||
+      error.message?.includes('item') ||
+      error.message?.includes('Quantity') ||
+      error.message?.includes('Campaign');
     return NextResponse.json(
       { error: error.message || 'Failed to initialize donation order' },
-      { status: 500 }
+      { status: isValidationError ? 400 : 500 }
     );
   }
 }

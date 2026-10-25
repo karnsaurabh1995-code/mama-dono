@@ -99,7 +99,7 @@ assert(donationOrder.receiptNumber.startsWith('SEVA-80G-'), 'Generated Form 10BE
 console.log('\n--- 5. Testing Cryptographic Razorpay HMAC Signature Verification ---');
 const testOrderId = donationOrder.razorpayOrderId;
 const testPaymentId = 'pay_test_secret_999';
-const mockSecret = 'sevasetu_razorpay_secret_2026';
+const mockSecret = process.env.TEST_RAZORPAY_SECRET || 'test_local_mock_key';
 
 const expectedSig = crypto
   .createHmac('sha256', mockSecret)

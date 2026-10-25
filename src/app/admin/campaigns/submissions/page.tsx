@@ -24,6 +24,8 @@ import {
   FileText,
   Clock,
   Layers,
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function AdminSubmissionsReviewPage() {
@@ -63,7 +65,19 @@ export default function AdminSubmissionsReviewPage() {
     ? db.getCampaignById(selectedSub.campaignId)
     : undefined;
 
+  const isSuperAdmin = user?.role === 'super_admin';
+  const canReview = !user || ['super_admin', 'admin', 'support_admin', 'head_staff', 'reviewer', 'ops_admin'].includes(user.role);
+
   const handleApproveImmediate = (subId: string) => {
+    if (!canReview) {
+      notify('Access restricted: Only authorized Admin or Reviewer roles can approve submissions.');
+      return;
+    }
+    const subToApprove = submissions.find((s) => s.id === subId);
+    if (subToApprove?.requiresSuperAdminApproval && !isSuperAdmin) {
+      notify('Approval blocked: Only the Supreme Admin can approve employee campaign proposals.');
+      return;
+    }
     const approved = db.approveRevisionSubmission(subId, user?.name || 'Administrator');
     if (approved) {
       setSubmissions([...db.getRevisionSubmissions()]);
@@ -74,6 +88,14 @@ export default function AdminSubmissionsReviewPage() {
 
   const handleApproveScheduled = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canReview) {
+      notify('Access restricted: Only authorized Admin or Reviewer roles can schedule publication.');
+      return;
+    }
+    if (selectedSub?.requiresSuperAdminApproval && !isSuperAdmin) {
+      notify('Approval blocked: Only the Supreme Admin can approve employee campaign proposals.');
+      return;
+    }
     if (!selectedSub || !scheduleDate) return;
     const approved = db.approveRevisionSubmission(
       selectedSub.id,
@@ -91,6 +113,10 @@ export default function AdminSubmissionsReviewPage() {
 
   const handleReject = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canReview) {
+      notify('Access restricted: Only authorized Admin or Reviewer roles can reject submissions.');
+      return;
+    }
     if (!selectedSub || !rejectionReason.trim()) return;
     const rejected = db.rejectRevisionSubmission(
       selectedSub.id,
@@ -108,6 +134,10 @@ export default function AdminSubmissionsReviewPage() {
 
   const handleRequestChanges = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canReview) {
+      notify('Access restricted: Only authorized Admin or Reviewer roles can request edits.');
+      return;
+    }
     if (!selectedSub || !changesNotes.trim()) return;
     const req = db.requestChangesRevisionSubmission(
       selectedSub.id,
@@ -270,41 +300,62 @@ export default function AdminSubmissionsReviewPage() {
 
                 {/* Moderation Controls */}
                 {selectedSub.status === 'pending_review' && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleApproveImmediate(selectedSub.id)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
-                    >
-                      <Check className="w-3.5 h-3.5 mr-1" />
-                      Approve & Publish Now
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowScheduleModal(true)}
-                      className="text-xs"
-                    >
-                      <Calendar className="w-3.5 h-3.5 mr-1" />
-                      Schedule
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowChangesModal(true)}
-                      className="text-amber-700 hover:bg-amber-50 text-xs"
-                    >
-                      Request Edits
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowRejectModal(true)}
-                      className="text-rose-600 hover:bg-rose-50 text-xs"
-                    >
-                      Reject
-                    </Button>
-                  </div>
+                  selectedSub.requiresSuperAdminApproval && !isSuperAdmin ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-amber-600" />
+                        Awaiting Supreme Admin Approval: Only the Supreme Admin can approve employee campaign proposals.
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowChangesModal(true)}
+                        className="text-amber-700 hover:bg-amber-50 text-xs"
+                      >
+                        Request Edits
+                      </Button>
+                    </div>
+                  ) : canReview ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleApproveImmediate(selectedSub.id)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+                      >
+                        <Check className="w-3.5 h-3.5 mr-1" />
+                        {isSuperAdmin ? 'Approve & Publish Now (Supreme Admin)' : 'Approve & Publish Now'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowScheduleModal(true)}
+                        className="text-xs"
+                      >
+                        <Calendar className="w-3.5 h-3.5 mr-1" />
+                        Schedule
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowChangesModal(true)}
+                        className="text-amber-700 hover:bg-amber-50 text-xs"
+                      >
+                        Request Edits
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowRejectModal(true)}
+                        className="text-rose-600 hover:bg-rose-50 text-xs"
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                      Pending review by Admin / Head Staff. Content Writers cannot self-approve submissions.
+                    </div>
+                  )
                 )}
               </div>
 

@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { EmailTemplate } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
+import { sanitizeHtml } from '@/lib/security/sanitize';
 import {
   Mail,
   Save,
@@ -182,7 +183,7 @@ export default function EmailTemplatesPage() {
           </div>
 
           <div className="flex-1 bg-white border border-neutral-200 rounded-xl p-4 overflow-y-auto max-h-[450px]">
-            <div dangerouslySetInnerHTML={{ __html: renderedPreviewHtml }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderedPreviewHtml) }} />
           </div>
         </div>
       </div>

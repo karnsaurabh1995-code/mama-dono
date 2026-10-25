@@ -7,6 +7,7 @@ import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import {
   Campaign,
+  CampaignStatus,
   CauseCategory,
   CampaignType,
   CampaignStoryBlock,
@@ -301,8 +302,11 @@ export default function AdminNewCampaignWizardPage() {
     setItemNeeds(itemNeeds.filter((_, i) => i !== index));
   };
 
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isEmployeeRole = user?.role === 'content_writer' || user?.role === 'lead_generator' || user?.role === 'admin';
+
   // Final Action: Save Draft, Schedule, or Publish Live
-  const handleSaveCampaign = (finalStatus: 'draft' | 'active') => {
+  const handleSaveCampaign = (requestedStatus: 'draft' | 'submitted' | 'active') => {
     if (!title.trim()) {
       notify('Please provide a campaign title in Step 1.');
       setCurrentStep(1);
@@ -322,9 +326,40 @@ export default function AdminNewCampaignWizardPage() {
       return;
     }
 
+    // Role-based publish guard: Content Writers can only save as draft and submit for approval
+    let finalStatus: CampaignStatus = requestedStatus;
+    let requiresApproval = false;
+
+    if (finalStatus === 'active' && user?.role === 'content_writer') {
+      notify('Content Writers can only create campaign drafts and submit for review. Direct live publication requires Supreme Admin approval.');
+      return;
+    }
+
+    // Role-based publish guard: Non-super_admin employees must submit for Supreme Admin approval
+    if (!isSuperAdmin) {
+      if (requestedStatus === 'active' || requestedStatus === 'submitted') {
+        finalStatus = 'submitted';
+        requiresApproval = true;
+      } else {
+        finalStatus = 'draft';
+        requiresApproval = false;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
+      const employeeMetadata = !isSuperAdmin
+        ? {
+            id: user?.id || 'emp-user',
+            name: user?.name || 'Staff Member',
+            email: user?.email || 'staff@dokind.org.in',
+            role: user?.role || 'admin',
+            department: user?.department,
+            jobTitle: user?.jobTitle,
+          }
+        : undefined;
+
       // 1. Create Campaign
       const createdCampaign = db.createCampaign({
         slug: slug.trim(),
@@ -338,7 +373,7 @@ export default function AdminNewCampaignWizardPage() {
         featured: priority === 'urgent',
         urgent: priority === 'urgent',
         status: finalStatus,
-        verifiedStatus: checklist.orgVerified ? 'verified' : 'pending',
+        verifiedStatus: isSuperAdmin && finalStatus === 'active' ? 'verified' : 'pending',
         has80G,
         imageUrl: mainPosterUrl,
         galleryUrls,
@@ -371,6 +406,8 @@ export default function AdminNewCampaignWizardPage() {
           beforeAfter: beforeAfter.beforeUrl ? beforeAfter : undefined,
         },
         verificationChecklist: checklist,
+        proposedByEmployee: employeeMetadata,
+        requiresSuperAdminApproval: requiresApproval,
       });
 
       // 2. Create Campaign Item Needs if enabled
@@ -387,9 +424,34 @@ export default function AdminNewCampaignWizardPage() {
         }
       }
 
+      // 3. Register revision submission for Supreme Admin tracking if submitted
+      if (finalStatus === 'submitted') {
+        db.createRevisionSubmission({
+          campaignId: createdCampaign.id,
+          title: `[Employee Proposal] ${createdCampaign.title}`,
+          slug: createdCampaign.slug,
+          submittedBy: user?.id || 'emp-user',
+          submittedByName: `${user?.name || 'Staff Member'} (${user?.role || 'staff'})`,
+          authorRole: user?.role,
+          reviewDestination: 'admin',
+          requiresSuperAdminApproval: true,
+          submissionNotes: `Campaign proposal created by ${user?.name || 'Employee'} (${user?.role}). Awaiting Supreme Admin verification and publication.`,
+          proposedTitle: createdCampaign.title,
+          proposedShortDescription: createdCampaign.shortDescription,
+          proposedStory: createdCampaign.story,
+          proposedCategory: createdCampaign.category,
+          proposedBeneficiaryName: createdCampaign.beneficiaryName,
+          proposedBeneficiaryLocation: createdCampaign.beneficiaryLocation,
+          proposedArtwork: createdCampaign.artwork,
+          proposedStoryBlocks: createdCampaign.storyBlocks,
+        });
+      }
+
       notify(
         finalStatus === 'active'
           ? `Campaign "${createdCampaign.title}" is now LIVE!`
+          : finalStatus === 'submitted'
+          ? `Campaign proposal "${createdCampaign.title}" submitted to Supreme Admin for approval.`
           : `Campaign draft "${createdCampaign.title}" saved successfully.`
       );
 
@@ -447,19 +509,31 @@ export default function AdminNewCampaignWizardPage() {
             variant="outline"
             onClick={() => handleSaveCampaign('draft')}
             disabled={isSubmitting}
-            className="text-xs"
+            className="text-xs font-semibold"
           >
             Save as Draft
           </Button>
-          <Button
-            size="sm"
-            onClick={() => handleSaveCampaign('active')}
-            disabled={isSubmitting}
-            className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs"
-          >
-            <Send className="w-3.5 h-3.5 mr-1" />
-            Publish Live
-          </Button>
+          {isSuperAdmin ? (
+            <Button
+              size="sm"
+              onClick={() => handleSaveCampaign('active')}
+              disabled={isSubmitting}
+              className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs font-bold"
+            >
+              <Send className="w-3.5 h-3.5 mr-1" />
+              Publish Live
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => handleSaveCampaign('submitted')}
+              disabled={isSubmitting}
+              className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs font-bold"
+            >
+              <Send className="w-3.5 h-3.5 mr-1" />
+              Submit to Supreme Admin
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1417,24 +1491,61 @@ export default function AdminNewCampaignWizardPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-5 rounded-2xl border border-neutral-200 bg-white space-y-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  <h3 className="text-sm font-bold text-[#202124]">Immediate Public Launch</h3>
+            {!isSuperAdmin && (
+              <div className="p-5 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-start gap-3.5">
+                <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
-                <p className="text-xs text-neutral-500">
-                  Instantly publish this campaign on the homepage, browse catalog, and public donation checkout.
-                </p>
-                <Button
-                  onClick={() => handleSaveCampaign('active')}
-                  disabled={isSubmitting}
-                  className="w-full bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs font-bold py-2.5"
-                >
-                  <Send className="w-4 h-4 mr-1.5" />
-                  {isSubmitting ? 'Publishing...' : 'Publish Campaign Live Now'}
-                </Button>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                    Employee Campaign Proposal Governance
+                  </h4>
+                  <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                    You are authoring this campaign as an authorized team member (<strong>{user?.name || 'Staff Member'}</strong> • {user?.jobTitle || user?.role}).
+                    In accordance with platform governance, all campaigns created by Content Writers, Lead Generators, and Admins are submitted for final verification and live publication approval by the <strong>Supreme Admin</strong>.
+                  </p>
+                </div>
               </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {isSuperAdmin ? (
+                <div className="p-5 rounded-2xl border border-neutral-200 bg-white space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <h3 className="text-sm font-bold text-[#202124]">Immediate Public Launch</h3>
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    Instantly publish this campaign on the homepage, browse catalog, and public donation checkout.
+                  </p>
+                  <Button
+                    onClick={() => handleSaveCampaign('active')}
+                    disabled={isSubmitting}
+                    className="w-full bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs font-bold py-2.5"
+                  >
+                    <Send className="w-4 h-4 mr-1.5" />
+                    {isSubmitting ? 'Publishing...' : 'Publish Campaign Live Now'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="p-5 rounded-2xl border border-amber-200 bg-amber-50/40 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Send className="w-5 h-5 text-[#E84B45]" />
+                    <h3 className="text-sm font-bold text-[#202124]">Submit to Supreme Admin</h3>
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    Route this complete campaign configuration to the Supreme Admin's queue for verification and live activation.
+                  </p>
+                  <Button
+                    onClick={() => handleSaveCampaign('submitted')}
+                    disabled={isSubmitting}
+                    className="w-full bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs font-bold py-2.5"
+                  >
+                    <Send className="w-4 h-4 mr-1.5" />
+                    {isSubmitting ? 'Submitting...' : 'Submit for Supreme Admin Approval'}
+                  </Button>
+                </div>
+              )}
 
               <div className="p-5 rounded-2xl border border-neutral-200 bg-white space-y-3">
                 <div className="flex items-center gap-2">
@@ -1442,7 +1553,7 @@ export default function AdminNewCampaignWizardPage() {
                   <h3 className="text-sm font-bold text-[#202124]">Save as Staged Draft</h3>
                 </div>
                 <p className="text-xs text-neutral-500">
-                  Save campaign configuration safely in the database. Accessible in the Admin Campaigns list.
+                  Save campaign configuration safely in the database. Accessible in the Admin Campaigns list to continue editing later.
                 </p>
                 <Button
                   variant="outline"
@@ -1486,11 +1597,11 @@ export default function AdminNewCampaignWizardPage() {
           ) : (
             <Button
               size="sm"
-              onClick={() => handleSaveCampaign('active')}
+              onClick={() => handleSaveCampaign(isSuperAdmin ? 'active' : 'submitted')}
               disabled={isSubmitting}
               className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs font-bold"
             >
-              Publish Campaign
+              {isSuperAdmin ? 'Publish Campaign Live' : 'Submit to Supreme Admin'}
             </Button>
           )}
         </div>

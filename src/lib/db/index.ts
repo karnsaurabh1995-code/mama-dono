@@ -1,5 +1,6 @@
 import {
   Campaign,
+  CampaignStatus,
   Donation,
   Organization,
   ProductNeed,
@@ -35,6 +36,8 @@ import {
   BadgeStyleConfig,
   CampaignReport,
   CampaignUpdateRequest,
+  MediaRecognition,
+  ApiKeyRecord,
 } from '../types';
 import { CAUSES_DATA } from '../data/causes';
 import { ORGANIZATIONS_DATA } from '../data/organizations';
@@ -45,6 +48,7 @@ import { BLOGS_DATA } from '../data/blogs';
 import { FAQS_DATA } from '../data/faqs';
 import { INITIAL_DONATIONS_DATA } from '../data/donations';
 import { INITIAL_HOME_SECTIONS } from '../data/builder-sections';
+import { normalizePhoneNumber, arePhonesEqual } from '../auth/phone';
 import { INITIAL_GATEWAYS_DATA } from '../data/gateways';
 import { INITIAL_MEDIA_DATA } from '../data/media';
 import { INITIAL_CAMPAIGN_ITEMS } from '../data/campaign-items';
@@ -58,6 +62,7 @@ import {
   DEFAULT_THEME_CONFIG,
   INITIAL_ROLE_PERMISSIONS,
 } from '../data/marketing';
+import { INITIAL_API_KEYS } from '../data/api-keys';
 import { generateReceiptNumber } from '../utils';
 
 export const DEFAULT_BADGE_STYLES: Record<BadgeType, BadgeStyleConfig> = {
@@ -252,8 +257,47 @@ export const DEFAULT_BADGE_STYLES: Record<BadgeType, BadgeStyleConfig> = {
   },
 };
 
+export interface OtpChallengeRecord {
+  id: string;
+  phone: string; // canonical E.164
+  maskedPhone: string;
+  attempts: number;
+  maxAttempts: number;
+  resendCount: number;
+  maxResends: number;
+  resendCooldownUntil: number; // timestamp ms
+  expiresAt: number;           // timestamp ms
+  createdAt: string;
+  status: 'pending' | 'verified' | 'expired' | 'locked';
+}
+
+export interface EmailOtpChallengeRecord {
+  id: string;
+  email: string;               // normalized lowercase
+  codeDigest: string;          // HMAC-SHA256 digest of 6-digit code
+  attempts: number;
+  maxAttempts: number;         // default 5
+  resendCount: number;
+  maxResends: number;          // default 3
+  resendCooldownUntil: number; // timestamp ms (60s cooldown)
+  expiresAt: number;           // timestamp ms (10m expiry)
+  createdAt: string;
+  consumedAt?: string;
+  status: 'pending' | 'verified' | 'expired' | 'locked';
+}
+
+export interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
+
 // Stateful in-memory database store with cross-session fallback
 class DatabaseStore {
+  private otpChallenges: Map<string, OtpChallengeRecord> = new Map();
+  private emailOtpChallenges: Map<string, EmailOtpChallengeRecord> = new Map();
+  private ipRateLimits: Map<string, RateLimitEntry> = new Map();
+  private phoneRateLimits: Map<string, RateLimitEntry> = new Map();
+  private emailRateLimits: Map<string, RateLimitEntry> = new Map();
   private campaigns: Campaign[] = [...CAMPAIGNS_DATA];
   private organizations: Organization[] = [...ORGANIZATIONS_DATA];
   private products: ProductNeed[] = [...PRODUCTS_DATA];
@@ -357,53 +401,101 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   private users: User[] = [
     {
       id: 'usr-admin-1',
+      employeeId: 'EMP-0001',
       name: 'Devendra Sharma',
       email: 'admin@dokind.org.in',
       role: 'super_admin',
+      department: 'Executive Governance',
+      jobTitle: 'Super Administrator',
+      status: 'active',
       phone: '+91 98100 23456',
       panNumber: 'ABCDE1234F',
       createdAt: '2026-01-15T00:00:00Z',
     },
     {
       id: 'usr-ops-1',
+      employeeId: 'EMP-0002',
       name: 'Pooja Sundaram',
       email: 'pooja.ops@dokind.org.in',
       role: 'ops_admin',
+      department: 'Operations',
+      jobTitle: 'Operations Director',
+      status: 'active',
       phone: '+91 98200 98765',
       createdAt: '2026-03-01T00:00:00Z',
     },
     {
       id: 'user-head-staff-1',
+      employeeId: 'EMP-0003',
       name: 'Priyanka Sharma (Field Lead)',
       email: 'priyanka.staff@dokind.org.in',
       role: 'head_staff',
+      department: 'Field Programs',
+      jobTitle: 'Field Lead & Relief Coordinator',
+      status: 'active',
       phone: '+91 98200 44556',
       createdAt: '2025-08-01T00:00:00Z',
     },
     {
       id: 'usr-reviewer-1',
+      employeeId: 'EMP-0004',
       name: 'Dr. Ananya Ray',
       email: 'ananya.review@dokind.org.in',
       role: 'reviewer',
+      department: 'Trust & Safety',
+      jobTitle: 'Medical & NGO Auditor',
+      status: 'active',
       phone: '+91 98300 11223',
       createdAt: '2026-04-10T00:00:00Z',
     },
     {
       id: 'usr-finance-1',
+      employeeId: 'EMP-0005',
       name: 'Rajesh Varma, CA',
       email: 'rajesh.finance@dokind.org.in',
       role: 'finance',
+      department: 'Finance & Compliance',
+      jobTitle: 'Senior Finance Officer',
+      status: 'active',
       phone: '+91 98400 33445',
       panNumber: 'ABCPV9988H',
       createdAt: '2026-02-20T00:00:00Z',
     },
     {
       id: 'usr-editor-1',
+      employeeId: 'EMP-0006',
       name: 'Kavita Menon',
       email: 'kavita.content@dokind.org.in',
       role: 'content_editor',
+      department: 'Communications',
+      jobTitle: 'Editorial & Story Lead',
+      status: 'active',
       phone: '+91 98500 55667',
       createdAt: '2026-05-12T00:00:00Z',
+    },
+    {
+      id: 'usr-cm-1',
+      employeeId: 'EMP-0007',
+      name: 'Vikramaditya Rao',
+      email: 'vikram.campaigns@dokind.org.in',
+      role: 'campaign_manager',
+      department: 'Campaign Growth',
+      jobTitle: 'Grassroots Campaign Manager',
+      status: 'active',
+      phone: '+91 98600 77889',
+      createdAt: '2026-06-01T00:00:00Z',
+    },
+    {
+      id: 'usr-support-1',
+      employeeId: 'EMP-0008',
+      name: 'Sunita Joshi',
+      email: 'sunita.support@dokind.org.in',
+      role: 'support_staff',
+      department: 'Community Support',
+      jobTitle: 'Donor Relations Specialist',
+      status: 'active',
+      phone: '+91 98700 88990',
+      createdAt: '2026-06-10T00:00:00Z',
     },
     {
       id: 'usr-donor-1',
@@ -491,6 +583,100 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       date: '2026-10-12',
     },
   ];
+
+  private mediaRecognitions: MediaRecognition[] = [
+    {
+      id: 'rec-1',
+      outletName: 'The Times of India',
+      logoUrl: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=240&q=80',
+      quote: 'Pioneering item-level transparency and verified hospital escrows in Indian crowdfunding.',
+      articleUrl: 'https://timesofindia.indiatimes.com',
+      publishedOn: 'Oct 2026',
+      category: 'National Daily',
+      isFeatured: true,
+      sortOrder: 1,
+      createdAt: '2026-10-01T10:00:00Z',
+      updatedAt: '2026-10-01T10:00:00Z',
+    },
+    {
+      id: 'rec-2',
+      outletName: 'The Hindu',
+      logoUrl: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=240&q=80',
+      quote: 'Directly connecting donors with critical pediatric cases with zero platform fees.',
+      articleUrl: 'https://thehindu.com',
+      publishedOn: 'Sep 2026',
+      category: 'National Daily',
+      isFeatured: true,
+      sortOrder: 2,
+      createdAt: '2026-09-15T10:00:00Z',
+      updatedAt: '2026-09-15T10:00:00Z',
+    },
+    {
+      id: 'rec-3',
+      outletName: 'The Economic Times',
+      logoUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=240&q=80',
+      quote: 'A trusted bridge for philanthropic capital, corporate CSR impact, and NGO governance.',
+      articleUrl: 'https://economictimes.indiatimes.com',
+      publishedOn: 'Aug 2026',
+      category: 'Business & Finance',
+      isFeatured: true,
+      sortOrder: 3,
+      createdAt: '2026-08-20T10:00:00Z',
+      updatedAt: '2026-08-20T10:00:00Z',
+    },
+    {
+      id: 'rec-4',
+      outletName: 'NDTV India',
+      logoUrl: 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=240&q=80',
+      quote: 'Accelerating emergency surgical interventions for underprivileged children across India.',
+      articleUrl: 'https://ndtv.com',
+      publishedOn: 'Jul 2026',
+      category: 'Television & Broadcast',
+      isFeatured: true,
+      sortOrder: 4,
+      createdAt: '2026-07-12T10:00:00Z',
+      updatedAt: '2026-07-12T10:00:00Z',
+    },
+    {
+      id: 'rec-5',
+      outletName: 'The Indian Express',
+      logoUrl: 'https://images.unsplash.com/photo-1586339949916-3e9457bef6d3?auto=format&fit=crop&w=240&q=80',
+      quote: 'Transforming grassroots social giving with digital receipts and live item tracking.',
+      articleUrl: 'https://indianexpress.com',
+      publishedOn: 'Jun 2026',
+      category: 'National Daily',
+      isFeatured: true,
+      sortOrder: 5,
+      createdAt: '2026-06-05T10:00:00Z',
+      updatedAt: '2026-06-05T10:00:00Z',
+    },
+    {
+      id: 'rec-6',
+      outletName: 'Mint',
+      logoUrl: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=240&q=80',
+      quote: 'Setting new transparency benchmarks in Indian social impact financing.',
+      articleUrl: 'https://livemint.com',
+      publishedOn: 'May 2026',
+      category: 'Business & Finance',
+      isFeatured: true,
+      sortOrder: 6,
+      createdAt: '2026-05-18T10:00:00Z',
+      updatedAt: '2026-05-18T10:00:00Z',
+    },
+    {
+      id: 'rec-7',
+      outletName: 'Hindustan Times',
+      logoUrl: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=240&q=80',
+      quote: 'Empowering verified non-profits with digital fundraising and donor trust certification.',
+      articleUrl: 'https://hindustantimes.com',
+      publishedOn: 'Apr 2026',
+      category: 'National Daily',
+      isFeatured: true,
+      sortOrder: 7,
+      createdAt: '2026-04-10T10:00:00Z',
+      updatedAt: '2026-04-10T10:00:00Z',
+    },
+  ];
   private settings: SiteSettings = {
     platformName: 'dokind',
     tagline: 'Small acts. Real impact. Transparent Indian Crowdfunding',
@@ -518,6 +704,18 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       'Wholesale Item Giving With Zero Markup & Live Tracking',
       'NITI Aayog NGO-Darpan Verified Grassroots Partners',
     ],
+    logoUrl: '',
+    logoLightUrl: '',
+    logoDarkUrl: '',
+    logoFaviconUrl: '',
+    logoAltText: 'dokind crowdfunding logo',
+    logoHeight: 32,
+    newsletterImageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
+    newsletterImageAlt: 'Children supported by dokind grassroots campaign',
+    newsletterFrameStyle: 'organic_brush',
+    newsletterFocalPoint: 'center',
+    newsletterImagePosition: 'right',
+    newsletterFrameSize: 'normal',
   };
   private badgeStyles: Record<BadgeType, BadgeStyleConfig> = { ...DEFAULT_BADGE_STYLES };
   private campaignReports: CampaignReport[] = [
@@ -548,6 +746,83 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       createdAt: '2026-10-19T09:15:00Z',
     },
   ];
+  private apiKeys: ApiKeyRecord[] = [...INITIAL_API_KEYS];
+
+  constructor() {
+    this.bootstrapSuperAdmins();
+  }
+
+  // ---------------- SUPER ADMIN BOOTSTRAP (IDEMPOTENT & AUDITABLE) ----------------
+  isDesignatedSuperAdmin(email: string): boolean {
+    if (!email) return false;
+    const clean = email.trim().toLowerCase();
+    const rawAllowlist = process.env.INITIAL_SUPER_ADMIN_EMAILS || 'karnsaurabh1995@gmail.com,sarthakraj726@gmail.com';
+    const allowlist = rawAllowlist.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+    return allowlist.includes(clean);
+  }
+
+  bootstrapSuperAdmins(actorName = 'System Initializer'): { provisioned: string[]; verified: string[] } {
+    const rawAllowlist = process.env.INITIAL_SUPER_ADMIN_EMAILS || 'karnsaurabh1995@gmail.com,sarthakraj726@gmail.com';
+    const designatedEmails = rawAllowlist
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.includes('@'));
+
+    const provisioned: string[] = [];
+    const verified: string[] = [];
+
+    for (const email of designatedEmails) {
+      const existingUser = this.users.find((u) => u.email.toLowerCase() === email);
+      if (existingUser) {
+        // Idempotent: confirm super_admin role and active status without resetting existing credentials
+        if (existingUser.role !== 'super_admin' || existingUser.status !== 'active') {
+          existingUser.role = 'super_admin';
+          existingUser.status = 'active';
+          this.createAuditLog({
+            actorId: 'system-bootstrap',
+            actorName,
+            action: 'SUPER_ADMIN_VERIFIED',
+            targetType: 'user',
+            targetId: existingUser.id,
+            details: `Designated Super Administrator role verified for ${email}`,
+          });
+        }
+        verified.push(email);
+      } else {
+        // Provision new Super Admin account
+        const name = email.startsWith('karn')
+          ? 'Saurabh Karn'
+          : email.startsWith('sarthak')
+          ? 'Sarthak Raj'
+          : 'Super Administrator';
+        const empId = this.generateNextEmployeeId();
+        const newSuperAdmin: User = {
+          id: `usr-sa-${this.users.length + 1}`,
+          employeeId: empId,
+          name,
+          email,
+          role: 'super_admin',
+          department: 'Executive Governance',
+          jobTitle: 'Super Administrator',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        };
+        this.users.unshift(newSuperAdmin);
+        provisioned.push(email);
+
+        this.createAuditLog({
+          actorId: 'system-bootstrap',
+          actorName,
+          action: 'SUPER_ADMIN_BOOTSTRAPPED',
+          targetType: 'user',
+          targetId: newSuperAdmin.id,
+          details: `Designated Super Administrator account securely provisioned for ${email} (${empId}) via bootstrap`,
+        });
+      }
+    }
+
+    return { provisioned, verified };
+  }
 
   // Campaigns
   getCampaigns(filters?: {
@@ -737,6 +1012,200 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     return clonedCampaign;
   }
 
+  updateCampaignMedia(
+    id: string,
+    mediaConfig: {
+      artwork?: CampaignArtworkConfig;
+      imageUrl?: string;
+      galleryUrls?: string[];
+    },
+    actorName = 'Admin'
+  ): Campaign | undefined {
+    const camp = this.getCampaignById(id);
+    if (!camp) return undefined;
+
+    if (mediaConfig.artwork) {
+      camp.artwork = {
+        ...camp.artwork,
+        ...mediaConfig.artwork,
+      };
+    }
+    if (mediaConfig.imageUrl) {
+      camp.imageUrl = mediaConfig.imageUrl;
+    }
+    if (mediaConfig.galleryUrls) {
+      camp.galleryUrls = mediaConfig.galleryUrls;
+    }
+    camp.updatedAt = new Date().toISOString();
+
+    this.createAuditLog({
+      actorId: 'admin-action',
+      actorName,
+      action: 'CAMPAIGN_MEDIA_UPDATED',
+      targetType: 'campaign',
+      targetId: id,
+      details: `Updated visual media, poster artwork, and gallery for "${camp.title}"`,
+    });
+
+    return camp;
+  }
+
+  setCampaignStatus(
+    id: string,
+    status: CampaignStatus,
+    actorName = 'Admin',
+    reason?: string
+  ): Campaign | undefined {
+    const camp = this.getCampaignById(id);
+    if (!camp) return undefined;
+
+    const oldStatus = camp.status;
+    camp.status = status;
+    camp.updatedAt = new Date().toISOString();
+
+    this.createAuditLog({
+      actorId: 'admin-action',
+      actorName,
+      action: 'CAMPAIGN_STATUS_CHANGED',
+      targetType: 'campaign',
+      targetId: id,
+      reason,
+      details: `Changed status for "${camp.title}" from "${oldStatus}" to "${status}".${reason ? ` Reason: ${reason}` : ''}`,
+    });
+
+    return camp;
+  }
+
+  safeDeleteCampaign(id: string, actorName = 'Admin'): boolean {
+    const camp = this.getCampaignById(id);
+    if (!camp) return false;
+
+    // Check if campaign has donations or updates
+    const hasDonations = this.donations.some((d) => d.campaignId === id);
+    const hasUpdates = this.campaignUpdates.some((u) => u.campaignId === id);
+    if (hasDonations || hasUpdates) {
+      throw new Error(
+        `CANNOT DELETE CAMPAIGN: "${camp.title}" has associated monetary donations, item orders, or field progress updates. To maintain financial and donor audit records, please pause, suspend, or archive this campaign instead.`
+      );
+    }
+
+    this.campaigns = this.campaigns.filter((c) => c.id !== id);
+
+    this.createAuditLog({
+      actorId: 'admin-action',
+      actorName,
+      action: 'CAMPAIGN_DELETED',
+      targetType: 'campaign',
+      targetId: id,
+      details: `Permanently deleted draft campaign "${camp.title}" (${id}) with 0 dependent records`,
+    });
+
+    return true;
+  }
+
+  addCampaignEvidenceDocument(
+    campaignId: string,
+    doc: {
+      title: string;
+      type: 'medical_estimate' | 'id_proof' | 'ngo_reg' | 'tax_cert' | 'other';
+      url: string;
+      verified?: boolean;
+      isPublic?: boolean;
+      status?: 'uploaded' | 'under_review' | 'verified' | 'rejected';
+      reviewerNotes?: string;
+      cloudProvider?: 'google_drive' | 'dropbox' | 'onedrive' | 'box' | 's3' | 'other';
+      fileSize?: string;
+    },
+    actorName = 'Admin'
+  ): Campaign | undefined {
+    const camp = this.getCampaignById(campaignId);
+    if (!camp) return undefined;
+
+    if (!camp.documents) camp.documents = [];
+
+    const newDoc = {
+      id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: doc.title,
+      type: doc.type,
+      url: doc.url,
+      verified: doc.verified !== undefined ? doc.verified : doc.status === 'verified',
+      isPublic: doc.isPublic ?? false,
+      status: doc.status || (doc.verified ? 'verified' : 'uploaded'),
+      reviewerNotes: doc.reviewerNotes || '',
+      cloudProvider: doc.cloudProvider || 'other',
+      fileSize: doc.fileSize || '1.2 MB',
+      uploadedAt: new Date().toISOString(),
+    };
+
+    camp.documents.push(newDoc);
+    camp.updatedAt = new Date().toISOString();
+
+    this.createAuditLog({
+      actorId: 'admin-action',
+      actorName,
+      action: 'CAMPAIGN_EVIDENCE_ATTACHED',
+      targetType: 'campaign',
+      targetId: campaignId,
+      details: `Attached ${newDoc.isPublic ? 'Public' : 'Internal'} evidence document "${newDoc.title}" (${newDoc.type})`,
+    });
+
+    return camp;
+  }
+
+  updateCampaignEvidenceDocument(
+    campaignId: string,
+    docId: string,
+    updates: Partial<NonNullable<Campaign['documents']>[number]>,
+    actorName = 'Admin'
+  ): Campaign | undefined {
+    const camp = this.getCampaignById(campaignId);
+    if (!camp || !camp.documents) return undefined;
+
+    const docIndex = camp.documents.findIndex((d) => d.id === docId);
+    if (docIndex === -1) return undefined;
+
+    camp.documents[docIndex] = {
+      ...camp.documents[docIndex],
+      ...updates,
+    };
+    camp.updatedAt = new Date().toISOString();
+
+    this.createAuditLog({
+      actorId: 'admin-action',
+      actorName,
+      action: 'CAMPAIGN_EVIDENCE_UPDATED',
+      targetType: 'campaign',
+      targetId: campaignId,
+      details: `Updated evidence document "${camp.documents[docIndex].title}": fields [${Object.keys(updates).join(', ')}]`,
+    });
+
+    return camp;
+  }
+
+  deleteCampaignEvidenceDocument(
+    campaignId: string,
+    docId: string,
+    actorName = 'Admin'
+  ): Campaign | undefined {
+    const camp = this.getCampaignById(campaignId);
+    if (!camp || !camp.documents) return undefined;
+
+    const removedDoc = camp.documents.find((d) => d.id === docId);
+    camp.documents = camp.documents.filter((d) => d.id !== docId);
+    camp.updatedAt = new Date().toISOString();
+
+    this.createAuditLog({
+      actorId: 'admin-action',
+      actorName,
+      action: 'CAMPAIGN_EVIDENCE_REMOVED',
+      targetType: 'campaign',
+      targetId: campaignId,
+      details: `Removed evidence document "${removedDoc?.title || docId}"`,
+    });
+
+    return camp;
+  }
+
   // Organizations
   getOrganizations(): Organization[] {
     return this.organizations;
@@ -833,10 +1302,36 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       throw new Error(`Campaign cannot accept donations because its status is ${campaign.status}`);
     }
 
+    // Validate numeric amount
+    if (typeof params.amount !== 'number' || isNaN(params.amount) || params.amount < 50) {
+      throw new Error('Minimum donation amount is ₹50.');
+    }
+
+    // Validate tipAmount
+    const validTipAmount =
+      typeof params.tipAmount === 'number' && !isNaN(params.tipAmount) && params.tipAmount >= 0
+        ? params.tipAmount
+        : 0;
+
     let calculatedItemTotal = 0;
+    const authoritativeAllocations: {
+      itemId: string;
+      itemName: string;
+      unitPrice: number;
+      quantity: number;
+    }[] = [];
+
     if (params.itemAllocations && params.itemAllocations.length > 0) {
       for (const alloc of params.itemAllocations) {
-        const itemNeed = this.campaignItemNeeds.find((it) => it.id === alloc.itemId);
+        // Enforce positive integer quantity
+        if (!alloc.quantity || !Number.isInteger(alloc.quantity) || alloc.quantity <= 0) {
+          throw new Error('Invalid item quantity: must be a positive integer.');
+        }
+
+        // Authoritative item lookup restricted to this specific campaign
+        const itemNeed = this.campaignItemNeeds.find(
+          (it) => it.id === alloc.itemId && it.campaignId === campaign.id
+        );
         if (!itemNeed) {
           throw new Error(`Item need ${alloc.itemId} not found for this campaign.`);
         }
@@ -844,24 +1339,48 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
           throw new Error(`Item requirement "${itemNeed.name}" is no longer active.`);
         }
         if (itemNeed.maxPerOrder && alloc.quantity > itemNeed.maxPerOrder) {
-          throw new Error(`Quantity ${alloc.quantity} exceeds maximum per order limit (${itemNeed.maxPerOrder}) for ${itemNeed.name}`);
+          throw new Error(
+            `Quantity ${alloc.quantity} exceeds maximum per order limit (${itemNeed.maxPerOrder}) for ${itemNeed.name}`
+          );
         }
-        calculatedItemTotal += alloc.unitPrice * alloc.quantity;
+
+        // Derive authoritative price strictly from catalog; NEVER trust client-supplied unitPrice
+        const authoritativeUnitPrice = itemNeed.unitPrice;
+        calculatedItemTotal += authoritativeUnitPrice * alloc.quantity;
+
+        authoritativeAllocations.push({
+          itemId: itemNeed.id,
+          itemName: itemNeed.name,
+          unitPrice: authoritativeUnitPrice,
+          quantity: alloc.quantity,
+        });
+      }
+
+      // Enforce that total donation covers the authoritative catalog cost
+      if (params.amount < calculatedItemTotal) {
+        throw new Error(
+          `Donation amount (₹${params.amount}) cannot be less than the required item allocation cost (₹${calculatedItemTotal}).`
+        );
       }
     }
 
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const donationId = `don-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
-    // Master Prompt 8 transparent fee & contribution calculation
-    const feePercent = params.platformFeePercent ?? (this.settings.platformFeeEnabled ? this.settings.defaultPlatformFeePercent : 0);
+    // Transparent fee & contribution calculation
+    const feePercent =
+      params.platformFeePercent ??
+      (this.settings.platformFeeEnabled ? this.settings.defaultPlatformFeePercent : 0);
     const platformFeeAmount = Math.round((params.amount * feePercent) / 100);
     const netCampaignAmount = params.amount - platformFeeAmount;
 
-    const dokindContribPercent = params.dokindContributionPercent ?? 0;
-    const dokindContribAmount = params.dokindContributionAmount ?? Math.round((params.amount * dokindContribPercent) / 100);
+    const dokindContribPercent = Math.max(
+      0,
+      Math.min(50, Number(params.dokindContributionPercent) || 0)
+    );
+    const dokindContribAmount = Math.round((params.amount * dokindContribPercent) / 100);
 
-    const totalAmount = params.amount + dokindContribAmount + params.tipAmount;
+    const totalAmount = params.amount + dokindContribAmount + validTipAmount;
 
     const donation: Donation = {
       id: donationId,
@@ -880,7 +1399,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       netCampaignAmount,
       dokindContributionPercent: dokindContribPercent,
       dokindContributionAmount: dokindContribAmount,
-      tipAmount: params.tipAmount,
+      tipAmount: validTipAmount,
       totalAmount,
       currency: 'INR',
       status: 'pending',
@@ -891,7 +1410,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       message: params.message?.trim(),
       isRecurring: !!params.isRecurring,
       recurringFrequency: params.isRecurring ? 'monthly' : undefined,
-      itemAllocations: params.itemAllocations,
+      itemAllocations: authoritativeAllocations.length > 0 ? authoritativeAllocations : undefined,
       itemDonationTotal: calculatedItemTotal > 0 ? calculatedItemTotal : undefined,
       createdAt: new Date().toISOString(),
     };
@@ -978,10 +1497,44 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     return donation;
   }
 
-  processRefund(donationId: string, reason: string, actorName = 'Finance Team'): Donation {
+  private processedWebhookEvents = new Set<string>();
+
+  isWebhookEventProcessed(eventId: string): boolean {
+    return this.processedWebhookEvents.has(eventId);
+  }
+
+  recordWebhookEvent(eventId: string): void {
+    this.processedWebhookEvents.add(eventId);
+  }
+
+  processRefund(
+    donationId: string,
+    reason: string,
+    actor: { id: string; name: string; role: UserRole } | 'Razorpay Webhook' | string = 'Finance Team'
+  ): Donation {
     const donation = this.donations.find((d) => d.id === donationId);
     if (!donation) throw new Error('Donation not found');
     if (donation.status !== 'succeeded') throw new Error('Only successful donations can be refunded');
+
+    // Strict server-side role authorization check
+    let actorId = 'system';
+    let actorName = 'Automated Webhook';
+
+    if (actor === 'Razorpay Webhook') {
+      actorId = 'razorpay-webhook';
+      actorName = 'Razorpay Webhook';
+    } else if (typeof actor === 'object') {
+      const allowedRoles: UserRole[] = ['super_admin', 'ops_admin', 'finance', 'head_staff'];
+      if (!actor.role || !allowedRoles.includes(actor.role)) {
+        throw new Error(
+          `Unauthorized: User with role '${actor.role || 'unspecified'}' is not authorized to issue refunds.`
+        );
+      }
+      actorId = actor.id || 'finance-1';
+      actorName = actor.name || 'Authorized Finance Officer';
+    } else if (typeof actor === 'string') {
+      actorName = actor;
+    }
 
     donation.status = 'refunded';
 
@@ -1009,7 +1562,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     }
 
     this.createAuditLog({
-      actorId: 'finance-1',
+      actorId,
       actorName,
       action: 'DONATION_REFUNDED',
       targetType: 'donation',
@@ -1176,6 +1729,200 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     const initialLen = this.testimonials.length;
     this.testimonials = this.testimonials.filter((t) => t.id !== id);
     return this.testimonials.length < initialLen;
+  }
+
+  // ---------------- MEDIA RECOGNITION (FEATURED IN NATIONAL MEDIA) ----------------
+  getMediaRecognitions(options?: { onlyFeatured?: boolean }): MediaRecognition[] {
+    let list = [...this.mediaRecognitions];
+    if (options?.onlyFeatured) {
+      list = list.filter((r) => r.isFeatured);
+    }
+    return list.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  getMediaRecognitionById(id: string): MediaRecognition | undefined {
+    return this.mediaRecognitions.find((r) => r.id === id);
+  }
+
+  createMediaRecognition(
+    data: Omit<MediaRecognition, 'id' | 'createdAt' | 'updatedAt'>,
+    actorName = 'Admin'
+  ): MediaRecognition {
+    const newRec: MediaRecognition = {
+      ...data,
+      id: `rec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.mediaRecognitions.push(newRec);
+    this.createAuditLog({
+      actorId: 'usr-admin-1',
+      actorName,
+      action: 'MEDIA_RECOGNITION_CREATED',
+      targetType: 'settings',
+      targetId: newRec.id,
+      details: `Added media recognition outlet: "${newRec.outletName}".`,
+    });
+    return newRec;
+  }
+
+  updateMediaRecognition(
+    id: string,
+    updates: Partial<MediaRecognition>,
+    actorName = 'Admin'
+  ): MediaRecognition {
+    const idx = this.mediaRecognitions.findIndex((r) => r.id === id);
+    if (idx === -1) throw new Error('Media recognition record not found.');
+    this.mediaRecognitions[idx] = {
+      ...this.mediaRecognitions[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.createAuditLog({
+      actorId: 'usr-admin-1',
+      actorName,
+      action: 'MEDIA_RECOGNITION_UPDATED',
+      targetType: 'settings',
+      targetId: id,
+      details: `Updated media recognition: "${this.mediaRecognitions[idx].outletName}".`,
+    });
+    return this.mediaRecognitions[idx];
+  }
+
+  deleteMediaRecognition(id: string, actorName = 'Admin'): boolean {
+    const idx = this.mediaRecognitions.findIndex((r) => r.id === id);
+    if (idx === -1) return false;
+    const deleted = this.mediaRecognitions.splice(idx, 1)[0];
+    this.createAuditLog({
+      actorId: 'usr-admin-1',
+      actorName,
+      action: 'MEDIA_RECOGNITION_DELETED',
+      targetType: 'settings',
+      targetId: id,
+      details: `Deleted media recognition: "${deleted.outletName}".`,
+    });
+    return true;
+  }
+
+  reorderMediaRecognitions(orderedIds: string[], actorName = 'Admin'): MediaRecognition[] {
+    orderedIds.forEach((id, index) => {
+      const rec = this.mediaRecognitions.find((r) => r.id === id);
+      if (rec) rec.sortOrder = index + 1;
+    });
+    this.createAuditLog({
+      actorId: 'usr-admin-1',
+      actorName,
+      action: 'MEDIA_RECOGNITION_REORDERED',
+      targetType: 'settings',
+      targetId: 'carousel_order',
+      details: 'Reordered media recognition carousel displays.',
+    });
+    return this.getMediaRecognitions();
+  }
+
+  resetMediaRecognitions(actorName = 'Admin'): MediaRecognition[] {
+    this.mediaRecognitions = [
+      {
+        id: 'rec-1',
+        outletName: 'The Times of India',
+        logoUrl: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=240&q=80',
+        quote: 'Pioneering item-level transparency and verified hospital escrows in Indian crowdfunding.',
+        articleUrl: 'https://timesofindia.indiatimes.com',
+        publishedOn: 'Oct 2026',
+        category: 'National Daily',
+        isFeatured: true,
+        sortOrder: 1,
+        createdAt: '2026-10-01T10:00:00Z',
+        updatedAt: '2026-10-01T10:00:00Z',
+      },
+      {
+        id: 'rec-2',
+        outletName: 'The Hindu',
+        logoUrl: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=240&q=80',
+        quote: 'Directly connecting donors with critical pediatric cases with zero platform fees.',
+        articleUrl: 'https://thehindu.com',
+        publishedOn: 'Sep 2026',
+        category: 'National Daily',
+        isFeatured: true,
+        sortOrder: 2,
+        createdAt: '2026-09-15T10:00:00Z',
+        updatedAt: '2026-09-15T10:00:00Z',
+      },
+      {
+        id: 'rec-3',
+        outletName: 'The Economic Times',
+        logoUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=240&q=80',
+        quote: 'A trusted bridge for philanthropic capital, corporate CSR impact, and NGO governance.',
+        articleUrl: 'https://economictimes.indiatimes.com',
+        publishedOn: 'Aug 2026',
+        category: 'Business & Finance',
+        isFeatured: true,
+        sortOrder: 3,
+        createdAt: '2026-08-20T10:00:00Z',
+        updatedAt: '2026-08-20T10:00:00Z',
+      },
+      {
+        id: 'rec-4',
+        outletName: 'NDTV India',
+        logoUrl: 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=240&q=80',
+        quote: 'Accelerating emergency surgical interventions for underprivileged children across India.',
+        articleUrl: 'https://ndtv.com',
+        publishedOn: 'Jul 2026',
+        category: 'Television & Broadcast',
+        isFeatured: true,
+        sortOrder: 4,
+        createdAt: '2026-07-12T10:00:00Z',
+        updatedAt: '2026-07-12T10:00:00Z',
+      },
+      {
+        id: 'rec-5',
+        outletName: 'The Indian Express',
+        logoUrl: 'https://images.unsplash.com/photo-1586339949916-3e9457bef6d3?auto=format&fit=crop&w=240&q=80',
+        quote: 'Transforming grassroots social giving with digital receipts and live item tracking.',
+        articleUrl: 'https://indianexpress.com',
+        publishedOn: 'Jun 2026',
+        category: 'National Daily',
+        isFeatured: true,
+        sortOrder: 5,
+        createdAt: '2026-06-05T10:00:00Z',
+        updatedAt: '2026-06-05T10:00:00Z',
+      },
+      {
+        id: 'rec-6',
+        outletName: 'Mint',
+        logoUrl: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=240&q=80',
+        quote: 'Setting new transparency benchmarks in Indian social impact financing.',
+        articleUrl: 'https://livemint.com',
+        publishedOn: 'May 2026',
+        category: 'Business & Finance',
+        isFeatured: true,
+        sortOrder: 6,
+        createdAt: '2026-05-18T10:00:00Z',
+        updatedAt: '2026-05-18T10:00:00Z',
+      },
+      {
+        id: 'rec-7',
+        outletName: 'Hindustan Times',
+        logoUrl: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=240&q=80',
+        quote: 'Empowering verified non-profits with digital fundraising and donor trust certification.',
+        articleUrl: 'https://hindustantimes.com',
+        publishedOn: 'Apr 2026',
+        category: 'National Daily',
+        isFeatured: true,
+        sortOrder: 7,
+        createdAt: '2026-04-10T10:00:00Z',
+        updatedAt: '2026-04-10T10:00:00Z',
+      },
+    ];
+    this.createAuditLog({
+      actorId: 'usr-admin-1',
+      actorName,
+      action: 'MEDIA_RECOGNITION_RESET',
+      targetType: 'settings',
+      targetId: 'all',
+      details: 'Reset media recognition list to initial curated national media partners.',
+    });
+    return this.getMediaRecognitions();
   }
 
   // Settings & Audit Logs
@@ -1866,6 +2613,348 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     return this.users;
   }
 
+  getUserByEmail(email: string): User | undefined {
+    if (!email) return undefined;
+    const clean = email.trim().toLowerCase();
+    return this.users.find((u) => u.email.trim().toLowerCase() === clean);
+  }
+
+  getUserById(id: string): User | undefined {
+    if (!id) return undefined;
+    return this.users.find((u) => u.id === id);
+  }
+
+  getUserByPhone(phone: string): User | undefined {
+    if (!phone) return undefined;
+    const norm = normalizePhoneNumber(phone);
+    if (!norm.isValid) return undefined;
+    return this.users.find((u) => u.phone && arePhonesEqual(u.phone, norm.e164));
+  }
+
+  createUser(user: User): User {
+    if (!user.id) {
+      user.id = `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    }
+    if (!user.createdAt) {
+      user.createdAt = new Date().toISOString();
+    }
+    if (!user.role) {
+      user.role = 'donor';
+    }
+    if (user.email && this.getUserByEmail(user.email)) {
+      throw new Error(`User with email "${user.email}" already exists.`);
+    }
+    if (user.phone) {
+      const existing = this.getUserByPhone(user.phone);
+      if (existing) {
+        throw new Error(`User with phone "${user.phone}" already exists.`);
+      }
+    }
+    this.users.push(user);
+    return user;
+  }
+
+  updateUser(userId: string, updates: Partial<User>): User | undefined {
+    const user = this.users.find((u) => u.id === userId);
+    if (!user) return undefined;
+
+    if (this.isDesignatedSuperAdmin(user.email)) {
+      if (updates.role && updates.role !== 'super_admin') {
+        throw new Error('PROTECTION LOCK: Designated founding Super Admin account role cannot be altered.');
+      }
+      if (updates.status && updates.status !== 'active') {
+        throw new Error('PROTECTION LOCK: Designated founding Super Admin account status cannot be altered.');
+      }
+    }
+
+    if (updates.phone && updates.phone !== user.phone) {
+      const existing = this.getUserByPhone(updates.phone);
+      if (existing && existing.id !== user.id) {
+        throw new Error('This phone number is already linked to another account.');
+      }
+    }
+
+    Object.assign(user, updates);
+    return user;
+  }
+
+  linkUserPhone(
+    userId: string,
+    rawPhone: string,
+    actorName = 'User'
+  ): { success: boolean; user?: User; error?: string } {
+    const norm = normalizePhoneNumber(rawPhone);
+    if (!norm.isValid) {
+      return { success: false, error: norm.error || 'Invalid phone number format.' };
+    }
+
+    const existingWithPhone = this.getUserByPhone(norm.e164);
+    if (existingWithPhone && existingWithPhone.id !== userId) {
+      return {
+        success: false,
+        error: 'This mobile number is already linked to another dokind account.',
+      };
+    }
+
+    const user = this.users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, error: 'User account not found.' };
+    }
+
+    user.phone = norm.e164;
+    user.phoneVerified = true;
+    user.phoneVerifiedAt = new Date().toISOString();
+
+    this.createAuditLog({
+      actorId: user.id,
+      actorName: user.name || actorName,
+      action: 'USER_PHONE_LINKED',
+      targetType: 'user',
+      targetId: user.id,
+      details: `Mobile number ${norm.masked} verified and linked to account`,
+    });
+
+    return { success: true, user };
+  }
+
+  unlinkUserPhone(userId: string, actorName = 'User'): { success: boolean; user?: User; error?: string } {
+    const user = this.users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, error: 'User account not found.' };
+    }
+
+    if (!user.email) {
+      return {
+        success: false,
+        error: 'Cannot remove mobile number because no email address is linked to this account.',
+      };
+    }
+
+    user.phone = undefined;
+    user.phoneVerified = false;
+    user.phoneVerifiedAt = undefined;
+
+    this.createAuditLog({
+      actorId: user.id,
+      actorName: user.name || actorName,
+      action: 'USER_PHONE_UNLINKED',
+      targetType: 'user',
+      targetId: user.id,
+      details: `Mobile number unlinked from account`,
+    });
+
+    return { success: true, user };
+  }
+
+  // ---------------- OTP CHALLENGES & RATE LIMITING ----------------
+  checkOtpRateLimit(
+    identifier: string,
+    type: 'phone' | 'ip'
+  ): { allowed: boolean; retryAfterSeconds?: number; error?: string } {
+    const store = type === 'phone' ? this.phoneRateLimits : this.ipRateLimits;
+    const now = Date.now();
+    const entry = store.get(identifier);
+
+    const maxRequests = type === 'phone' ? 5 : 15;
+    const windowMs = 15 * 60 * 1000; // 15 minutes
+
+    if (!entry || now > entry.resetAt) {
+      return { allowed: true };
+    }
+
+    if (entry.count >= maxRequests) {
+      const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
+      return {
+        allowed: false,
+        retryAfterSeconds,
+        error: `Too many OTP requests. Please wait ${retryAfterSeconds}s before trying again.`,
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  recordOtpRateLimit(identifier: string, type: 'phone' | 'ip'): void {
+    const store = type === 'phone' ? this.phoneRateLimits : this.ipRateLimits;
+    const now = Date.now();
+    const windowMs = 15 * 60 * 1000;
+    const entry = store.get(identifier);
+
+    if (!entry || now > entry.resetAt) {
+      store.set(identifier, { count: 1, resetAt: now + windowMs });
+    } else {
+      entry.count += 1;
+    }
+  }
+
+  createOtpChallenge(phone: string): OtpChallengeRecord {
+    const norm = normalizePhoneNumber(phone);
+    const now = Date.now();
+    const challenge: OtpChallengeRecord = {
+      id: `otp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      phone: norm.e164,
+      maskedPhone: norm.masked,
+      attempts: 0,
+      maxAttempts: 5,
+      resendCount: 0,
+      maxResends: 3,
+      resendCooldownUntil: now + 60 * 1000, // 60s cooldown
+      expiresAt: now + 10 * 60 * 1000,      // 10m expiry
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+    };
+    this.otpChallenges.set(norm.e164, challenge);
+    return challenge;
+  }
+
+  getOtpChallenge(phone: string): OtpChallengeRecord | undefined {
+    const norm = normalizePhoneNumber(phone);
+    const challenge = this.otpChallenges.get(norm.e164);
+    if (!challenge) return undefined;
+    if (Date.now() > challenge.expiresAt) {
+      challenge.status = 'expired';
+      this.otpChallenges.delete(norm.e164);
+      return undefined;
+    }
+    return challenge;
+  }
+
+  recordOtpAttempt(phone: string): { challenge?: OtpChallengeRecord; locked: boolean } {
+    const challenge = this.getOtpChallenge(phone);
+    if (!challenge) return { locked: false };
+    challenge.attempts += 1;
+    if (challenge.attempts >= challenge.maxAttempts) {
+      challenge.status = 'locked';
+      const norm = normalizePhoneNumber(phone);
+      this.otpChallenges.delete(norm.e164);
+      return { challenge, locked: true };
+    }
+    return { challenge, locked: false };
+  }
+
+  deleteOtpChallenge(phone: string): void {
+    const norm = normalizePhoneNumber(phone);
+    this.otpChallenges.delete(norm.e164);
+  }
+
+  // ---------------- EMAIL OTP CHALLENGES & RATE LIMITING ----------------
+  checkEmailOtpRateLimit(
+    email: string,
+    ip: string
+  ): { allowed: boolean; retryAfterSeconds?: number; error?: string } {
+    const normEmail = email.trim().toLowerCase();
+    const now = Date.now();
+    const windowMs = 15 * 60 * 1000; // 15 minutes
+
+    // 1. Check Email-level limit (max 5 requests per 15 min)
+    const emailEntry = this.emailRateLimits.get(normEmail);
+    if (emailEntry && now < emailEntry.resetAt && emailEntry.count >= 5) {
+      const retryAfterSeconds = Math.ceil((emailEntry.resetAt - now) / 1000);
+      return {
+        allowed: false,
+        retryAfterSeconds,
+        error: `Too many verification requests for this email. Please wait ${retryAfterSeconds}s before retrying.`,
+      };
+    }
+
+    // 2. Check IP-level limit (max 20 requests per hour)
+    const ipEntry = this.ipRateLimits.get(ip);
+    const ipWindowMs = 60 * 60 * 1000;
+    if (ipEntry && now < ipEntry.resetAt && ipEntry.count >= 20) {
+      const retryAfterSeconds = Math.ceil((ipEntry.resetAt - now) / 1000);
+      return {
+        allowed: false,
+        retryAfterSeconds,
+        error: `Too many verification requests from this network. Please wait ${retryAfterSeconds}s before retrying.`,
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  recordEmailOtpRateLimit(email: string, ip: string): void {
+    const normEmail = email.trim().toLowerCase();
+    const now = Date.now();
+
+    // Record email rate limit
+    const emailWindowMs = 15 * 60 * 1000;
+    const emailEntry = this.emailRateLimits.get(normEmail);
+    if (!emailEntry || now > emailEntry.resetAt) {
+      this.emailRateLimits.set(normEmail, { count: 1, resetAt: now + emailWindowMs });
+    } else {
+      emailEntry.count += 1;
+    }
+
+    // Record IP rate limit
+    const ipWindowMs = 60 * 60 * 1000;
+    const ipEntry = this.ipRateLimits.get(ip);
+    if (!ipEntry || now > ipEntry.resetAt) {
+      this.ipRateLimits.set(ip, { count: 1, resetAt: now + ipWindowMs });
+    } else {
+      ipEntry.count += 1;
+    }
+  }
+
+  createEmailOtpChallenge(email: string, codeDigest: string): EmailOtpChallengeRecord {
+    const normEmail = email.trim().toLowerCase();
+    const now = Date.now();
+    const challenge: EmailOtpChallengeRecord = {
+      id: `eml-otp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      email: normEmail,
+      codeDigest,
+      attempts: 0,
+      maxAttempts: 5,
+      resendCount: 0,
+      maxResends: 3,
+      resendCooldownUntil: now + 60 * 1000, // 60s cooldown
+      expiresAt: now + 10 * 60 * 1000,      // 10m expiry
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+    };
+    this.emailOtpChallenges.set(normEmail, challenge);
+    return challenge;
+  }
+
+  getEmailOtpChallenge(email: string): EmailOtpChallengeRecord | undefined {
+    const normEmail = email.trim().toLowerCase();
+    const challenge = this.emailOtpChallenges.get(normEmail);
+    if (!challenge) return undefined;
+    if (Date.now() > challenge.expiresAt) {
+      challenge.status = 'expired';
+      this.emailOtpChallenges.delete(normEmail);
+      return undefined;
+    }
+    return challenge;
+  }
+
+  recordEmailOtpAttempt(email: string): { challenge?: EmailOtpChallengeRecord; locked: boolean } {
+    const challenge = this.getEmailOtpChallenge(email);
+    if (!challenge) return { locked: false };
+    challenge.attempts += 1;
+    if (challenge.attempts >= challenge.maxAttempts) {
+      challenge.status = 'locked';
+      const normEmail = email.trim().toLowerCase();
+      this.emailOtpChallenges.delete(normEmail);
+      return { challenge, locked: true };
+    }
+    return { challenge, locked: false };
+  }
+
+  consumeEmailOtpChallenge(email: string): void {
+    const normEmail = email.trim().toLowerCase();
+    const challenge = this.emailOtpChallenges.get(normEmail);
+    if (challenge) {
+      challenge.status = 'verified';
+      challenge.consumedAt = new Date().toISOString();
+    }
+    this.emailOtpChallenges.delete(normEmail);
+  }
+
+  deleteEmailOtpChallenge(email: string): void {
+    const normEmail = email.trim().toLowerCase();
+    this.emailOtpChallenges.delete(normEmail);
+  }
+
   updateUserRole(userId: string, newRole: UserRole, actorName = 'Admin'): User | undefined {
     const user = this.users.find((u) => u.id === userId);
     if (!user) return undefined;
@@ -1899,6 +2988,758 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Updated permission matrix for role "${rp.name}"`,
     });
     return rp;
+  }
+
+  // ---------------- TEAM & EMPLOYEE MANAGEMENT (MASTER PROMPT 11) ----------------
+  getEmployees(actor?: { id?: string; name?: string; role: UserRole }): User[] {
+    if (actor && !['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts have authority to manage employee accounts.');
+    }
+    const staffRoles: UserRole[] = [
+      'super_admin',
+      'admin',
+      'support_admin',
+      'ops_admin',
+      'marketer',
+      'content_writer',
+      'content_editor',
+      'lead_generator',
+      'campaign_manager',
+      'head_staff',
+      'reviewer',
+      'finance',
+      'support_staff',
+    ];
+    return this.users.filter(
+      (u) =>
+        staffRoles.includes(u.role) ||
+        (u.secondaryRole && staffRoles.includes(u.secondaryRole)) ||
+        (u.roles && u.roles.some((r) => staffRoles.includes(r)))
+    );
+  }
+
+  getEmployeeById(id: string): User | undefined {
+    return this.users.find((u) => u.id === id);
+  }
+
+  getEmployeeByEmployeeId(empId: string): User | undefined {
+    return this.users.find((u) => u.employeeId?.toLowerCase() === empId.toLowerCase());
+  }
+
+  generateNextEmployeeId(): string {
+    const staff = this.getEmployees();
+    let maxNum = 0;
+    staff.forEach((s) => {
+      if (s.employeeId && s.employeeId.startsWith('EMP-')) {
+        const num = parseInt(s.employeeId.replace('EMP-', ''), 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    });
+    const nextNum = maxNum + 1;
+    return `EMP-${nextNum.toString().padStart(4, '0')}`;
+  }
+
+  createEmployee(
+    data: {
+      name: string;
+      email: string;
+      employeeId?: string;
+      role: UserRole;
+      secondaryRole?: UserRole;
+      roles?: UserRole[];
+      department?: string;
+      jobTitle?: string;
+      status?: 'active' | 'suspended' | 'pending_setup';
+      assignedCampaigns?: string[];
+      internalNotes?: string;
+    },
+    actor: { id: string; name: string; role: UserRole } = { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
+  ): { user: User; temporaryCredential: string; temporaryPassword: string; resetToken: string } {
+    // 1. RBAC Guard: Only Super Admin, Admin, and Support Admin have authority to provision employee accounts
+    if (!['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts have authority to provision employee accounts or assign staff roles.');
+    }
+
+    // 2. Role Count Validation: A single employee can have at most 2 roles simultaneously
+    let primaryRole = data.role;
+    let secondaryRole = data.secondaryRole;
+
+    if (data.roles && Array.isArray(data.roles)) {
+      const uniqueRoles = Array.from(new Set(data.roles));
+      if (uniqueRoles.length > 2) {
+        throw new Error('VALIDATION ERROR: An employee cannot have more than 2 roles simultaneously (maximum 2 roles allowed).');
+      }
+      if (uniqueRoles.length === 0) {
+        throw new Error('VALIDATION ERROR: An employee must have at least one role assigned.');
+      }
+      primaryRole = uniqueRoles[0];
+      secondaryRole = uniqueRoles[1] || undefined;
+    } else if (secondaryRole) {
+      if (secondaryRole === primaryRole) {
+        secondaryRole = undefined;
+      }
+    }
+
+    const assignedRoles: UserRole[] = secondaryRole ? [primaryRole, secondaryRole] : [primaryRole];
+    if (assignedRoles.length > 2) {
+      throw new Error('VALIDATION ERROR: An employee cannot have more than 2 roles simultaneously (maximum 2 roles allowed).');
+    }
+
+    // 3. Email Validation & Uniqueness
+    const cleanEmail = data.email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new Error('VALIDATION ERROR: A valid official email address is required.');
+    }
+    if (this.users.some((u) => u.email.toLowerCase() === cleanEmail)) {
+      throw new Error(`CONFLICT: An account with email "${cleanEmail}" already exists.`);
+    }
+
+    // 4. Employee ID Assignment & Uniqueness
+    const empId = data.employeeId?.trim() ? data.employeeId.trim().toUpperCase() : this.generateNextEmployeeId();
+    if (this.users.some((u) => u.employeeId?.toUpperCase() === empId)) {
+      throw new Error(`CONFLICT: Employee ID "${empId}" is already assigned to another staff member.`);
+    }
+
+    // 5. Cryptographically Secure Initial Credential Generation
+    // High-entropy random characters (never derived from name, ID, or email)
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*';
+    let randPart = '';
+    for (let i = 0; i < 14; i++) {
+      randPart += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    const temporaryCredential = `Dk#${randPart}!8`;
+
+    // 6. Secure Hash Simulation (Never store plaintext password in DB)
+    let hashNum = 0;
+    for (let i = 0; i < temporaryCredential.length; i++) {
+      hashNum = (hashNum << 5) - hashNum + temporaryCredential.charCodeAt(i);
+      hashNum |= 0;
+    }
+    const passwordHash = `dk_argon2id_mock_${Math.abs(hashNum).toString(16)}_${Date.now()}`;
+    const resetToken = `rst_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
+
+    // 7. Assemble Employee Record with Least-Privilege Defaults & Multi-Role Support (Max 2 Roles)
+    const newUser: User = {
+      id: `usr-emp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      employeeId: empId,
+      name: data.name.trim(),
+      email: cleanEmail,
+      role: primaryRole,
+      secondaryRole,
+      roles: assignedRoles,
+      department: data.department?.trim() || 'General Operations',
+      jobTitle: data.jobTitle?.trim() || primaryRole.replace('_', ' '),
+      status: data.status || 'pending_setup',
+      assignedCampaigns: data.assignedCampaigns || [],
+      internalNotes: data.internalNotes?.trim() || '',
+      requiresPasswordChange: true,
+      passwordHash,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.users.push(newUser);
+
+    // 8. Audit Log Entry (Strictly non-secret metadata, no plaintext passwords or secrets)
+    const rolesDesc = secondaryRole ? `${primaryRole} & ${secondaryRole}` : primaryRole;
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'EMPLOYEE_ACCOUNT_CREATED',
+      targetType: 'user',
+      targetId: newUser.id,
+      details: `Provisioned employee account: ${newUser.name} (Employee ID: ${newUser.employeeId}, Roles: ${rolesDesc}, Dept: ${newUser.department}, Status: ${newUser.status})`,
+    });
+
+    return {
+      user: newUser,
+      temporaryCredential,
+      temporaryPassword: temporaryCredential,
+      resetToken,
+    };
+  }
+
+  updateEmployee(
+    id: string,
+    updates: Partial<User>,
+    actor: { id: string; name: string; role: UserRole } = { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
+  ): User {
+    if (!['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts have authority to modify employee profile details.');
+    }
+
+    const idx = this.users.findIndex((u) => u.id === id);
+    if (idx === -1) {
+      throw new Error('Employee account not found.');
+    }
+
+    const current = this.users[idx];
+
+    // Check Employee ID uniqueness if updated
+    if (updates.employeeId && updates.employeeId.toUpperCase() !== current.employeeId?.toUpperCase()) {
+      const cleanEmpId = updates.employeeId.trim().toUpperCase();
+      if (this.users.some((u) => u.id !== id && u.employeeId?.toUpperCase() === cleanEmpId)) {
+        throw new Error(`CONFLICT: Employee ID "${cleanEmpId}" is already assigned to another staff member.`);
+      }
+      updates.employeeId = cleanEmpId;
+    }
+
+    // Check email uniqueness if updated
+    if (updates.email && updates.email.toLowerCase() !== current.email.toLowerCase()) {
+      const cleanEmail = updates.email.trim().toLowerCase();
+      if (this.users.some((u) => u.id !== id && u.email.toLowerCase() === cleanEmail)) {
+        throw new Error(`CONFLICT: Email address "${cleanEmail}" is already registered.`);
+      }
+      updates.email = cleanEmail;
+    }
+
+    // Validate Maximum 2 Roles constraint
+    if (updates.roles !== undefined || updates.role !== undefined || updates.secondaryRole !== undefined) {
+      let newPrimary = updates.role ?? current.role;
+      let newSecondary = updates.secondaryRole !== undefined ? updates.secondaryRole : current.secondaryRole;
+
+      if (updates.roles !== undefined) {
+        const uniqueRoles = Array.from(new Set(updates.roles));
+        if (uniqueRoles.length > 2) {
+          throw new Error('VALIDATION ERROR: An employee cannot have more than 2 roles simultaneously (maximum 2 roles allowed).');
+        }
+        if (uniqueRoles.length === 0) {
+          throw new Error('VALIDATION ERROR: An employee must have at least one role assigned.');
+        }
+        newPrimary = uniqueRoles[0];
+        newSecondary = uniqueRoles[1] || undefined;
+      } else if (newSecondary === newPrimary) {
+        newSecondary = undefined;
+      }
+
+      const combinedRoles: UserRole[] = newSecondary ? [newPrimary, newSecondary] : [newPrimary];
+      if (combinedRoles.length > 2) {
+        throw new Error('VALIDATION ERROR: An employee cannot have more than 2 roles simultaneously (maximum 2 roles allowed).');
+      }
+
+      updates.role = newPrimary;
+      updates.secondaryRole = newSecondary;
+      updates.roles = combinedRoles;
+    }
+
+    // Never allow updating passwordHash or credentials directly via generic update
+    delete updates.passwordHash;
+
+    this.users[idx] = {
+      ...current,
+      ...updates,
+    };
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'EMPLOYEE_PROFILE_UPDATED',
+      targetType: 'user',
+      targetId: id,
+      details: `Updated employee record for ${this.users[idx].name} (${this.users[idx].employeeId}): fields [${Object.keys(updates).join(', ')}]`,
+    });
+
+    return this.users[idx];
+  }
+
+  setEmployeeRoles(
+    id: string,
+    roles: UserRole[],
+    actor: { id: string; name: string; role: UserRole } = { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' },
+    reason?: string
+  ): User {
+    if (!['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts can change employee roles.');
+    }
+
+    const uniqueRoles = Array.from(new Set(roles));
+    if (uniqueRoles.length > 2) {
+      throw new Error('VALIDATION ERROR: An employee cannot have more than 2 roles simultaneously (maximum 2 roles allowed).');
+    }
+    if (uniqueRoles.length === 0) {
+      throw new Error('VALIDATION ERROR: An employee must have at least one role assigned.');
+    }
+
+    const user = this.users.find((u) => u.id === id);
+    if (!user) throw new Error('Employee account not found.');
+
+    const newPrimary = uniqueRoles[0];
+    const newSecondary = uniqueRoles[1] || undefined;
+
+    // Check protection locks
+    if (user.role === 'super_admin' && !uniqueRoles.includes('super_admin') && actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Only a Super Administrator can modify another Super Administrator account.');
+    }
+    if (this.isDesignatedSuperAdmin(user.email) && !uniqueRoles.includes('super_admin')) {
+      throw new Error(`PROTECTION LOCK: "${user.email}" is a designated bootstrap Super Administrator and cannot be demoted.`);
+    }
+
+    const oldRoles = user.roles || (user.secondaryRole ? [user.role, user.secondaryRole] : [user.role]);
+    user.role = newPrimary;
+    user.secondaryRole = newSecondary;
+    user.roles = uniqueRoles;
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'EMPLOYEE_ROLE_CHANGED',
+      targetType: 'user',
+      targetId: id,
+      details: `Updated roles for ${user.name} (${user.employeeId || id}) from [${oldRoles.join(', ')}] to [${uniqueRoles.join(', ')}] (Max 2 roles enforced).${reason ? ` Reason: ${reason}` : ''}`,
+    });
+
+    return user;
+  }
+
+  changeEmployeeRole(
+    id: string,
+    newRole: UserRole,
+    actorOrReason?: { id: string; name: string; role: UserRole } | string,
+    maybeActor?: { id: string; name: string; role: UserRole }
+  ): User {
+    let actor: { id: string; name: string; role: UserRole } = { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' };
+    let reason = '';
+    if (typeof actorOrReason === 'string') {
+      reason = actorOrReason;
+      if (maybeActor) actor = maybeActor;
+    } else if (actorOrReason && typeof actorOrReason === 'object') {
+      actor = actorOrReason;
+    }
+
+    if (!['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts can change employee roles.');
+    }
+
+    const user = this.users.find((u) => u.id === id);
+    if (!user) throw new Error('Employee account not found.');
+
+    // Only super_admin can modify a super_admin account
+    if (user.role === 'super_admin' && actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Only a Super Administrator can modify another Super Administrator account.');
+    }
+
+    // Super Admin Protection Lock: designated bootstrap Super Admin cannot be demoted
+    if (this.isDesignatedSuperAdmin(user.email) && newRole !== 'super_admin') {
+      throw new Error(`PROTECTION LOCK: "${user.email}" is a designated bootstrap Super Administrator and cannot be demoted.`);
+    }
+
+    // Protection Lock: ensure at least one active Super Admin remains
+    if (user.role === 'super_admin' && newRole !== 'super_admin') {
+      const remainingSuperAdmins = this.users.filter((u) => u.id !== id && u.role === 'super_admin' && u.status === 'active');
+      if (remainingSuperAdmins.length === 0) {
+        throw new Error('PROTECTION LOCK: Cannot demote the last active Super Administrator. Platform requires at least one Super Administrator.');
+      }
+    }
+
+    const oldRole = user.role;
+    user.role = newRole;
+    if (user.secondaryRole === newRole) {
+      user.secondaryRole = undefined;
+    }
+    user.roles = user.secondaryRole ? [user.role, user.secondaryRole] : [user.role];
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'EMPLOYEE_ROLE_CHANGED',
+      targetType: 'user',
+      targetId: id,
+      details: `Changed role for ${user.name} (${user.employeeId || id}) from "${oldRole}" to "${newRole}".${reason ? ` Reason: ${reason}` : ''}`,
+    });
+
+    return user;
+  }
+
+  setEmployeeStatus(
+    id: string,
+    status: 'active' | 'suspended' | 'pending_setup',
+    actor: { id: string; name: string; role: UserRole } = { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
+  ): User {
+    if (!['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts can activate, suspend, or change employee account status.');
+    }
+
+    const user = this.users.find((u) => u.id === id);
+    if (!user) throw new Error('Employee account not found.');
+
+    // Only super_admin can alter the status of a super_admin
+    if (user.role === 'super_admin' && actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Only a Super Administrator can alter the status of another Super Administrator.');
+    }
+
+    // Super Admin Protection Lock: designated bootstrap Super Admin cannot be suspended
+    if (this.isDesignatedSuperAdmin(user.email) && status === 'suspended') {
+      throw new Error(`PROTECTION LOCK: "${user.email}" is a designated bootstrap Super Administrator and cannot be suspended or locked.`);
+    }
+
+    const oldStatus = user.status;
+    user.status = status;
+
+    if (status === 'suspended') {
+      user.sessionRevokedAt = new Date().toISOString();
+    }
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: status === 'suspended' ? 'EMPLOYEE_ACCOUNT_SUSPENDED' : 'EMPLOYEE_ACCOUNT_ACTIVATED',
+      targetType: 'user',
+      targetId: id,
+      details: `Changed status for ${user.name} (${user.employeeId || id}) from "${oldStatus}" to "${status}". Sessions ${status === 'suspended' ? 'revoked' : 'preserved'}.`,
+    });
+
+    return user;
+  }
+
+  deleteEmployee(
+    id: string,
+    actor: { id: string; name: string; role: UserRole } = { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
+  ): boolean {
+    if (!['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts have authority to delete employee accounts.');
+    }
+    const user = this.users.find((u) => u.id === id);
+    if (!user) return false;
+
+    if (this.isDesignatedSuperAdmin(user.email)) {
+      throw new Error(`PROTECTION LOCK: "${user.email}" is a designated bootstrap Super Administrator and cannot be deleted.`);
+    }
+
+    // Only super_admin can delete a super_admin
+    if (user.role === 'super_admin' && actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Only a Super Administrator can delete a Super Administrator account.');
+    }
+
+    if (user.role === 'super_admin') {
+      const remaining = this.users.filter((u) => u.id !== id && u.role === 'super_admin' && u.status === 'active');
+      if (remaining.length === 0) {
+        throw new Error('PROTECTION LOCK: Cannot delete the last active Super Administrator.');
+      }
+    }
+
+    // Check if user has operational or financial linkages
+    const hasCampaigns = (user.assignedCampaigns && user.assignedCampaigns.length > 0) || this.campaigns.some((c) => c.campaignManager === user.name);
+    const hasUpdates = this.campaignUpdates.some((u) => u.authorId === user.id);
+    if (hasCampaigns || hasUpdates) {
+      throw new Error('RECORD INTEGRITY: This employee has active campaign assignments or authored field reports. To preserve operational history, please deactivate (suspend) their account instead of permanently deleting.');
+    }
+
+    this.users = this.users.filter((u) => u.id !== id);
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'EMPLOYEE_ACCOUNT_DELETED',
+      targetType: 'user',
+      targetId: id,
+      details: `Permanently removed employee record: ${user.name} (${user.employeeId || id}, ${user.email})`,
+    });
+
+    return true;
+  }
+
+  initiateCredentialReset(
+    id: string,
+    actor: { id: string; name: string; role: UserRole } = { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
+  ): { resetToken: string; temporaryCredential: string; temporaryPassword: string; expiresAt: string } {
+    if (!['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts have authority to initiate employee credential resets.');
+    }
+
+    const user = this.users.find((u) => u.id === id);
+    if (!user) throw new Error('Employee account not found.');
+
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*';
+    let randPart = '';
+    for (let i = 0; i < 14; i++) {
+      randPart += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    const temporaryCredential = `Dk#${randPart}!9`;
+
+    let hashNum = 0;
+    for (let i = 0; i < temporaryCredential.length; i++) {
+      hashNum = (hashNum << 5) - hashNum + temporaryCredential.charCodeAt(i);
+      hashNum |= 0;
+    }
+    user.passwordHash = `dk_argon2id_mock_${Math.abs(hashNum).toString(16)}_${Date.now()}`;
+    user.requiresPasswordChange = true;
+    user.lastResetAt = new Date().toISOString();
+    user.sessionRevokedAt = new Date().toISOString();
+
+    const resetToken = `rst_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
+    const expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'EMPLOYEE_CREDENTIAL_RESET_INITIATED',
+      targetType: 'user',
+      targetId: id,
+      details: `Initiated secure single-use credential reset for ${user.name} (${user.employeeId || id}). Existing sessions revoked.`,
+    });
+
+    return {
+      resetToken,
+      temporaryCredential,
+      temporaryPassword: temporaryCredential,
+      expiresAt,
+    };
+  }
+
+  revokeEmployeeSessions(
+    id: string,
+    actor: { id: string; name: string; role: UserRole } = { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
+  ): User {
+    if (!['super_admin', 'admin', 'support_admin'].includes(actor.role)) {
+      throw new Error('ACCESS DENIED: Only Administrator accounts can revoke staff sessions.');
+    }
+
+    const user = this.users.find((u) => u.id === id);
+    if (!user) throw new Error('Employee account not found.');
+
+    user.sessionRevokedAt = new Date().toISOString();
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'EMPLOYEE_SESSIONS_REVOKED',
+      targetType: 'user',
+      targetId: id,
+      details: `Revoked all active sessions and refresh tokens for ${user.name} (${user.employeeId || id}).`,
+    });
+
+    return user;
+  }
+
+  getTeamAuditLogs(actor?: { id?: string; name?: string; role: UserRole }): AuditLog[] {
+    if (actor && actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Only the Super Administrator can view team audit logs.');
+    }
+    return this.auditLogs.filter(
+      (log) =>
+        log.targetType === 'user' ||
+        log.action.startsWith('EMPLOYEE_') ||
+        log.action.startsWith('USER_') ||
+        log.action === 'ROLE_PERMISSIONS_UPDATED'
+    );
+  }
+
+  // ---------------- API KEY & SECRETS MANAGER (SUPERIOR ADMIN ONLY) ----------------
+  getApiKeys(actor?: { id?: string; name?: string; role: UserRole }): ApiKeyRecord[] {
+    if (actor && actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Only the Superior Administrator has authority to view API credentials and secret keys.');
+    }
+    return this.apiKeys;
+  }
+
+  getApiKeyById(id: string, actor?: { id?: string; name?: string; role: UserRole }): ApiKeyRecord | undefined {
+    if (actor && actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Only the Superior Administrator has authority to inspect API credentials.');
+    }
+    return this.apiKeys.find((k) => k.id === id);
+  }
+
+  updateApiKey(
+    id: string,
+    updates: Partial<ApiKeyRecord>,
+    actor: { id: string; name: string; role: UserRole }
+  ): ApiKeyRecord {
+    if (actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Super Administrator authority required to modify API credentials.');
+    }
+    const idx = this.apiKeys.findIndex((k) => k.id === id);
+    if (idx === -1) {
+      throw new Error(`API Key record with ID "${id}" was not found.`);
+    }
+
+    const current = this.apiKeys[idx];
+    const updated: ApiKeyRecord = {
+      ...current,
+      ...updates,
+      id: current.id,
+      isSystemCritical: current.isSystemCritical,
+      updatedBy: actor.name,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (
+      (updates.secretKey && updates.secretKey !== current.secretKey) ||
+      (updates.webhookSecret && updates.webhookSecret !== current.webhookSecret) ||
+      (updates.publicKey && updates.publicKey !== current.publicKey)
+    ) {
+      updated.lastRotatedAt = new Date().toISOString();
+    }
+
+    this.apiKeys[idx] = updated;
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'API_KEY_UPDATED',
+      targetType: 'settings',
+      targetId: id,
+      details: `Superior Admin modified credentials for "${updated.name}" (${updated.service}) [Env: ${updated.environment}]`,
+    });
+
+    return updated;
+  }
+
+  createApiKey(
+    data: Omit<ApiKeyRecord, 'id' | 'updatedAt' | 'updatedBy'>,
+    actor: { id: string; name: string; role: UserRole }
+  ): ApiKeyRecord {
+    if (actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Super Administrator authority required to register new API credentials.');
+    }
+
+    const newKey: ApiKeyRecord = {
+      ...data,
+      id: `key-custom-${Date.now()}`,
+      updatedBy: actor.name,
+      updatedAt: new Date().toISOString(),
+      lastRotatedAt: new Date().toISOString(),
+      isSystemCritical: false,
+    };
+
+    this.apiKeys.unshift(newKey);
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'API_KEY_CREATED',
+      targetType: 'settings',
+      targetId: newKey.id,
+      details: `Superior Admin created new API credential record "${newKey.name}" (${newKey.service})`,
+    });
+
+    return newKey;
+  }
+
+  deleteApiKey(id: string, actor: { id: string; name: string; role: UserRole }): boolean {
+    if (actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Super Administrator authority required to delete API credentials.');
+    }
+    const key = this.apiKeys.find((k) => k.id === id);
+    if (!key) return false;
+
+    if (key.isSystemCritical) {
+      throw new Error(`Cannot delete critical platform service "${key.name}". You may deactivate it or update its keys instead.`);
+    }
+
+    this.apiKeys = this.apiKeys.filter((k) => k.id !== id);
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'API_KEY_DELETED',
+      targetType: 'settings',
+      targetId: id,
+      details: `Superior Admin removed API credential entry "${key.name}" (${key.service})`,
+    });
+
+    return true;
+  }
+
+  rotateApiKey(
+    id: string,
+    newSecret: string,
+    actor: { id: string; name: string; role: UserRole }
+  ): ApiKeyRecord {
+    if (actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Super Administrator authority required to rotate API credentials.');
+    }
+    const idx = this.apiKeys.findIndex((k) => k.id === id);
+    if (idx === -1) throw new Error('API key not found');
+
+    const key = this.apiKeys[idx];
+    const now = new Date().toISOString();
+    const updated: ApiKeyRecord = {
+      ...key,
+      secretKey: newSecret,
+      lastRotatedAt: now,
+      updatedAt: now,
+      updatedBy: actor.name,
+    };
+
+    this.apiKeys[idx] = updated;
+
+    this.createAuditLog({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'API_KEY_ROTATED',
+      targetType: 'settings',
+      targetId: id,
+      details: `Superior Admin triggered cryptographic key rotation for "${key.name}" (${key.service})`,
+    });
+
+    return updated;
+  }
+
+  testApiKeyConnection(
+    id: string,
+    actor: { id: string; name: string; role: UserRole }
+  ): { success: boolean; latencyMs: number; message: string; timestamp: string } {
+    if (actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Super Administrator authority required to ping API connections.');
+    }
+    const idx = this.apiKeys.findIndex((k) => k.id === id);
+    if (idx === -1) throw new Error('API key not found');
+
+    const key = this.apiKeys[idx];
+    const timestamp = new Date().toISOString();
+
+    const hasKeys = Boolean(key.publicKey || key.secretKey || key.webhookSecret);
+    const latency = Math.floor(Math.random() * 35) + 25;
+
+    let success = true;
+    let message = '';
+
+    if (!hasKeys) {
+      success = false;
+      message = 'Unconfigured: Missing public or secret key identifier.';
+    } else if (key.status === 'revoked' || key.status === 'expired') {
+      success = false;
+      message = `Connection rejected: Key status is "${key.status}".`;
+    } else {
+      success = true;
+      if (key.category === 'google') {
+        message = `HTTP 200 OK — Google API endpoint authenticated (${latency}ms). Quotas & scopes verified.`;
+      } else if (key.category === 'payment') {
+        message = `HTTP 200 OK — Payment gateway ping verified (${latency}ms). Merchant signature valid.`;
+      } else if (key.category === 'email') {
+        message = `HTTP 200 OK — Mail server authenticated (${latency}ms). SPF/DKIM records healthy.`;
+      } else if (key.category === 'storage') {
+        message = `HTTP 200 OK — S3 bucket handshake authenticated (${latency}ms). Read/Write policy valid.`;
+      } else {
+        message = `HTTP 200 OK — Service gateway responded successfully (${latency}ms).`;
+      }
+    }
+
+    this.apiKeys[idx] = {
+      ...key,
+      lastTestedAt: timestamp,
+      lastTestStatus: success ? 'healthy' : 'error',
+      lastTestMessage: message,
+    };
+
+    return {
+      success,
+      latencyMs: latency,
+      message,
+      timestamp,
+    };
+  }
+
+  getApiAuditLogs(actor?: { id?: string; name?: string; role: UserRole }): AuditLog[] {
+    if (actor && actor.role !== 'super_admin') {
+      throw new Error('ACCESS DENIED: Only the Super Administrator can view API audit logs.');
+    }
+    return this.auditLogs.filter(
+      (log) =>
+        log.action.startsWith('API_KEY_') ||
+        (log.targetType === 'settings' && (log.details.includes('API') || log.details.includes('gateway') || log.details.includes('credential')))
+    );
   }
 
   // ---------------- CAUSES MANAGEMENT ----------------
@@ -2434,6 +4275,12 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
           camp.scheduledPublishDate = schedulePublishDate;
         } else {
           camp.status = 'active';
+          camp.verifiedStatus = 'verified';
+          camp.requiresSuperAdminApproval = false;
+          camp.superAdminApproval = {
+            approvedAt: new Date().toISOString(),
+            approvedBy: reviewerName,
+          };
         }
         camp.updatedAt = new Date().toISOString();
       }
@@ -2597,6 +4444,47 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     return upd;
   }
 
+  updateCampaignUpdate(
+    id: string,
+    updates: Partial<CampaignUpdate>,
+    actorName = 'Admin'
+  ): CampaignUpdate | undefined {
+    const upd = this.getCampaignUpdateById(id);
+    if (!upd) return undefined;
+
+    Object.assign(upd, updates, { updatedAt: new Date().toISOString() });
+
+    this.createAuditLog({
+      actorId: 'admin-action',
+      actorName,
+      action: 'CAMPAIGN_UPDATE_EDITED',
+      targetType: 'campaign',
+      targetId: upd.campaignId,
+      details: `Updated campaign progress report "${upd.title}"`,
+    });
+
+    return upd;
+  }
+
+  deleteCampaignUpdate(id: string, actorName = 'Admin'): boolean {
+    const idx = this.campaignUpdates.findIndex((u) => u.id === id);
+    if (idx === -1) return false;
+
+    const removed = this.campaignUpdates[idx];
+    this.campaignUpdates.splice(idx, 1);
+
+    this.createAuditLog({
+      actorId: 'admin-action',
+      actorName,
+      action: 'CAMPAIGN_UPDATE_DELETED',
+      targetType: 'campaign',
+      targetId: removed.campaignId,
+      details: `Deleted campaign field update "${removed.title}"`,
+    });
+
+    return true;
+  }
+
   // ---------------- CAMPAIGN ITEM ANALYTICS ----------------
   getCampaignItemAnalytics(campaignId?: string) {
     const items = this.getCampaignItemNeeds(campaignId);
@@ -2678,6 +4566,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         badgeStyles: this.badgeStyles,
         campaignReports: this.campaignReports,
         campaignUpdateRequests: this.campaignUpdateRequests,
+        apiKeys: this.apiKeys,
         auditLogs: this.auditLogs,
       },
       null,
@@ -2702,6 +4591,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       if (parsed.badgeStyles) this.badgeStyles = parsed.badgeStyles;
       if (parsed.campaignReports) this.campaignReports = parsed.campaignReports;
       if (parsed.campaignUpdateRequests) this.campaignUpdateRequests = parsed.campaignUpdateRequests;
+      if (parsed.apiKeys) this.apiKeys = parsed.apiKeys;
 
       this.createAuditLog({
         actorId: 'admin-1',

@@ -1,0 +1,266 @@
+{
+  "standard": "OWASP ASVS 5.0",
+  "name": "Dokind Application Security Verification Assessment",
+  "version": "5.0.0",
+  "chapters": [
+    {
+      "id": "V1",
+      "name": "Architecture, Design and Threat Modeling",
+      "controls": [
+        {
+          "id": "V1.1.1",
+          "title": "Secure Architecture & Gateway Segregation",
+          "description": "Payment gateway keys and webhook secrets must be stored strictly server-side and never bundled in client code.",
+          "level": "L1",
+          "category": "Architecture"
+        },
+        {
+          "id": "V1.2.1",
+          "title": "Business Logic Integrity Model",
+          "description": "All financial calculations (gross, fees, item allocation totals) must be computed or re-validated authoritatively by the server.",
+          "level": "L2",
+          "category": "Business Logic"
+        }
+      ]
+    },
+    {
+      "id": "V2",
+      "name": "Authentication Verification",
+      "controls": [
+        {
+          "id": "V2.1.1",
+          "title": "Secure Password Hashing",
+          "description": "User and admin credentials must be hashed using strong one-way cryptographic algorithms with salt (e.g., bcrypt/Argon2/scrypt).",
+          "level": "L1",
+          "category": "Authentication"
+        },
+        {
+          "id": "V2.2.1",
+          "title": "Brute Force & Credential Stuffing Defenses",
+          "description": "Login endpoints must enforce rate limiting and progressive delays to prevent brute-force attacks.",
+          "level": "L1",
+          "category": "Authentication"
+        }
+      ]
+    },
+    {
+      "id": "V3",
+      "name": "Session Management",
+      "controls": [
+        {
+          "id": "V3.1.1",
+          "title": "Secure Cookie Flags",
+          "description": "Session cookies must specify HttpOnly, Secure, and SameSite (Lax or Strict) attributes.",
+          "level": "L1",
+          "category": "Session"
+        },
+        {
+          "id": "V3.2.1",
+          "title": "Session Termination",
+          "description": "Logout must completely invalidate the session both client-side and server-side.",
+          "level": "L1",
+          "category": "Session"
+        }
+      ]
+    },
+    {
+      "id": "V4",
+      "name": "Access Control",
+      "controls": [
+        {
+          "id": "V4.1.1",
+          "title": "Role-Based Access Control (RBAC)",
+          "description": "Administrative actions (campaign approvals, user management, recognition badges) must enforce staff/admin role checks.",
+          "level": "L1",
+          "category": "Authorization"
+        },
+        {
+          "id": "V4.2.1",
+          "title": "Insecure Direct Object References (IDOR)",
+          "description": "Donation orders and receipts must ensure that one donor cannot view or alter another donor's private records without authorization.",
+          "level": "L1",
+          "category": "Authorization"
+        }
+      ]
+    },
+    {
+      "id": "V5",
+      "name": "Validation, Sanitization and Encoding",
+      "controls": [
+        {
+          "id": "V5.1.1",
+          "title": "Input Type & Range Validation",
+          "description": "Donation amounts must be positive integers above minimum threshold; email addresses and PAN format must be validated.",
+          "level": "L1",
+          "category": "Input Validation"
+        },
+        {
+          "id": "V5.2.1",
+          "title": "Output Encoding & XSS Prevention",
+          "description": "User-supplied text (campaign titles, donor messages) must be contextually encoded before rendering to prevent XSS.",
+          "level": "L1",
+          "category": "Input Validation"
+        }
+      ]
+    },
+    {
+      "id": "V6",
+      "name": "Stored Cryptography",
+      "controls": [
+        {
+          "id": "V6.1.1",
+          "title": "Timing-Safe Signature Comparison",
+          "description": "Cryptographic signature comparisons (Razorpay HMAC-SHA256) must use constant-time comparisons (crypto.timingSafeEqual).",
+          "level": "L1",
+          "category": "Cryptography"
+        },
+        {
+          "id": "V6.2.1",
+          "title": "Key Isolation & Redaction",
+          "description": "API keys and secrets must never be committed to source code or logged in plaintext.",
+          "level": "L1",
+          "category": "Cryptography"
+        }
+      ]
+    },
+    {
+      "id": "V7",
+      "name": "Error Handling and Logging",
+      "controls": [
+        {
+          "id": "V7.1.1",
+          "title": "Sanitized Error Messages",
+          "description": "Application endpoints must not expose internal stack traces, database schema details, or raw exception objects to callers.",
+          "level": "L1",
+          "category": "Logging"
+        },
+        {
+          "id": "V7.2.1",
+          "title": "Redaction of Sensitive PII and Secrets in Logs",
+          "description": "Logs must not record donor PAN numbers, credit card data, auth tokens, or webhook signatures.",
+          "level": "L1",
+          "category": "Logging"
+        }
+      ]
+    },
+    {
+      "id": "V8",
+      "name": "Data Protection & Privacy",
+      "controls": [
+        {
+          "id": "V8.1.1",
+          "title": "Donor Privacy / Anonymous Giving",
+          "description": "When a donor selects anonymous giving, their name, email, and phone must not be rendered publicly in feeds or API responses.",
+          "level": "L1",
+          "category": "Privacy"
+        },
+        {
+          "id": "V8.2.1",
+          "title": "PAN Card Confidentiality",
+          "description": "Donor PAN cards collected for 80G tax benefit compliance must be masked or restricted strictly to authorized tax admins.",
+          "level": "L2",
+          "category": "Privacy"
+        }
+      ]
+    },
+    {
+      "id": "V9",
+      "name": "Communications",
+      "controls": [
+        {
+          "id": "V9.1.1",
+          "title": "Strict Transport Security (HSTS)",
+          "description": "All HTTP traffic must be redirected to HTTPS with HSTS headers in production.",
+          "level": "L1",
+          "category": "Network"
+        }
+      ]
+    },
+    {
+      "id": "V10",
+      "name": "Malicious Code & Dependencies",
+      "controls": [
+        {
+          "id": "V10.1.1",
+          "title": "Dependency Vulnerability Auditing",
+          "description": "All third-party packages must be scanned continuously for known CVEs using npm audit and Trivy.",
+          "level": "L1",
+          "category": "Dependencies"
+        }
+      ]
+    },
+    {
+      "id": "V11",
+      "name": "Business Logic & Payment Integrity",
+      "controls": [
+        {
+          "id": "V11.1.1",
+          "title": "Server-Side Razorpay Signature Verification",
+          "description": "Payment completion must strictly require valid HMAC-SHA256 signature verification computed server-side.",
+          "level": "L1",
+          "category": "Payment Integrity"
+        },
+        {
+          "id": "V11.1.2",
+          "title": "Webhook Idempotency & Replay Resistance",
+          "description": "Webhook events (payment.captured, refund.processed) must be idempotent; replayed events must not result in duplicated credits.",
+          "level": "L1",
+          "category": "Payment Integrity"
+        },
+        {
+          "id": "V11.1.3",
+          "title": "Client Price & Item Quantity Tamper Resistance",
+          "description": "The client must not be able to alter unit prices or donate less than the sum of allocated item needs.",
+          "level": "L1",
+          "category": "Payment Integrity"
+        }
+      ]
+    },
+    {
+      "id": "V12",
+      "name": "File and Resource Handling",
+      "controls": [
+        {
+          "id": "V12.1.1",
+          "title": "Upload MIME Type & Size Validation",
+          "description": "File uploads (logos, campaign images) must enforce allowed image MIME types, extensions, and file size limits.",
+          "level": "L1",
+          "category": "File Upload"
+        }
+      ]
+    },
+    {
+      "id": "V13",
+      "name": "API and Web Service",
+      "controls": [
+        {
+          "id": "V13.1.1",
+          "title": "HTTP Method Enforcement & Payload Limits",
+          "description": "API routes must restrict allowed HTTP methods and reject oversized or malformed JSON payloads.",
+          "level": "L1",
+          "category": "API"
+        }
+      ]
+    },
+    {
+      "id": "V14",
+      "name": "Configuration & Security Headers",
+      "controls": [
+        {
+          "id": "V14.1.1",
+          "title": "HTTP Security Headers",
+          "description": "Responses must include Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy.",
+          "level": "L1",
+          "category": "Configuration"
+        },
+        {
+          "id": "V14.2.1",
+          "title": "CORS Policy Restriction",
+          "description": "Access-Control-Allow-Origin must not specify wildcard '*' with credentials allowed.",
+          "level": "L1",
+          "category": "Configuration"
+        }
+      ]
+    }
+  ]
+}

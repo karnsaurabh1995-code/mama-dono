@@ -4,6 +4,9 @@ import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { AuthProvider } from '@/lib/auth/context';
+import { getServerSession } from '@/lib/auth/server';
+import { AuthUIProvider } from '@/providers/AuthUIProvider';
+import { LoginModal } from '@/components/auth/LoginModal';
 
 export const metadata: Metadata = {
   title: 'dokind — Transparent Crowdfunding & Compassionate Giving in India',
@@ -52,24 +55,29 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const initialUser = await getServerSession();
+
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col bg-[#FAF9F6] text-[#202124]">
-        <AuthProvider>
-          <Suspense fallback={<div className="h-20 bg-white border-b border-[#E8E6E1]" />}>
-            <Header />
-          </Suspense>
-          <main className="flex-1">
-            <Suspense fallback={<div className="py-20 text-center text-xs text-neutral-400">Loading...</div>}>
-              {children}
+        <AuthProvider initialUser={initialUser}>
+          <AuthUIProvider>
+            <Suspense fallback={<div className="h-20 bg-white border-b border-[#E8E6E1]" />}>
+              <Header />
             </Suspense>
-          </main>
-          <Footer />
+            <main className="flex-1">
+              <Suspense fallback={<div className="py-20 text-center text-xs text-neutral-400">Loading...</div>}>
+                {children}
+              </Suspense>
+            </main>
+            <Footer />
+            <LoginModal />
+          </AuthUIProvider>
         </AuthProvider>
       </body>
     </html>

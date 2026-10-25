@@ -24,6 +24,15 @@ export default function IntegrationsPage() {
 
   const integrations = [
     {
+      id: 'msg91',
+      name: 'MSG91 Mobile OTP Gateway (v5 API)',
+      description: 'Production-ready headless OTP authentication for Indian donors and organizers with DLT template compliance.',
+      icon: Smartphone,
+      status: process.env.NEXT_PUBLIC_PHONE_OTP_ENABLED === 'true' ? 'Active' : 'Configured',
+      configured: true,
+      senderId: 'MSG91-OTP-V5',
+    },
+    {
       id: 'whatsapp',
       name: 'WhatsApp Business API (Meta Cloud)',
       description: 'Deliver instant Section 80G PDF receipts and patient video recovery updates straight to donor WhatsApp numbers.',

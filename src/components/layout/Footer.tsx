@@ -22,7 +22,9 @@ export function Footer() {
   const [subscribed, setSubscribed] = useState(false);
   const [error, setError] = useState('');
 
-  if (pathname.startsWith('/admin')) {
+  // Hide public footer in dedicated admin and staff workspaces
+  // Guarded AFTER all hooks execute to guarantee identical hook count across all route transitions
+  if (pathname.startsWith('/admin') || pathname.startsWith('/staff')) {
     return null;
   }
 
@@ -115,19 +117,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/monthly-giving" className="hover:text-white transition-colors flex items-center gap-1.5">
-                  <span>Monthly Giving</span>
-                  <span className="text-[10px] bg-blue-900 text-blue-200 px-1.5 py-0.2 rounded font-semibold">
-                    Give.do style
-                  </span>
+                <Link href="/monthly-giving" className="hover:text-white transition-colors">
+                  Monthly Giving
                 </Link>
               </li>
               <li>
-                <Link href="/product-giving" className="hover:text-white transition-colors flex items-center gap-1.5">
-                  <span>Product Giving</span>
-                  <span className="text-[10px] bg-amber-900 text-amber-200 px-1.5 py-0.2 rounded font-semibold">
-                    DonateKart style
-                  </span>
+                <Link href="/product-giving" className="hover:text-white transition-colors">
+                  Product Giving
                 </Link>
               </li>
               <li>

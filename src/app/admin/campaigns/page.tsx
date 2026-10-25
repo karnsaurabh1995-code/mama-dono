@@ -26,6 +26,7 @@ import {
   Package,
   Clock,
   Inbox,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function AdminCampaignsPage() {
@@ -59,7 +60,23 @@ export default function AdminCampaignsPage() {
     return true;
   });
 
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isRestrictedRole = user?.role === 'content_writer' || user?.role === 'marketer' || user?.role === 'lead_generator';
+
   const handleToggleStatus = (campaign: Campaign, newStatus: CampaignStatus) => {
+    if (isRestrictedRole) {
+      notify(`Action blocked: Your role (${user?.role}) cannot alter campaign status. Please submit changes for review.`);
+      return;
+    }
+    // Block non-super_admin from activating campaigns requiring Supreme Admin approval
+    if (
+      newStatus === 'active' &&
+      (campaign.status === 'submitted' || campaign.requiresSuperAdminApproval) &&
+      !isSuperAdmin
+    ) {
+      notify(`Action blocked: Campaign "${campaign.title}" was proposed by an employee and requires Supreme Admin verification and approval to go live.`);
+      return;
+    }
     const updated = db.updateCampaign(campaign.id, { status: newStatus }, user?.name || 'Admin');
     if (updated) {
       setCampaigns([...db.getCampaigns()]);
@@ -68,6 +85,10 @@ export default function AdminCampaignsPage() {
   };
 
   const handleToggleFeatured = (campaign: Campaign) => {
+    if (isRestrictedRole) {
+      notify(`Action blocked: Your role (${user?.role}) cannot alter promotional flags.`);
+      return;
+    }
     const updated = db.updateCampaign(campaign.id, { featured: !campaign.featured }, user?.name || 'Admin');
     if (updated) {
       setCampaigns([...db.getCampaigns()]);
@@ -76,6 +97,10 @@ export default function AdminCampaignsPage() {
   };
 
   const handleToggleUrgent = (campaign: Campaign) => {
+    if (isRestrictedRole) {
+      notify(`Action blocked: Your role (${user?.role}) cannot alter emergency flags.`);
+      return;
+    }
     const updated = db.updateCampaign(campaign.id, { urgent: !campaign.urgent }, user?.name || 'Admin');
     if (updated) {
       setCampaigns([...db.getCampaigns()]);
@@ -99,6 +124,13 @@ export default function AdminCampaignsPage() {
   const handleConfirmModalAction = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCampaign || !modalAction) return;
+
+    if (isRestrictedRole) {
+      notify(`Action blocked: Your role (${user?.role}) is not authorized to pause or suspend campaigns.`);
+      setSelectedCampaign(null);
+      setModalAction(null);
+      return;
+    }
 
     const newStatus: CampaignStatus = modalAction === 'pause' ? 'paused' : 'suspended';
     db.updateCampaign(
@@ -253,14 +285,22 @@ export default function AdminCampaignsPage() {
                           className="w-12 h-12 rounded-xl object-cover shrink-0 border border-neutral-200"
                         />
                         <div className="min-w-0">
-                          <Link
-                            href={`/campaigns/${camp.slug}`}
-                            target="_blank"
-                            className="font-bold text-[#202124] hover:text-[#E84B45] line-clamp-1 transition-colors flex items-center gap-1"
-                          >
-                            <span>{camp.title}</span>
-                            <ExternalLink className="w-3 h-3 text-neutral-400 shrink-0" />
-                          </Link>
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/admin/campaigns/${camp.id}`}
+                              className="font-bold text-[#202124] hover:text-[#E84B45] line-clamp-1 transition-colors"
+                              title="Open Campaign Operations Hub"
+                            >
+                              <span>{camp.title}</span>
+                            </Link>
+                            <Link
+                              href={`/campaigns/${camp.slug}`}
+                              target="_blank"
+                              title="View Public Page"
+                            >
+                              <ExternalLink className="w-3 h-3 text-neutral-400 hover:text-neutral-700 shrink-0" />
+                            </Link>
+                          </div>
                           <p className="text-[11px] text-neutral-400 truncate">
                             Beneficiary: {camp.beneficiaryName} • {camp.organizerName}
                           </p>
@@ -316,25 +356,109 @@ export default function AdminCampaignsPage() {
                     </td>
 
                     <td className="py-3 px-4">
-                      <span
-                        className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
-                          camp.status === 'active'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : camp.status === 'paused'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : camp.status === 'completed'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : camp.status === 'suspended'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : 'bg-neutral-100 text-neutral-600'
-                        }`}
-                      >
-                        {camp.status}
-                      </span>
+                      {camp.fundraiserStage === 'lead_verification' ? (
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 inline-block">
+                            Stage 1: Lead Verification
+                          </span>
+                          {camp.donorSubmission && (
+                            <p className="text-[10px] text-neutral-500 font-medium">
+                              Donor: {camp.donorSubmission.donorName}
+                            </p>
+                          )}
+                        </div>
+                      ) : camp.fundraiserStage === 'content_creation' ? (
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 inline-block">
+                            Stage 2: Content Writing
+                          </span>
+                          {camp.leadGenVerification && (
+                            <p className="text-[10px] text-neutral-500 font-medium">
+                              Verified by {camp.leadGenVerification.verifiedBy}
+                            </p>
+                          )}
+                        </div>
+                      ) : (camp.status === 'submitted' || camp.requiresSuperAdminApproval || camp.fundraiserStage === 'supreme_admin_approval') ? (
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-rose-50 text-[#E84B45] border border-rose-200 inline-block">
+                            Stage 3: Awaiting Supreme Admin
+                          </span>
+                          {camp.contentWriterSubmission ? (
+                            <p className="text-[10px] text-neutral-500 font-medium">
+                              Story by {camp.contentWriterSubmission.submittedBy}
+                            </p>
+                          ) : camp.proposedByEmployee ? (
+                            <p className="text-[10px] text-neutral-500 font-medium">
+                              By {camp.proposedByEmployee.name} ({camp.proposedByEmployee.role})
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span
+                          className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                            camp.status === 'active'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : camp.status === 'paused'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : camp.status === 'completed'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : camp.status === 'suspended'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-neutral-100 text-neutral-600'
+                          }`}
+                        >
+                          {camp.status}
+                        </span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {camp.fundraiserStage === 'lead_verification' && (user?.role === 'lead_generator' || isSuperAdmin) && (
+                          <Link href="/admin/campaigns/approvals">
+                            <button
+                              className="p-1.5 rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 text-purple-800 text-[10px] font-bold px-2.5 flex items-center gap-1 transition-colors"
+                              title="Lead Generator: Verify Donor Lead"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                              Verify Lead
+                            </button>
+                          </Link>
+                        )}
+
+                        {camp.fundraiserStage === 'content_creation' && (user?.role === 'content_writer' || isSuperAdmin) && (
+                          <Link href={`/admin/campaigns/${camp.id}/edit`}>
+                            <button
+                              className="p-1.5 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 flex items-center gap-1 transition-colors"
+                              title="Content Writer: Craft Campaign Story"
+                            >
+                              <Edit className="w-3.5 h-3.5 text-amber-600" />
+                              Write Story
+                            </button>
+                          </Link>
+                        )}
+
+                        {(camp.status === 'submitted' || camp.requiresSuperAdminApproval || camp.fundraiserStage === 'supreme_admin_approval') && isSuperAdmin && (
+                          <Link href="/admin/campaigns/approvals">
+                            <button
+                              className="p-1.5 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 flex items-center gap-1 transition-colors"
+                              title="Supreme Admin: Review and verify campaign"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5 text-[#E84B45]" />
+                              Review Proposal
+                            </button>
+                          </Link>
+                        )}
+
+                        <Link href={`/admin/campaigns/${camp.id}`}>
+                          <button
+                            className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-800"
+                            title="Open Operations Hub"
+                          >
+                            <Sliders className="w-4 h-4 text-neutral-700" />
+                          </button>
+                        </Link>
+
                         {camp.status === 'active' ? (
                           <button
                             onClick={() => {

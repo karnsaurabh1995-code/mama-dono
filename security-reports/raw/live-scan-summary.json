@@ -1,0 +1,25 @@
+{
+  "targetUrl": "http://localhost:3000",
+  "scannedAt": "2026-10-24T19:50:17.692Z",
+  "statusCode": 200,
+  "headersDetected": [
+    "content-security-policy",
+    "x-frame-options",
+    "x-content-type-options",
+    "referrer-policy",
+    "permissions-policy",
+    "strict-transport-security",
+    "vary",
+    "link",
+    "cache-control",
+    "x-powered-by",
+    "content-type",
+    "date",
+    "connection",
+    "keep-alive",
+    "transfer-encoding"
+  ],
+  "zapInstalled": false,
+  "zapExecuted": false,
+  "findingsCount": 0
+}

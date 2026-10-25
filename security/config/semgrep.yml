@@ -1,0 +1,73 @@
+rules:
+  - id: nextjs-dangerously-set-inner-html
+    languages: [typescript, tsx, javascript, jsx]
+    severity: WARNING
+    message: "Potential Cross-Site Scripting (XSS): Avoid dangerouslySetInnerHTML unless the content is rigorously sanitized using a library like DOMPurify."
+    patterns:
+      - pattern: dangerouslySetInnerHTML={{ __html: ... }}
+    metadata:
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+      owasp: "A03:2021 - Injection"
+      category: security
+      confidence: HIGH
+
+  - id: js-eval-code-execution
+    languages: [typescript, tsx, javascript, jsx]
+    severity: ERROR
+    message: "Dynamic Code Evaluation: Using eval() or Function constructor allows arbitrary code execution and severe vulnerability injection."
+    patterns:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: new Function(...)
+    metadata:
+      cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+      owasp: "A03:2021 - Injection"
+      category: security
+      confidence: HIGH
+
+  - id: client-side-secret-leak
+    languages: [typescript, tsx, javascript, jsx]
+    severity: ERROR
+    message: "Sensitive Secret Exposure in Client Component: Referencing server-side secrets (like RAZORPAY_KEY_SECRET or SUPABASE_SERVICE_ROLE_KEY) inside a client component leaks credentials to browser users."
+    patterns:
+      - pattern-either:
+          - pattern: process.env.RAZORPAY_KEY_SECRET
+          - pattern: process.env.RAZORPAY_WEBHOOK_SECRET
+          - pattern: process.env.SUPABASE_SERVICE_ROLE_KEY
+          - pattern: process.env.DATABASE_URL
+    metadata:
+      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
+      owasp: "A01:2021 - Broken Access Control"
+      category: security
+      confidence: MEDIUM
+
+  - id: razorpay-signature-timing-attack
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: "Cryptographic Timing Attack: Signature comparison must use crypto.timingSafeEqual rather than '===' or '!==' to prevent side-channel timing attacks."
+    patterns:
+      - pattern-either:
+          - pattern: $SIG === $EXPECTED
+          - pattern: $EXPECTED === $SIG
+          - pattern: $SIG == $EXPECTED
+    metadata:
+      cwe: "CWE-208: Observable Timing Discrepancy"
+      owasp: "A02:2021 - Cryptographic Failures"
+      category: security
+      confidence: LOW
+
+  - id: sensitive-data-logging
+    languages: [typescript, tsx, javascript, jsx]
+    severity: WARNING
+    message: "Sensitive Data in Logs: Logging authentication tokens, passwords, PAN numbers, or payment secrets may expose PII in centralized logging services."
+    patterns:
+      - pattern-either:
+          - pattern: console.log(..., $VAR.password, ...)
+          - pattern: console.log(..., $VAR.donorPan, ...)
+          - pattern: console.log(..., $VAR.donorPhone, ...)
+          - pattern: console.log(..., $VAR.keySecret, ...)
+    metadata:
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp: "A09:2021 - Security Logging and Monitoring Failures"
+      category: security
+      confidence: MEDIUM

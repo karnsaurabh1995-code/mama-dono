@@ -30,7 +30,7 @@ assert(headerCode.includes('/product-giving'), 'Product Giving route present');
 assert(headerCode.includes('/how-it-works'), 'How It Works route present');
 assert(headerCode.includes('/impact'), 'Impact route present');
 assert(headerCode.includes('Start a Fundraiser'), 'Start a Fundraiser CTA present');
-assert(headerCode.includes('Donate Now'), 'Single prominent Donate Now action present in utility bar');
+assert(headerCode.includes('Donate Now'), 'Single prominent Donate Now action present in header');
 
 // Ensure no duplicate search or duplicate donate in desktop/mobile conflicts
 const donateNowBtnCount = (headerCode.match(/<span>Donate Now<\/span>/g) || []).length;

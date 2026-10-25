@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { ThemeConfig } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
+import { DokindLogo, DokindMark } from '@/components/common/DokindLogo';
 import {
   Palette,
   Sparkles,
@@ -18,11 +19,25 @@ import {
   Megaphone,
   Eye,
   Sliders,
+  Image as ImageIcon,
+  Smartphone,
+  Monitor,
+  HelpCircle,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function ThemeAppearancePage() {
   const { user } = useAuth();
   const [theme, setTheme] = useState<ThemeConfig>(db.getThemeConfig());
+  const initialSettings = db.getSiteSettings();
+  const [logoSettings, setLogoSettings] = useState({
+    logoUrl: initialSettings.logoUrl || '',
+    logoLightUrl: initialSettings.logoLightUrl || '',
+    logoDarkUrl: initialSettings.logoDarkUrl || '',
+    logoFaviconUrl: initialSettings.logoFaviconUrl || '',
+    logoAltText: initialSettings.logoAltText || 'dokind crowdfunding logo',
+    logoHeight: initialSettings.logoHeight || 32,
+  });
   const [toastMessage, setToastMessage] = useState<string>('');
 
   const notify = (msg: string) => {
@@ -34,17 +49,48 @@ export default function ThemeAppearancePage() {
     setTheme((prev) => ({ ...prev, ...updates }));
   };
 
+  const handleLogoUpdate = (updates: Partial<typeof logoSettings>) => {
+    setLogoSettings((prev) => ({ ...prev, ...updates }));
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     db.updateThemeConfig(theme, user?.name || 'Admin');
-    notify('Theme & design tokens successfully updated and saved across the platform.');
+    db.updateSiteSettings(
+      {
+        logoUrl: logoSettings.logoUrl.trim(),
+        logoLightUrl: logoSettings.logoLightUrl.trim(),
+        logoDarkUrl: logoSettings.logoDarkUrl.trim(),
+        logoFaviconUrl: logoSettings.logoFaviconUrl.trim(),
+        logoAltText: logoSettings.logoAltText.trim(),
+        logoHeight: Number(logoSettings.logoHeight) || 32,
+      },
+      user?.name || 'Admin'
+    );
+    notify('Theme, design tokens, and website branding assets successfully saved.');
   };
 
-  const handleReset = () => {
-    if (confirm('Reset all theme settings to the original brand defaults?')) {
+  const handleResetTheme = () => {
+    if (confirm('Reset all theme color and typography tokens to the original brand defaults?')) {
       const reset = db.resetThemeConfig(user?.name || 'Admin');
       setTheme(reset);
-      notify('Theme reset to initial SevaSetu design system specifications.');
+      notify('Theme reset to initial design system specifications.');
+    }
+  };
+
+  const handleResetLogo = () => {
+    if (confirm('Revert website logo to the official vector dokind SVG wordmark?')) {
+      const cleared = {
+        logoUrl: '',
+        logoLightUrl: '',
+        logoDarkUrl: '',
+        logoFaviconUrl: '',
+        logoAltText: 'dokind crowdfunding logo',
+        logoHeight: 32,
+      };
+      setLogoSettings(cleared);
+      db.updateSiteSettings(cleared, user?.name || 'Admin');
+      notify('Website logo restored to official vector dokind wordmark with precision red dot.');
     }
   };
 
@@ -68,9 +114,13 @@ export default function ThemeAppearancePage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset} className="text-xs text-neutral-600">
+          <Button variant="outline" size="sm" onClick={handleResetLogo} className="text-xs text-neutral-600">
+            <RefreshCw className="w-3.5 h-3.5 mr-1" />
+            Reset Logo to SVG
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleResetTheme} className="text-xs text-neutral-600">
             <RotateCcw className="w-3.5 h-3.5 mr-1" />
-            Reset Defaults
+            Reset Theme
           </Button>
           <Button size="sm" onClick={handleSave} className="text-xs bg-[#E84B45] hover:bg-[#BD302D] text-white">
             <Save className="w-3.5 h-3.5 mr-1" />
@@ -94,6 +144,130 @@ export default function ThemeAppearancePage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Settings Controls (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
+          {/* Platform Logo & Wordmark Assets */}
+          <div className="bg-white p-5 rounded-2xl border border-[#E2E4E9] shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <div>
+                <h3 className="text-sm font-bold text-[#202124] flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-[#E84B45]" />
+                  <span>Platform Logo & Brand Wordmark</span>
+                </h3>
+                <p className="text-[11px] text-neutral-500 mt-0.5">
+                  Update the official Dokind brand logo across headers, footers, mobile navigation, and receipts.
+                </p>
+              </div>
+              <span
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                  logoSettings.logoUrl
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}
+              >
+                {logoSettings.logoUrl ? 'Custom Image Active' : 'Official Vector SVG Active'}
+              </span>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 mb-1">
+                  Primary Logo Image URL (or SVG Data URL)
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://... or leave empty for official geometric vector"
+                  value={logoSettings.logoUrl}
+                  onChange={(e) => handleLogoUpdate({ logoUrl: e.target.value })}
+                  className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-2 text-xs font-mono text-neutral-800 placeholder:text-neutral-400 focus:outline-hidden focus:border-[#E84B45]"
+                />
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  Leave blank to use the official vector dokind SVG wordmark with precision red dot.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    Light Logo Variant URL (For Dark Footers)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Optional white/light logo URL"
+                    value={logoSettings.logoLightUrl}
+                    onChange={(e) => handleLogoUpdate({ logoLightUrl: e.target.value })}
+                    className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-2 text-xs font-mono text-neutral-800 placeholder:text-neutral-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    Dark Logo Variant URL (For Light Headers)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Optional dark logo URL"
+                    value={logoSettings.logoDarkUrl}
+                    onChange={(e) => handleLogoUpdate({ logoDarkUrl: e.target.value })}
+                    className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-2 text-xs font-mono text-neutral-800 placeholder:text-neutral-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    Accessible Image Alt Text (SEO & Screen Readers)
+                  </label>
+                  <input
+                    type="text"
+                    value={logoSettings.logoAltText}
+                    onChange={(e) => handleLogoUpdate({ logoAltText: e.target.value })}
+                    placeholder="dokind crowdfunding logo"
+                    className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-2 text-xs text-neutral-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    Display Height (px)
+                  </label>
+                  <input
+                    type="number"
+                    min={20}
+                    max={64}
+                    value={logoSettings.logoHeight}
+                    onChange={(e) => handleLogoUpdate({ logoHeight: Number(e.target.value) || 32 })}
+                    className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-2 text-xs font-bold text-neutral-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 mb-1">
+                  Favicon / Mobile App Mark URL
+                </label>
+                <input
+                  type="text"
+                  placeholder="Square 32x32 or 64x64 PNG / SVG icon"
+                  value={logoSettings.logoFaviconUrl}
+                  onChange={(e) => handleLogoUpdate({ logoFaviconUrl: e.target.value })}
+                  className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-2 text-xs font-mono text-neutral-800 placeholder:text-neutral-400"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-between border-t border-neutral-100 text-xs">
+                <span className="text-neutral-500">Need to restore original brand identity?</span>
+                <button
+                  type="button"
+                  onClick={handleResetLogo}
+                  className="text-[#E84B45] hover:text-[#BD302D] font-bold text-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Reset to Default Vector Wordmark
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Brand Colors */}
           <div className="bg-white p-5 rounded-2xl border border-[#E2E4E9] shadow-2xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
@@ -399,6 +573,68 @@ export default function ThemeAppearancePage() {
                 {theme.announcementText || 'Alert Banner'}
               </div>
             )}
+
+            {/* Live Multi-Viewport Logo Preview */}
+            <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+                  <Monitor className="w-3.5 h-3.5 text-neutral-600" />
+                  <span>Desktop Header View (Light)</span>
+                </h4>
+                <span className="text-[10px] font-mono text-neutral-400">h-8 / #FFFFFF</span>
+              </div>
+              <div className="bg-white p-3 rounded-xl border border-neutral-200 flex items-center justify-between shadow-2xs">
+                <DokindLogo
+                  variant="dark"
+                  size="md"
+                  customLogoUrl={logoSettings.logoDarkUrl || logoSettings.logoUrl}
+                  customAltText={logoSettings.logoAltText}
+                />
+                <div className="flex items-center gap-3 text-[11px] font-medium text-neutral-500">
+                  <span>Explore</span>
+                  <span>Causes</span>
+                  <span className="px-2.5 py-1 bg-[#EF4949] text-white rounded-full text-[10px] font-bold">Donate</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <h4 className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+                  <Monitor className="w-3.5 h-3.5 text-neutral-600" />
+                  <span>Footer View (Dark Background)</span>
+                </h4>
+                <span className="text-[10px] font-mono text-neutral-400">h-8 / #18181B</span>
+              </div>
+              <div className="bg-[#18181B] p-3 rounded-xl border border-neutral-800 flex items-center justify-between shadow-2xs">
+                <DokindLogo
+                  variant="light"
+                  size="md"
+                  showTagline
+                  customLogoUrl={logoSettings.logoLightUrl || logoSettings.logoUrl}
+                  customAltText={logoSettings.logoAltText}
+                />
+                <span className="text-[10px] text-neutral-400">© 2026 dokind</span>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <h4 className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-neutral-600" />
+                  <span>Mobile View & Favicon Mark</span>
+                </h4>
+                <span className="text-[10px] font-mono text-neutral-400">h-6 / 32px</span>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-neutral-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DokindMark size={28} />
+                  <DokindLogo
+                    variant="dark"
+                    size="sm"
+                    customLogoUrl={logoSettings.logoDarkUrl || logoSettings.logoUrl}
+                    customAltText={logoSettings.logoAltText}
+                  />
+                </div>
+                <span className="text-[10px] font-semibold text-neutral-400">Mobile Bar</span>
+              </div>
+            </div>
 
             {/* Simulated Card with Tokens */}
             <div

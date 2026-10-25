@@ -1,0 +1,39 @@
+title = "Dokind Security Gitleaks Config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "razorpay-key-id"
+description = "Detected Razorpay Key ID"
+regex = '''(?i)(?:rzp_live_|rzp_test_)[a-zA-Z0-9]{14}'''
+keywords = ["rzp_live_", "rzp_test_"]
+tags = ["key", "payment", "razorpay"]
+
+[[rules]]
+id = "razorpay-secret-key"
+description = "Detected Razorpay Key Secret"
+regex = '''(?i)(?:razorpay_key_secret|razorpay_secret|razorpay_webhook_secret)\s*[:=]\s*['"][a-zA-Z0-9]{20,40}['"]'''
+keywords = ["razorpay_key_secret", "razorpay_webhook_secret"]
+tags = ["secret", "payment", "razorpay"]
+
+[[rules]]
+id = "supabase-service-role-key"
+description = "Detected Supabase Service Role Key"
+regex = '''(?i)(?:supabase_service_role_key|service_role_key)\s*[:=]\s*['"]eyJ[a-zA-Z0-9._-]+['"]'''
+keywords = ["service_role_key", "supabase_service_role_key"]
+tags = ["jwt", "supabase", "privilege"]
+
+[[rules]]
+id = "generic-private-key"
+description = "Detected Unencrypted Private Key"
+regex = '''-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'''
+keywords = ["BEGIN PRIVATE KEY", "BEGIN RSA PRIVATE KEY"]
+tags = ["key", "crypto"]
+
+[[rules]]
+id = "database-connection-string"
+description = "Detected Database Connection URL with Password"
+regex = '''(?i)(?:postgres|postgresql|mysql|mongodb(?:\+srv)?):\/\/[^\s:@]+:[^\s:@]+@[^\s\/]+'''
+keywords = ["postgres://", "postgresql://", "mysql://"]
+tags = ["database", "credentials"]

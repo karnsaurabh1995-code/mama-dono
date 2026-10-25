@@ -1,10 +1,17 @@
 export type UserRole =
   | 'super_admin'
+  | 'admin'
+  | 'support_admin'
   | 'ops_admin'
+  | 'marketer'
+  | 'content_writer'
+  | 'content_editor'
+  | 'lead_generator'
+  | 'campaign_manager'
   | 'head_staff'
   | 'reviewer'
   | 'finance'
-  | 'content_editor'
+  | 'support_staff'
   | 'organization_manager'
   | 'fundraiser'
   | 'donor';
@@ -14,10 +21,25 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  secondaryRole?: UserRole; // Up to 2 roles per employee maximum
+  roles?: UserRole[]; // Max 2 roles: [role] or [role, secondaryRole]
+  employeeId?: string;
+  department?: string;
+  jobTitle?: string;
+  status?: 'active' | 'suspended' | 'pending_setup';
   phone?: string;
+  phoneVerified?: boolean;
+  phoneVerifiedAt?: string;
   panNumber?: string;
   avatarUrl?: string;
   organizationId?: string;
+  assignedCampaigns?: string[];
+  internalNotes?: string;
+  requiresPasswordChange?: boolean;
+  passwordHash?: string;
+  lastLoginAt?: string;
+  lastResetAt?: string;
+  sessionRevokedAt?: string;
   createdAt: string;
 }
 
@@ -32,6 +54,40 @@ export type CampaignStatus =
   | 'completed'
   | 'rejected'
   | 'expired';
+
+export type FundraiserStage =
+  | 'lead_verification'
+  | 'content_creation'
+  | 'supreme_admin_approval'
+  | 'published'
+  | 'rejected';
+
+export interface LeadGenVerification {
+  verifiedAt: string;
+  verifiedBy: string;
+  verifiedById?: string;
+  notes?: string;
+  contactConfirmed?: boolean;
+  hospitalConfirmed?: boolean;
+}
+
+export interface ContentWriterSubmission {
+  submittedAt: string;
+  submittedBy: string;
+  submittedById?: string;
+  notes?: string;
+  storyPolished?: boolean;
+  artworkAdded?: boolean;
+}
+
+export interface DonorSubmissionInfo {
+  isDonorSubmitted: boolean;
+  submittedAt: string;
+  donorName: string;
+  donorEmail: string;
+  donorPhone?: string;
+  initialStory?: string;
+}
 
 export type CampaignType = 'one-time' | 'monthly' | 'product';
 
@@ -115,6 +171,12 @@ export interface Campaign {
     type: 'medical_estimate' | 'id_proof' | 'ngo_reg' | 'tax_cert' | 'other';
     url: string;
     verified: boolean;
+    isPublic?: boolean;
+    status?: 'uploaded' | 'under_review' | 'verified' | 'rejected';
+    reviewerNotes?: string;
+    cloudProvider?: 'google_drive' | 'dropbox' | 'onedrive' | 'box' | 's3' | 'other';
+    fileSize?: string;
+    uploadedAt?: string;
   }[];
   // Master Prompt 3 extensions
   acceptsMonetary?: boolean;
@@ -136,6 +198,25 @@ export interface Campaign {
     financialApproved: boolean;
     readyToPublish: boolean;
     reviewerComments?: string;
+  };
+  proposedByEmployee?: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    department?: string;
+    jobTitle?: string;
+  };
+  requiresSuperAdminApproval?: boolean;
+  fundraiserStage?: FundraiserStage;
+  donorSubmission?: DonorSubmissionInfo;
+  leadGenVerification?: LeadGenVerification;
+  contentWriterSubmission?: ContentWriterSubmission;
+  superAdminApproval?: {
+    approvedAt?: string;
+    approvedBy?: string;
+    rejectionReason?: string;
+    revisionNotes?: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -278,6 +359,9 @@ export interface CampaignRevisionSubmission {
   submittedByName: string;
   submittedAt: string;
   status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'changes_requested';
+  reviewDestination?: 'admin' | 'head_staff' | 'reviewer';
+  authorRole?: UserRole;
+  requiresSuperAdminApproval?: boolean;
   submissionNotes?: string;
   reviewerNotes?: string;
   reviewedBy?: string;
@@ -350,6 +434,41 @@ export interface RecurringPlan {
   createdAt: string;
 }
 
+export type UpdateMilestoneType =
+  | 'progress_report'
+  | 'fund_utilization'
+  | 'beneficiary_update'
+  | 'procurement_update'
+  | 'item_delivery'
+  | 'milestone_achieved'
+  | 'clarification'
+  | 'final_impact';
+
+export interface UpdateCloudLink {
+  id: string;
+  label: string;
+  url: string;
+  provider?: 'google_drive' | 'dropbox' | 'onedrive' | 'box' | 'other';
+  description?: string;
+  isPublic: boolean;
+}
+
+export interface UpdateEvidenceItem {
+  id: string;
+  title: string;
+  description?: string;
+  fileUrl: string;
+  fileName?: string;
+  fileType?: string;
+  evidenceCategory: 'medical_bill' | 'doctor_estimate' | 'vendor_invoice' | 'field_photograph' | 'kyc_document' | 'other';
+  isPublic: boolean;
+  status: 'uploaded' | 'under_review' | 'verified' | 'rejected';
+  verifiedBy?: string;
+  verifiedAt?: string;
+  reviewerNotes?: string;
+  uploadedAt: string;
+}
+
 export interface CampaignUpdate {
   id: string;
   campaignId: string;
@@ -361,11 +480,17 @@ export interface CampaignUpdate {
   mediaUrls?: string[];
   videoUrl?: string;
   milestoneAchieved?: string;
+  milestoneType?: UpdateMilestoneType;
   eventDate?: string;
-  status?: 'draft' | 'pending_review' | 'published' | 'rejected';
+  status?: 'draft' | 'pending_review' | 'under_review' | 'changes_requested' | 'approved' | 'published' | 'rejected' | 'archived';
   reviewedBy?: string;
+  reviewedAt?: string;
   publishedAt: string;
   createdAt?: string;
+  updatedAt?: string;
+  cloudLinks?: UpdateCloudLink[];
+  evidenceAttachments?: UpdateEvidenceItem[];
+  rejectionReason?: string;
 }
 
 export interface ImpactStory {
@@ -448,6 +573,33 @@ export interface SiteSettings {
   // Master Prompt 10 Top section & DonateKart ticker configuration
   tickerMode?: 'live_donations' | 'trust_messages' | 'hybrid';
   trustMessages?: string[];
+  // Master Prompt 11 Admin-Controlled Branding & Artwork
+  logoUrl?: string;
+  logoLightUrl?: string;
+  logoDarkUrl?: string;
+  logoFaviconUrl?: string;
+  logoAltText?: string;
+  logoHeight?: number;
+  newsletterImageUrl?: string;
+  newsletterImageAlt?: string;
+  newsletterFrameStyle?: 'organic_brush' | 'watercolor_edge' | 'subtle_splatter' | 'clean_rounded';
+  newsletterFocalPoint?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  newsletterImagePosition?: 'left' | 'right';
+  newsletterFrameSize?: 'normal' | 'large' | 'compact';
+}
+
+export interface MediaRecognition {
+  id: string;
+  outletName: string;
+  logoUrl?: string;
+  quote: string;
+  articleUrl?: string;
+  publishedOn?: string;
+  category?: 'National Daily' | 'Business & Finance' | 'Television & Broadcast' | 'Digital Media' | 'Philanthropy';
+  isFeatured: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ----------------- MASTER PROMPT 2 EXTENSIONS -----------------
@@ -664,6 +816,37 @@ export interface CustomLandingPage {
   sections: PageSection[];
 }
 
+export type PlatformCapability =
+  | 'view_campaigns'
+  | 'create_campaign_drafts'
+  | 'edit_campaign_content'
+  | 'upload_campaign_media'
+  | 'add_campaign_updates'
+  | 'submit_updates_review'
+  | 'approve_campaign_content'
+  | 'publish_campaigns'
+  | 'pause_resume_donations'
+  | 'complete_archive_campaigns'
+  | 'view_campaign_analytics'
+  | 'view_financial_reports'
+  | 'reconcile_financial_records'
+  | 'process_refunds'
+  | 'manage_item_requirements'
+  | 'manage_pages_faqs'
+  | 'upload_shared_media'
+  | 'manage_newsletters'
+  | 'view_support_records'
+  | 'export_reports'
+  | 'manage_team'
+  | 'manage_roles_permissions'
+  | 'manage_settings'
+  | 'manage_gateways'
+  | 'view_audit_logs'
+  | 'manage_seo'
+  | 'manage_marketing'
+  | 'view_marketing_analytics'
+  | 'manage_social_metadata';
+
 export interface RolePermission {
   role: UserRole;
   name: string;
@@ -735,4 +918,43 @@ export interface CampaignUpdateRequest {
   status: 'received' | 'notified' | 'answered';
   createdAt: string;
 }
+
+// ---------------- API KEY & SECRETS MANAGER (SUPERIOR ADMIN) ----------------
+export type ApiKeyCategory =
+  | 'google'
+  | 'payment'
+  | 'email'
+  | 'storage'
+  | 'communication'
+  | 'security'
+  | 'custom';
+
+export type ApiKeyEnvironment = 'production' | 'sandbox';
+export type ApiKeyStatus = 'active' | 'unconfigured' | 'revoked' | 'expired';
+
+export interface ApiKeyRecord {
+  id: string;
+  name: string;
+  description: string;
+  service: string;
+  category: ApiKeyCategory;
+  environment: ApiKeyEnvironment;
+  status: ApiKeyStatus;
+  keyIdentifier: string; // e.g. NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  publicKey?: string; // Client ID, Measurement ID, Site Key, etc.
+  secretKey?: string; // API Secret, Private Key, Token (masked by default)
+  webhookSecret?: string; // Webhook signing secret if applicable
+  endpointUrl?: string; // Base URL or API Endpoint
+  docsUrl?: string; // Official developer documentation
+  lastRotatedAt?: string;
+  lastTestedAt?: string;
+  lastTestStatus?: 'healthy' | 'warning' | 'error';
+  lastTestMessage?: string;
+  updatedBy: string;
+  updatedAt: string;
+  isSystemCritical: boolean;
+  allowedOrigins?: string[];
+  usageNotes?: string;
+}
+
 

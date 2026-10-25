@@ -31,18 +31,25 @@ assert(headerContent.includes('TOP UTILITY BAR'), 'Header contains Row A top uti
 assert(headerContent.includes('handleUtilitySearchSubmit'), 'Row A contains utility search handler');
 assert(headerContent.includes('siteSettings.tagline'), 'Row A displays editable brand tagline');
 
-// Count Donate Now occurrences in desktop layout
-// In Row A:
-assert(headerContent.includes('<span>Donate Now</span>'), 'Row A contains Donate Now action button');
+// Single prominent Donate Now button placed in Row B desktop actions (relocated from Row A as requested)
+assert(headerContent.includes('<span>Donate Now</span>'), 'Header contains single prominent Donate Now action button');
 
-// Desktop Actions in Row B should NOT contain a second Donate Now button
+// Desktop Actions in Row B contains Donate Now and Start a Fundraiser
 const desktopActionsMatch = headerContent.match(/\{\/\* Desktop Actions \*\/\}[\s\S]*?\{\/\* Mobile Controls \*\/\}/);
 assert(desktopActionsMatch, 'Found Desktop Actions section in Row B');
-const desktopActionsContent = desktopActionsMatch[0];
+const desktopActionsContent = desktopActionsMatch![0];
 
 assert(
-  !desktopActionsContent.includes('Donate Now'),
-  'Deduplicated: Row B desktop actions do NOT contain a duplicate Donate Now button'
+  desktopActionsContent.includes('Donate Now'),
+  'Row B desktop actions contains the red Donate Now button on the left of actions'
+);
+assert(
+  desktopActionsContent.indexOf('Donate Now') < desktopActionsContent.indexOf('Start a Fundraiser'),
+  'Donate Now button is positioned to the left of Start a Fundraiser'
+);
+assert(
+  !headerContent.includes('{/* Row A: Single Prominent Donate Now Action */}'),
+  'Deduplicated: Row A utility bar no longer has duplicate Donate Now button'
 );
 assert(
   !desktopActionsContent.includes('href="/search"'),
@@ -52,7 +59,7 @@ assert(
   desktopActionsContent.includes('Start a Fundraiser'),
   'Row B desktop actions contain Start a Fundraiser button'
 );
-console.log('✓ PASSED: Header deduplication verified (0 duplicate search, 0 duplicate Donate Now buttons)');
+console.log('✓ PASSED: Header deduplication verified (0 duplicate search, exactly 1 Donate Now button)');
 
 // 3. Verify Hero Carousel Split-Panel Structure
 console.log('\n--- 3. Testing Hero Carousel Split-Panel Layout ---');

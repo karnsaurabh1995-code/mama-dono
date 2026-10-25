@@ -2,88 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
+import { db } from '../db';
+import { INITIAL_SUPER_ADMIN_ACCOUNTS, DEMO_USERS } from './constants';
 
-export const DEMO_USERS: Record<UserRole, User> = {
-  donor: {
-    id: 'user-donor-1',
-    name: 'Vikramaditya Sharma',
-    email: 'vikram.sharma@example.com',
-    role: 'donor',
-    phone: '+91 98765 43210',
-    panNumber: 'ABCPS1234D',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2026-01-10T00:00:00Z',
-  },
-  fundraiser: {
-    id: 'user-fundraiser-1',
-    name: 'Ramesh Kumar (Aarav’s Father)',
-    email: 'ramesh.kumar@example.com',
-    role: 'fundraiser',
-    phone: '+91 98112 34567',
-    panNumber: 'BKLPR9876Q',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2026-09-01T00:00:00Z',
-  },
-  organization_manager: {
-    id: 'user-org-1',
-    name: 'Dr. Sunita Rao',
-    email: 'sunita.rao@ashajyoti.org',
-    role: 'organization_manager',
-    phone: '+91 99201 54321',
-    organizationId: 'org-hope-india',
-    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2025-06-15T00:00:00Z',
-  },
-  reviewer: {
-    id: 'user-reviewer-1',
-    name: 'Kavita Nair',
-    email: 'kavita.nair@dokind.org.in',
-    role: 'reviewer',
-    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2025-01-10T00:00:00Z',
-  },
-  finance: {
-    id: 'user-finance-1',
-    name: 'Anand Kulkarni',
-    email: 'anand.k@dokind.org.in',
-    role: 'finance',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2025-01-10T00:00:00Z',
-  },
-  content_editor: {
-    id: 'user-editor-1',
-    name: 'Meera Sen',
-    email: 'meera.sen@dokind.org.in',
-    role: 'content_editor',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2025-01-10T00:00:00Z',
-  },
-  head_staff: {
-    id: 'user-head-staff-1',
-    name: 'Priyanka Sharma (Field Lead)',
-    email: 'priyanka.staff@dokind.org.in',
-    role: 'head_staff',
-    phone: '+91 98200 44556',
-    avatarUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2025-08-01T00:00:00Z',
-  },
-  ops_admin: {
-    id: 'user-ops-1',
-    name: 'Arjun Singhal',
-    email: 'arjun.s@dokind.org.in',
-    role: 'ops_admin',
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2024-11-01T00:00:00Z',
-  },
-  super_admin: {
-    id: 'user-admin-1',
-    name: 'Chief Administrator (dokind)',
-    email: 'admin@dokind.org.in',
-    role: 'super_admin',
-    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=150&q=80',
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-};
+export { INITIAL_SUPER_ADMIN_ACCOUNTS, DEMO_USERS };
 
 interface AuthContextType {
   user: User | null;
@@ -91,6 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoaded: boolean;
   login: (email: string, role?: UserRole) => void;
+  setUserSession: (user: User) => void;
   logout: () => void;
   switchRole: (role: UserRole) => void;
   updateProfile: (data: Partial<User>) => void;
@@ -102,16 +25,25 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoaded: false,
   login: () => {},
+  setUserSession: () => {},
   logout: () => {},
   switchRole: () => {},
   updateProfile: () => {},
 });
 
-function syncCookie(user: User | null) {
+export function syncCookie(user: User | null) {
   if (typeof document === 'undefined') return;
   if (user) {
     const sessionPayload = encodeURIComponent(
-      JSON.stringify({ id: user.id, role: user.role, name: user.name })
+      JSON.stringify({
+        id: user.id,
+        role: user.role,
+        secondaryRole: user.secondaryRole,
+        roles: user.roles || (user.secondaryRole ? [user.role, user.secondaryRole] : [user.role]),
+        name: user.name,
+        email: user.email,
+        sessionCreatedAt: new Date().toISOString(),
+      })
     );
     document.cookie = `dokind_session=${sessionPayload}; path=/; max-age=2592000; SameSite=Lax`;
   } else {
@@ -119,9 +51,15 @@ function syncCookie(user: User | null) {
   }
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+export function AuthProvider({
+  children,
+  initialUser = null,
+}: {
+  children: React.ReactNode;
+  initialUser?: User | null;
+}) {
+  const [user, setUser] = useState<User | null>(initialUser);
+  const [isLoaded, setIsLoaded] = useState(true);
 
   useEffect(() => {
     try {
@@ -129,33 +67,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.getItem('dokind_user') || localStorage.getItem('sevasetu_user');
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
-        setUser(parsed);
+        // If initialUser was not supplied by server (e.g. cookie missing on first visit), adopt localStorage
+        if (!initialUser) {
+          setUser(parsed);
+        }
         syncCookie(parsed);
-      } else {
-        // Unauthenticated visitor
-        setUser(null);
-        syncCookie(null);
+      } else if (initialUser) {
+        // Populate localStorage if session arrived from server cookie
+        localStorage.setItem('dokind_user', JSON.stringify(initialUser));
       }
     } catch {
-      setUser(null);
-      syncCookie(null);
-    } finally {
-      setIsLoaded(true);
+      // ignore storage parse errors
     }
-  }, []);
+  }, [initialUser]);
 
   const login = (email: string, targetRole: UserRole = 'donor') => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Check if user exists in db (including bootstrapped super admins & employees)
+    const dbUser = db.getUserByEmail(cleanEmail);
+    if (dbUser) {
+      setUser(dbUser);
+      localStorage.setItem('dokind_user', JSON.stringify(dbUser));
+      syncCookie(dbUser);
+      return;
+    }
+
+    // 2. Check if email is an authorized super admin
+    if (db.isDesignatedSuperAdmin(cleanEmail)) {
+      const sa = INITIAL_SUPER_ADMIN_ACCOUNTS.find((a) => a.email.toLowerCase() === cleanEmail);
+      const selectedUser: User = sa || {
+        id: `usr-sa-${Date.now()}`,
+        name: cleanEmail.startsWith('karn') ? 'Saurabh Karn' : cleanEmail.startsWith('sarthak') ? 'Sarthak Raj' : 'Super Administrator',
+        email: cleanEmail,
+        role: 'super_admin',
+        department: 'Executive Governance',
+        jobTitle: 'Super Administrator',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      };
+      setUser(selectedUser);
+      localStorage.setItem('dokind_user', JSON.stringify(selectedUser));
+      syncCookie(selectedUser);
+      return;
+    }
+
+    // 3. Check demo users list
     const matched = Object.values(DEMO_USERS).find(
-      (u) => u.email.toLowerCase() === email.toLowerCase()
+      (u) => u.email.toLowerCase() === cleanEmail
     );
     const selectedUser = matched || {
-      ...DEMO_USERS[targetRole],
-      email,
-      name: email.split('@')[0],
+      id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: cleanEmail.split('@')[0],
+      email: cleanEmail,
+      role: targetRole,
+      createdAt: new Date().toISOString(),
     };
     setUser(selectedUser);
     localStorage.setItem('dokind_user', JSON.stringify(selectedUser));
     syncCookie(selectedUser);
+  };
+
+  const setUserSession = (sessionUser: User) => {
+    setUser(sessionUser);
+    localStorage.setItem('dokind_user', JSON.stringify(sessionUser));
+    syncCookie(sessionUser);
   };
 
   const logout = () => {
@@ -188,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isLoaded,
         login,
+        setUserSession,
         logout,
         switchRole,
         updateProfile,

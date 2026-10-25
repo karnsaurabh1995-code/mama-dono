@@ -1,0 +1,50 @@
+{
+  "executedAt": "2026-10-25T11:27:56.528Z",
+  "auditMode": "code",
+  "targetUrl": "http://localhost:3000",
+  "totalDurationMs": 26684,
+  "scanners": [
+    {
+      "scanner": "dependency-audit",
+      "toolName": "npm audit",
+      "version": "11.17.0",
+      "status": "passed",
+      "durationMs": 3046,
+      "findingsCount": 0
+    },
+    {
+      "scanner": "secret-scanner",
+      "toolName": "Gitleaks (8.30.1) + Native Engine",
+      "version": "8.30.1",
+      "status": "passed",
+      "durationMs": 2978,
+      "findingsCount": 0
+    },
+    {
+      "scanner": "code-sast",
+      "toolName": "Native Next.js SAST Engine (Semgrep not installed)",
+      "version": "native-sast-v1",
+      "status": "passed",
+      "durationMs": 20635,
+      "findingsCount": 0,
+      "skipReason": "Semgrep binary not found in PATH; executed native AST/pattern SAST scanner.",
+      "installGuide": "To install Semgrep: run \"pip install semgrep\" or see https://semgrep.dev/docs/getting-started/"
+    },
+    {
+      "scanner": "razorpay-integrity",
+      "toolName": "Razorpay Cryptographic & Business Logic Integrity Suite",
+      "version": "1.0.0",
+      "status": "passed",
+      "durationMs": 15,
+      "findingsCount": 0
+    },
+    {
+      "scanner": "asvs-assessor",
+      "toolName": "OWASP ASVS 5.0 Structured Verification Assessor",
+      "version": "5.0.0",
+      "status": "passed",
+      "durationMs": 3,
+      "findingsCount": 0
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+{
+  "standard": "OWASP ASVS 5.0",
+  "version": "5.0.0",
+  "evaluatedAt": "2026-10-25T11:27:56.525Z",
+  "totalControls": 25,
+  "passedCount": 20,
+  "failedCount": 0,
+  "manualVerificationCount": 5,
+  "complianceScorePercent": 80,
+  "controls": [
+    {
+      "id": "V1.1.1",
+      "title": "Secure Architecture & Gateway Segregation",
+      "category": "Architecture",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V1.2.1",
+      "title": "Business Logic Integrity Model",
+      "category": "Business Logic",
+      "level": "L2",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V2.1.1",
+      "title": "Secure Password Hashing",
+      "category": "Authentication",
+      "level": "L1",
+      "status": "requires_manual_verification",
+      "notes": "Automated static check passed baseline; full compliance requires operational review.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V2.2.1",
+      "title": "Brute Force & Credential Stuffing Defenses",
+      "category": "Authentication",
+      "level": "L1",
+      "status": "requires_manual_verification",
+      "notes": "Automated static check passed baseline; full compliance requires operational review.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V3.1.1",
+      "title": "Secure Cookie Flags",
+      "category": "Session",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V3.2.1",
+      "title": "Session Termination",
+      "category": "Session",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V4.1.1",
+      "title": "Role-Based Access Control (RBAC)",
+      "category": "Authorization",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V4.2.1",
+      "title": "Insecure Direct Object References (IDOR)",
+      "category": "Authorization",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V5.1.1",
+      "title": "Input Type & Range Validation",
+      "category": "Input Validation",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V5.2.1",
+      "title": "Output Encoding & XSS Prevention",
+      "category": "Input Validation",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V6.1.1",
+      "title": "Timing-Safe Signature Comparison",
+      "category": "Cryptography",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V6.2.1",
+      "title": "Key Isolation & Redaction",
+      "category": "Cryptography",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V7.1.1",
+      "title": "Sanitized Error Messages",
+      "category": "Logging",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V7.2.1",
+      "title": "Redaction of Sensitive PII and Secrets in Logs",
+      "category": "Logging",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V8.1.1",
+      "title": "Donor Privacy / Anonymous Giving",
+      "category": "Privacy",
+      "level": "L1",
+      "status": "requires_manual_verification",
+      "notes": "Automated static check passed baseline; full compliance requires operational review.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V8.2.1",
+      "title": "PAN Card Confidentiality",
+      "category": "Privacy",
+      "level": "L2",
+      "status": "requires_manual_verification",
+      "notes": "Automated static check passed baseline; full compliance requires operational review.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V9.1.1",
+      "title": "Strict Transport Security (HSTS)",
+      "category": "Network",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V10.1.1",
+      "title": "Dependency Vulnerability Auditing",
+      "category": "Dependencies",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V11.1.1",
+      "title": "Server-Side Razorpay Signature Verification",
+      "category": "Payment Integrity",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V11.1.2",
+      "title": "Webhook Idempotency & Replay Resistance",
+      "category": "Payment Integrity",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V11.1.3",
+      "title": "Client Price & Item Quantity Tamper Resistance",
+      "category": "Payment Integrity",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V12.1.1",
+      "title": "Upload MIME Type & Size Validation",
+      "category": "File Upload",
+      "level": "L1",
+      "status": "requires_manual_verification",
+      "notes": "Automated static check passed baseline; full compliance requires operational review.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V13.1.1",
+      "title": "HTTP Method Enforcement & Payload Limits",
+      "category": "API",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V14.1.1",
+      "title": "HTTP Security Headers",
+      "category": "Configuration",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    },
+    {
+      "id": "V14.2.1",
+      "title": "CORS Policy Restriction",
+      "category": "Configuration",
+      "level": "L1",
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
+    }
+  ]
+}

@@ -101,6 +101,16 @@ export default function StartCampaignWizardPage() {
         urgent: true,
         status: 'submitted', // Under review
         verifiedStatus: 'pending',
+        requiresSuperAdminApproval: true,
+        fundraiserStage: 'lead_verification',
+        donorSubmission: {
+          isDonorSubmitted: true,
+          submittedAt: new Date().toISOString(),
+          donorName: organizerName,
+          donorEmail: organizerEmail,
+          donorPhone: organizerPhone,
+          initialStory: story || title,
+        },
         has80G: true,
         imageUrl,
         beneficiaryName,
@@ -163,6 +173,38 @@ export default function StartCampaignWizardPage() {
             <div className="flex justify-between">
               <span className="text-neutral-500">Review Window:</span>
               <span className="font-semibold text-[#202124]">4 to 24 Hours</span>
+            </div>
+
+            {/* 3-Stage Pipeline Timeline */}
+            <div className="pt-3 border-t border-neutral-100 space-y-2">
+              <p className="font-bold text-neutral-800 uppercase tracking-wider text-[10px]">
+                dokind Verification & Editorial Pipeline:
+              </p>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-50 border border-amber-200/80 text-[11px]">
+                  <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center shrink-0 text-[10px]">1</span>
+                  <div className="text-left">
+                    <strong className="text-amber-900">Stage 1: Lead Verification</strong>
+                    <p className="text-amber-800 text-[10px]">Assigned to Campaign Lead Generator for contact & clinical authentication.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-neutral-50 border border-neutral-200/60 text-[11px] text-neutral-400">
+                  <span className="w-5 h-5 rounded-full bg-neutral-200 text-neutral-600 font-bold flex items-center justify-center shrink-0 text-[10px]">2</span>
+                  <div className="text-left">
+                    <strong className="text-neutral-600">Stage 2: Campaign Story Crafting</strong>
+                    <p className="text-neutral-500 text-[10px]">Content Writers polish narrative, headlines & itemized budget.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-neutral-50 border border-neutral-200/60 text-[11px] text-neutral-400">
+                  <span className="w-5 h-5 rounded-full bg-neutral-200 text-neutral-600 font-bold flex items-center justify-center shrink-0 text-[10px]">3</span>
+                  <div className="text-left">
+                    <strong className="text-neutral-600">Stage 3: Supreme Admin Sign-off</strong>
+                    <p className="text-neutral-500 text-[10px]">Executive review and live publication to public platform.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

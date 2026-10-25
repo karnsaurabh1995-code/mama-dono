@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
@@ -48,6 +48,8 @@ import {
   Lock,
   UserCheck,
   HelpCircle,
+  Award,
+  KeyRound,
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -74,10 +76,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
-  // Dynamic badge counts from DB
-  const pendingApprovalsCount = db.getCampaigns().filter((c) => c.status === 'submitted' || c.status === 'under_review').length;
-  const pendingNGOsCount = db.getOrganizations().filter((o) => o.verificationStatus === 'pending').length;
-  const pendingWiresCount = db.getManualDonations({ status: 'pending' }).length;
+  // Dynamic pending counts (initialized to empty object for identical SSR and initial client render contract)
+  const [pendingCounts, setPendingCounts] = useState<{
+    approvals?: number;
+    ngos?: number;
+    wires?: number;
+  }>({});
+
+  useEffect(() => {
+    // 1. Initial post-hydration load from DB
+    const loadCounts = () => {
+      const approvals = db.getCampaigns().filter((c) => c.status === 'submitted' || c.status === 'under_review').length;
+      const ngos = db.getOrganizations().filter((o) => o.verificationStatus === 'pending').length;
+      const wires = db.getManualDonations({ status: 'pending' }).length;
+      setPendingCounts({ approvals, ngos, wires });
+    };
+
+    loadCounts();
+
+    // 2. Synchronize with authoritative server API
+    fetch('/api/admin/pending-counts')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.approvals === 'number') {
+          setPendingCounts({
+            approvals: data.approvals,
+            ngos: data.ngos,
+            wires: data.wires,
+          });
+        }
+      })
+      .catch(() => {
+        // Fallback to local DB counts
+      });
+  }, []);
 
   const sidebarGroups: SidebarGroup[] = [
     {
@@ -99,7 +131,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           label: 'Campaign Approvals',
           href: '/admin/campaigns/approvals',
           icon: CheckSquare,
-          badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined,
+          badge: pendingCounts.approvals && pendingCounts.approvals > 0 ? pendingCounts.approvals : undefined,
           badgeColor: 'bg-amber-500 text-white',
         },
         { id: '8', label: 'Causes & Categories', href: '/admin/causes', icon: Bookmark },
@@ -108,7 +140,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           label: 'Organizations & KYC',
           href: '/admin/organizations',
           icon: Building2,
-          badge: pendingNGOsCount > 0 ? pendingNGOsCount : undefined,
+          badge: pendingCounts.ngos && pendingCounts.ngos > 0 ? pendingCounts.ngos : undefined,
           badgeColor: 'bg-blue-500 text-white',
         },
       ],
@@ -122,7 +154,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           label: 'Transactions & Wire',
           href: '/admin/transactions',
           icon: ArrowRightLeft,
-          badge: pendingWiresCount > 0 ? pendingWiresCount : undefined,
+          badge: pendingCounts.wires && pendingCounts.wires > 0 ? pendingCounts.wires : undefined,
           badgeColor: 'bg-emerald-600 text-white',
         },
         { id: '12', label: 'Payment Gateways', href: '/admin/payment-gateways', icon: CreditCard },
@@ -137,6 +169,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { id: '15b', label: 'Campaign Analytics', href: '/admin/analytics/campaigns', icon: BarChart3 },
         { id: '16', label: 'Export Reports', href: '/admin/reports', icon: FileSpreadsheet },
         { id: '17', label: 'Users & Permissions', href: '/admin/users', icon: Users },
+        { id: '17b', label: 'Team & Staff', href: '/admin/team', icon: Shield, roles: ['super_admin', 'admin', 'support_admin'] },
       ],
     },
     {
@@ -145,9 +178,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { id: '18', label: 'Blog & Impact Stories', href: '/admin/blogs', icon: BookOpen },
         { id: '18b', label: 'FAQ Management', href: '/admin/faqs', icon: HelpCircle },
         { id: '19', label: 'Testimonials', href: '/admin/testimonials', icon: Quote },
+        { id: '19b', label: 'Media Recognition', href: '/admin/recognition', icon: Award },
         { id: '20', label: 'Forms & Leads', href: '/admin/forms', icon: FileInput },
         { id: '21', label: 'Email Templates', href: '/admin/email-templates', icon: Mail },
         { id: '22', label: 'Newsletter & Marketing', href: '/admin/newsletter', icon: Send },
+        { id: '22b', label: 'Newsletter Artwork', href: '/admin/settings/newsletter-appearance', icon: Palette },
         { id: '23', label: 'SEO & URL Redirects', href: '/admin/seo', icon: Globe2 },
         { id: '24', label: 'Announcements & Placements', href: '/admin/announcements', icon: Megaphone },
       ],
@@ -158,28 +193,72 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { id: '25', label: 'Support Desk', href: '/admin/support', icon: LifeBuoy },
         { id: '26', label: 'Audit Logs Ledger', href: '/admin/audit-logs', icon: History },
         { id: '27', label: 'Integrations & Webhooks', href: '/admin/integrations', icon: Workflow },
+        {
+          id: '27c',
+          label: 'API Keys & Secrets',
+          href: '/admin/api-keys',
+          icon: KeyRound,
+          badge: 'Superior Admin',
+          badgeColor: 'bg-rose-100 text-[#E84B45] font-semibold text-[10px]',
+          roles: ['super_admin'],
+        },
         { id: '28', label: 'Settings & Backups', href: '/admin/settings', icon: Settings },
         { id: '28b', label: 'Badge & Tag Styles', href: '/admin/settings/badge-styles', icon: Tag },
       ],
     },
   ];
 
-  // RBAC permission check: Check if current role has permission to see item
-  const canAccess = (item: SidebarItem): boolean => {
-    if (!role || role === 'super_admin') return true;
+  // RBAC permission check for a single role
+  const canRoleAccess = (role: UserRole, item: SidebarItem): boolean => {
+    if (item.roles && !item.roles.includes(role)) {
+      return false;
+    }
+    // Admin, Support Admin, and Super Admin have broad full administrative control
+    if (role === 'super_admin' || role === 'admin' || role === 'support_admin') {
+      return true;
+    }
+    // Marketer: Strictly marketing, attribution, SEO, campaigns performance reports, newsletter
+    if (role === 'marketer') {
+      return ['1', '5', '15b', '16', '18', '19', '19b', '21', '22', '22b', '23', '24'].includes(item.id);
+    }
+    // Lead Generator: Campaigns Control, Approvals queue, Causes & Categories, Organizations, Media & Leads
+    if (role === 'lead_generator') {
+      return ['1', '5', '6', '7', '8', '9', '18', '20', '24'].includes(item.id);
+    }
+    // Content Writer & Editor: Prepare campaign drafts, stories, FAQs, media, updates & tracking
+    if (role === 'content_writer' || role === 'content_editor') {
+      return ['1', '3', '5', '6', '7', '8', '18', '18b', '19', '19b', '24'].includes(item.id);
+    }
+    // Reviewer & Head Staff: Review queue, approvals, campaigns, KYC organizations, support
+    if (role === 'reviewer' || role === 'head_staff') {
+      return ['1', '6', '7', '8', '9', '15b', '25'].includes(item.id);
+    }
     if (role === 'finance') {
       return ['1', '10', '11', '12', '13', '14', '15', '16', '26'].includes(item.id);
     }
-    if (role === 'reviewer') {
-      return ['1', '6', '7', '8', '9', '25'].includes(item.id);
+    if (role === 'campaign_manager') {
+      return ['1', '6', '7', '8', '15b', '18', '24'].includes(item.id);
     }
-    if (role === 'content_editor') {
-      return ['1', '2', '3', '4', '5', '18', '19', '21', '24'].includes(item.id);
+    if (role === 'support_staff') {
+      return ['1', '10', '18b', '25'].includes(item.id);
     }
     if (role === 'ops_admin') {
-      return !['4', '12', '27', '28'].includes(item.id);
+      return !['4', '12', '17b', '27', '27c', '28'].includes(item.id);
     }
-    return true;
+    return false;
+  };
+
+  // RBAC permission check: Check across employee's roles (up to 2 roles evaluated)
+  const canAccess = (item: SidebarItem): boolean => {
+    const evaluatedRoles: UserRole[] = [];
+    if (role) evaluatedRoles.push(role);
+    if (user?.secondaryRole && !evaluatedRoles.includes(user.secondaryRole) && (!role || role === user?.role)) {
+      evaluatedRoles.push(user.secondaryRole);
+    }
+    if (evaluatedRoles.length === 0) {
+      return true;
+    }
+    return evaluatedRoles.some((r) => canRoleAccess(r, item));
   };
 
   // Filter items by search
@@ -407,10 +486,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </div>
                   {[
                     { r: 'super_admin' as const, label: 'Super Admin (Full Access)' },
-                    { r: 'ops_admin' as const, label: 'Operations Admin' },
-                    { r: 'reviewer' as const, label: 'Medical Reviewer' },
+                    { r: 'admin' as const, label: 'Platform Admin' },
+                    { r: 'support_admin' as const, label: 'Support Admin' },
+                    { r: 'marketer' as const, label: 'Marketer (SEO & Analytics)' },
+                    { r: 'lead_generator' as const, label: 'Lead Generator' },
+                    { r: 'content_writer' as const, label: 'Content Writer' },
+                    { r: 'head_staff' as const, label: 'Head Staff (Reviewer)' },
                     { r: 'finance' as const, label: 'Finance & Compliance' },
-                    { r: 'content_editor' as const, label: 'Content Editor' },
+                    { r: 'ops_admin' as const, label: 'Operations Admin' },
                   ].map((item) => (
                     <button
                       key={item.r}
@@ -438,7 +521,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 title="System Notifications"
               >
                 <Bell className="w-4 h-4" />
-                {(pendingApprovalsCount > 0 || pendingWiresCount > 0) && (
+                {((pendingCounts.approvals || 0) > 0 || (pendingCounts.wires || 0) > 0) && (
                   <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
                 )}
               </button>
@@ -451,46 +534,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <div className="px-4 py-2 border-b border-neutral-100 flex items-center justify-between font-bold text-neutral-700">
                     <span>Notifications & Action Items</span>
                     <span className="text-[10px] bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full font-bold">
-                      {pendingApprovalsCount + pendingNGOsCount + pendingWiresCount} New
+                      {(pendingCounts.approvals || 0) + (pendingCounts.ngos || 0) + (pendingCounts.wires || 0)} New
                     </span>
                   </div>
                   <div className="divide-y divide-neutral-100 max-h-64 overflow-y-auto">
-                    {pendingApprovalsCount > 0 && (
+                    {(pendingCounts.approvals || 0) > 0 && (
                       <Link
                         href="/admin/campaigns/approvals"
                         onClick={() => setNotificationsOpen(false)}
                         className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
                       >
                         <p className="font-semibold text-neutral-900">
-                          {pendingApprovalsCount} Fundraiser(s) Awaiting Review
+                          {pendingCounts.approvals} Fundraiser(s) Awaiting Review
                         </p>
                         <p className="text-[11px] text-neutral-500">
                           Verify hospital billing estimates & identity proofs.
                         </p>
                       </Link>
                     )}
-                    {pendingWiresCount > 0 && (
+                    {(pendingCounts.wires || 0) > 0 && (
                       <Link
                         href="/admin/transactions"
                         onClick={() => setNotificationsOpen(false)}
                         className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
                       >
                         <p className="font-semibold text-neutral-900">
-                          {pendingWiresCount} Offline Bank Wire(s) Pending
+                          {pendingCounts.wires} Offline Bank Wire(s) Pending
                         </p>
                         <p className="text-[11px] text-neutral-500">
                           Match bank UTRs with trust account deposits.
                         </p>
                       </Link>
                     )}
-                    {pendingNGOsCount > 0 && (
+                    {(pendingCounts.ngos || 0) > 0 && (
                       <Link
                         href="/admin/organizations"
                         onClick={() => setNotificationsOpen(false)}
                         className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
                       >
                         <p className="font-semibold text-neutral-900">
-                          {pendingNGOsCount} NGO Darpan Applications
+                          {pendingCounts.ngos} NGO Darpan Applications
                         </p>
                         <p className="text-[11px] text-neutral-500">
                           Verify 12A/80G status on Income Tax portal.
@@ -512,7 +595,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   {user?.name || 'Administrator'}
                 </span>
                 <span className="text-[10px] text-neutral-400 capitalize">
-                  {role?.replace('_', ' ') || 'Super Admin'}
+                  {user?.secondaryRole
+                    ? `${(role || user.role).replace('_', ' ')} • ${user.secondaryRole.replace('_', ' ')}`
+                    : (role?.replace('_', ' ') || 'Super Admin')}
                 </span>
               </div>
             </div>

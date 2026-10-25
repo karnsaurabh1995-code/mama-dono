@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
+import { useLoginModal } from '@/providers/AuthUIProvider';
 import { formatINR, calculatePercentage, formatDate, formatTimeAgo } from '@/lib/utils';
 import { CampaignBadgeGroup } from '@/components/campaign/CampaignBadge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -39,13 +40,75 @@ import {
   Lock,
   DollarSign,
   TrendingUp,
+  Video,
+  Play,
+  Image as ImageIcon,
+  FolderArchive,
+  X,
+  Maximize2,
 } from 'lucide-react';
+
+function getEmbedVideoUrl(rawUrl?: string): string | null {
+  if (!rawUrl) return null;
+  const clean = rawUrl.trim();
+  const ytMatch = clean.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i
+  );
+  if (ytMatch && ytMatch[1]) {
+    return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
+  }
+  const vimeoMatch = clean.match(
+    /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)/i
+  );
+  if (vimeoMatch && vimeoMatch[3]) {
+    return `https://player.vimeo.com/video/${vimeoMatch[3]}`;
+  }
+  return null;
+}
+
+function getMilestoneBadge(milestoneType?: string, milestoneAchieved?: string) {
+  if (milestoneAchieved) {
+    return { label: milestoneAchieved, color: 'bg-blue-100 text-blue-800 border-blue-200' };
+  }
+  switch (milestoneType) {
+    case 'medical_milestone':
+      return { label: 'Medical Milestone', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+    case 'beneficiary_update':
+      return { label: 'Beneficiary Progress', color: 'bg-purple-100 text-purple-800 border-purple-200' };
+    case 'procurement_update':
+      return { label: 'Procurement & Supplies', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    case 'item_delivery':
+      return { label: 'Item Handover & Delivery', color: 'bg-teal-100 text-teal-800 border-teal-200' };
+    case 'final_impact':
+      return { label: 'Final Impact Report', color: 'bg-rose-100 text-rose-800 border-rose-200' };
+    case 'clarification':
+      return { label: 'Donor Clarification', color: 'bg-sky-100 text-sky-800 border-sky-200' };
+    default:
+      return { label: 'Milestone Update', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+  }
+}
+
+function getCloudProviderInfo(provider?: string) {
+  switch (provider) {
+    case 'google_drive':
+      return { name: 'Google Drive', color: 'bg-amber-50 text-amber-800 border-amber-200' };
+    case 'dropbox':
+      return { name: 'Dropbox', color: 'bg-blue-50 text-blue-800 border-blue-200' };
+    case 'onedrive':
+      return { name: 'OneDrive', color: 'bg-sky-50 text-sky-800 border-sky-200' };
+    case 'box':
+      return { name: 'Box', color: 'bg-indigo-50 text-indigo-800 border-indigo-200' };
+    default:
+      return { name: 'Cloud Drive', color: 'bg-neutral-100 text-neutral-800 border-neutral-200' };
+  }
+}
 
 export default function CampaignDetailPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, login, switchRole } = useAuth();
+  const { openLogin } = useLoginModal();
 
   const slug = params?.slug as string;
   const campaign = db.getCampaignBySlug(slug) || db.getCampaignById(slug);
@@ -63,6 +126,7 @@ export default function CampaignDetailPage() {
   >(null);
 
   // Action Modals State
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [askUpdateModalOpen, setAskUpdateModalOpen] = useState(false);
   const [updateInquiryType, setUpdateInquiryType] = useState('Patient Health & Medical Status');
   const [updateMessage, setUpdateMessage] = useState('');
@@ -231,8 +295,8 @@ export default function CampaignDetailPage() {
 
   const handleNavigateToFullLogin = () => {
     const returnUrl = `/campaigns/${campaign.slug}`;
-    const action = loginGateAction || '';
-    router.push(`/login?returnUrl=${encodeURIComponent(returnUrl)}&action=${encodeURIComponent(action)}`);
+    setLoginGateOpen(false);
+    openLogin(returnUrl);
   };
 
   const handleAskUpdateSubmit = (e: React.FormEvent) => {
@@ -334,7 +398,7 @@ export default function CampaignDetailPage() {
   };
 
   return (
-    <div className="py-8 bg-[#FAF9F6] min-h-screen">
+    <div className="pt-1.5 sm:pt-2 pb-12 bg-[#FAF9F6] min-h-screen">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 right-8 z-50 bg-[#202124] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-semibold animate-in slide-in-from-top-3">
@@ -343,9 +407,9 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2 sm:space-y-2.5">
         {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-2 text-xs text-[#555B63]" aria-label="Breadcrumb">
+        <nav className="flex items-center gap-2 text-xs text-[#555B63] py-0.5" aria-label="Breadcrumb">
           <Link href="/" className="hover:text-[#202124]">
             Home
           </Link>
@@ -584,53 +648,71 @@ export default function CampaignDetailPage() {
                     </div>
                   )}
 
-                  {/* Audited Verification Documents */}
-                  {campaign.documents && campaign.documents.length > 0 && (
-                    <div className="bg-white rounded-3xl border border-[#E8E6E1] p-6 sm:p-8 shadow-2xs space-y-4">
-                      <div className="space-y-1">
-                        <span className="text-xs font-black uppercase tracking-widest text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                          AUDITED EVIDENCE
-                        </span>
-                        <h2 className="text-lg sm:text-xl font-black text-[#202124] tracking-tight mt-2">
-                          Hospital Certificates & Verification Documents ({campaign.documents.length})
-                        </h2>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {campaign.documents.map((doc, idx) => (
-                          <div
-                            key={idx}
-                            className="p-4 rounded-2xl border border-[#E8E6E1] bg-[#FAF9F6] flex items-center justify-between gap-3 hover:border-neutral-300 transition"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-white border border-[#E8E6E1] text-[#EF4949] flex items-center justify-center shrink-0">
-                                <FileText className="w-5 h-5" />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-xs font-bold text-[#202124] truncate">{doc.title}</h4>
-                                <p className="text-[10px] text-neutral-400 capitalize">{doc.type}</p>
-                              </div>
-                            </div>
-                            <a
-                              href={doc.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 text-neutral-500 hover:text-neutral-900 transition"
-                              title="View Document"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
+                  {/* Audited Verification Documents (Publicly Verified Only) */}
+                  {(() => {
+                    const publicDocs = (campaign.documents || []).filter(
+                      (d) => d.isPublic !== false && d.status !== 'rejected' && d.verified !== false
+                    );
+                    if (publicDocs.length === 0) return null;
+                    return (
+                      <div className="bg-white rounded-3xl border border-[#E8E6E1] p-6 sm:p-8 shadow-2xs space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+                          <div className="space-y-1">
+                            <span className="text-xs font-black uppercase tracking-widest text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                              AUDITED EVIDENCE VAULT
+                            </span>
+                            <h2 className="text-lg sm:text-xl font-black text-[#202124] tracking-tight mt-2 flex items-center gap-2">
+                              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                              Hospital Certificates & Verified Documents ({publicDocs.length})
+                            </h2>
                           </div>
-                        ))}
+                          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">
+                            100% dokind Audited
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {publicDocs.map((doc, idx) => (
+                            <div
+                              key={doc.id || idx}
+                              className="p-4 rounded-2xl border border-[#E8E6E1] bg-[#FAF9F6] flex items-center justify-between gap-3 hover:border-neutral-300 transition"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-white border border-[#E8E6E1] text-[#EF4949] flex items-center justify-center shrink-0">
+                                  <FileText className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="text-xs font-bold text-[#202124] truncate">{doc.title}</h4>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[10px] text-neutral-500 capitalize">{doc.type.replace(/_/g, ' ')}</span>
+                                    {doc.fileSize && (
+                                      <span className="text-[10px] text-neutral-400 font-mono">• {doc.fileSize}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <a
+                                href={doc.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-bold bg-white border border-[#E8E6E1] text-neutral-700 hover:text-black hover:border-neutral-400 transition shrink-0"
+                                title="View Audited Document"
+                              >
+                                <span>Inspect</span>
+                                <ExternalLink className="w-3 h-3 text-neutral-400" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )}
 
               {/* TAB 2: UPDATES CONTENT */}
               {activeTab === 'updates' && (
-                <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="space-y-6 animate-in fade-in duration-200">
                   {updates.length === 0 ? (
                     <div className="p-8 text-center text-xs text-neutral-400 bg-white rounded-3xl border border-dashed border-neutral-300 space-y-2">
                       <Bell className="w-8 h-8 mx-auto text-neutral-300" />
@@ -648,40 +730,221 @@ export default function CampaignDetailPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {updates.map((upd) => (
-                        <div
-                          key={upd.id}
-                          className="bg-white rounded-3xl border border-[#E8E6E1] p-6 shadow-2xs space-y-4"
-                        >
-                          <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-                            <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
-                              {upd.milestoneAchieved || 'Milestone Update'}
-                            </span>
-                            <span className="text-[11px] text-neutral-400 font-mono">
-                              {formatDate(upd.publishedAt || upd.createdAt || new Date().toISOString())}
-                            </span>
-                          </div>
+                    <div className="space-y-6">
+                      {updates.map((upd) => {
+                        const milestone = getMilestoneBadge(upd.milestoneType, upd.milestoneAchieved);
+                        const embedVideo = getEmbedVideoUrl(upd.videoUrl);
+                        const publicCloudLinks = (upd.cloudLinks || []).filter((l) => l.isPublic !== false);
+                        const verifiedEvidence = (upd.evidenceAttachments || []).filter(
+                          (e) => e.isPublic && e.status === 'verified'
+                        );
 
-                          <h3 className="text-base font-bold text-[#202124]">{upd.title}</h3>
+                        return (
+                          <div
+                            key={upd.id}
+                            className="bg-white rounded-3xl border border-[#E8E6E1] p-6 sm:p-7 shadow-2xs space-y-5"
+                          >
+                            {/* Update Header */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-neutral-100">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] uppercase font-black px-2.5 py-1 rounded-full border ${milestone.color}`}>
+                                  {milestone.label}
+                                </span>
+                                {upd.eventDate && (
+                                  <span className="text-[11px] text-neutral-500 font-medium flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-neutral-400" />
+                                    Event: {formatDate(upd.eventDate)}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-neutral-400 font-mono">
+                                Published: {formatDate(upd.publishedAt || upd.createdAt || new Date().toISOString())}
+                              </span>
+                            </div>
 
-                          <div className="flex flex-col md:flex-row gap-5">
-                            {upd.mediaUrls && upd.mediaUrls.length > 0 && (
-                              <div className="w-full md:w-56 h-36 rounded-xl overflow-hidden shrink-0 border border-neutral-200 bg-neutral-100">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={upd.mediaUrls[0]} alt="Proof" className="w-full h-full object-cover" />
+                            {/* Title & Author */}
+                            <div className="space-y-1">
+                              <h3 className="text-lg font-bold text-[#202124]">{upd.title}</h3>
+                              <p className="text-[11px] text-neutral-400">
+                                Published by <strong className="text-neutral-700">{upd.authorName}</strong> ({upd.authorRole})
+                              </p>
+                            </div>
+
+                            {/* Video Embed Player */}
+                            {upd.videoUrl && (
+                              <div className="rounded-2xl overflow-hidden border border-neutral-200 bg-black aspect-video relative shadow-xs">
+                                {embedVideo ? (
+                                  <iframe
+                                    src={embedVideo}
+                                    title={`Update video: ${upd.title}`}
+                                    className="w-full h-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-white bg-neutral-900 space-y-3">
+                                    <Video className="w-10 h-10 text-[#EF4949]" />
+                                    <div>
+                                      <p className="font-bold text-sm">External Video Update Available</p>
+                                      <p className="text-xs text-neutral-400 mt-0.5">Click below to watch the field reporting video</p>
+                                    </div>
+                                    <a
+                                      href={upd.videoUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#EF4949] text-white text-xs font-bold hover:bg-[#D9363E] transition"
+                                    >
+                                      <Play className="w-3.5 h-3.5 fill-current" />
+                                      <span>Watch Field Video</span>
+                                      <ExternalLink className="w-3 h-3 ml-1" />
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                             )}
-                            <p className="text-xs sm:text-sm text-[#555B63] leading-relaxed flex-1 whitespace-pre-line">
-                              {upd.content}
-                            </p>
-                          </div>
 
-                          <div className="text-[11px] text-neutral-400 font-mono pt-1">
-                            Posted by: <strong>{upd.authorName}</strong> ({upd.authorRole})
+                            {/* Narrative Content */}
+                            <div className="text-xs sm:text-sm text-[#404348] leading-relaxed whitespace-pre-line space-y-2 bg-[#FAF9F6] p-4 sm:p-5 rounded-2xl border border-[#E8E6E1]/60">
+                              {upd.content}
+                            </div>
+
+                            {/* Photo Gallery Grid */}
+                            {upd.mediaUrls && upd.mediaUrls.length > 0 && (
+                              <div className="space-y-2 pt-1">
+                                <div className="flex items-center justify-between text-xs text-neutral-500 font-semibold">
+                                  <span className="flex items-center gap-1.5">
+                                    <ImageIcon className="w-3.5 h-3.5 text-neutral-400" />
+                                    Field Photographs & Ground Verification ({upd.mediaUrls.length})
+                                  </span>
+                                  <span className="text-[10px] text-neutral-400">Click any image to enlarge</span>
+                                </div>
+                                <div
+                                  className={`grid gap-3 ${
+                                    upd.mediaUrls.length === 1
+                                      ? 'grid-cols-1'
+                                      : upd.mediaUrls.length === 2
+                                      ? 'grid-cols-1 sm:grid-cols-2'
+                                      : 'grid-cols-2 sm:grid-cols-3'
+                                  }`}
+                                >
+                                  {upd.mediaUrls.map((url, idx) => (
+                                    <div
+                                      key={idx}
+                                      onClick={() => setPreviewImage(url)}
+                                      className="group relative aspect-4/3 rounded-2xl overflow-hidden border border-neutral-200 bg-neutral-100 cursor-pointer shadow-2xs hover:shadow-md transition-all"
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={url}
+                                        alt={`Field evidence ${idx + 1}`}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                      />
+                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                        <div className="p-2 rounded-full bg-white/90 text-neutral-800 shadow-sm">
+                                          <Maximize2 className="w-4 h-4" />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Public Cloud Links */}
+                            {publicCloudLinks.length > 0 && (
+                              <div className="space-y-2 pt-2 border-t border-neutral-100">
+                                <span className="text-xs font-bold text-neutral-700 flex items-center gap-1.5">
+                                  <FolderArchive className="w-3.5 h-3.5 text-neutral-400" />
+                                  External Cloud Folders & Verification Documents
+                                </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                  {publicCloudLinks.map((link) => {
+                                    const provider = getCloudProviderInfo(link.provider);
+                                    return (
+                                      <div
+                                        key={link.id}
+                                        className="p-3 rounded-xl border border-neutral-200 bg-[#FAF9F6] flex items-center justify-between gap-3 text-xs"
+                                      >
+                                        <div className="min-w-0">
+                                          <div className="flex items-center gap-1.5 mb-0.5">
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${provider.color}`}>
+                                              {provider.name}
+                                            </span>
+                                            <span className="font-bold text-[#202124] truncate">{link.label}</span>
+                                          </div>
+                                          {link.description && (
+                                            <p className="text-[11px] text-neutral-500 truncate">{link.description}</p>
+                                          )}
+                                        </div>
+                                        <a
+                                          href={link.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60 transition shrink-0"
+                                          title={`Open in ${provider.name}`}
+                                        >
+                                          <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Verified Evidence Attachments */}
+                            {verifiedEvidence.length > 0 && (
+                              <div className="space-y-2 pt-2 border-t border-neutral-100">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Verified Financial & Medical Proof ({verifiedEvidence.length})</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                  {verifiedEvidence.map((ev) => (
+                                    <div
+                                      key={ev.id}
+                                      className="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between gap-3 text-xs"
+                                    >
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                          <FileText className="w-4 h-4" />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <p className="font-bold text-[#202124] truncate">{ev.title}</p>
+                                          <p className="text-[10px] text-emerald-700 font-semibold capitalize">
+                                            {ev.evidenceCategory.replace(/_/g, ' ')} • Audited
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <a
+                                        href={ev.fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1.5 rounded-lg text-emerald-800 hover:bg-emerald-100 transition shrink-0"
+                                        title="Inspect Audited Document"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                      </a>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Ask Follow-up Update */}
+                            <div className="pt-2 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={handleAskUpdateClick}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#EF4949] hover:underline cursor-pointer"
+                              >
+                                <MessageSquare className="w-3 h-3" />
+                                <span>Ask organizers a question about this update</span>
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -766,7 +1029,7 @@ export default function CampaignDetailPage() {
                       {don.message && (
                         <p className="text-[#555B63] italic text-xs pt-0.5">&ldquo;{don.message}&rdquo;</p>
                       )}
-                      <p className="text-[10px] text-neutral-400">{formatTimeAgo(don.createdAt)}</p>
+                      <p className="text-[10px] text-neutral-400">{formatDate(don.createdAt)}</p>
                     </div>
                     <span className="font-black text-emerald-700 font-mono text-sm shrink-0">
                       {formatINR(don.amount)}
@@ -813,9 +1076,9 @@ export default function CampaignDetailPage() {
           </div>
 
           {/* ================= RIGHT COLUMN: STICKY DONATION PANEL (4 Cols) ================= */}
-          <div className="hidden lg:block lg:col-span-5 xl:col-span-4 sticky top-24 space-y-5">
+          <div className="hidden lg:block lg:col-span-5 xl:col-span-4 sticky top-[80px] space-y-3.5">
             {/* 1. Progress Summary Card */}
-            <div className="bg-white rounded-3xl border border-[#E8E6E1] p-5 shadow-xs space-y-4">
+            <div className="bg-white rounded-3xl border border-[#E8E6E1] pt-3.5 px-4.5 pb-4 sm:pt-4 sm:px-5 sm:pb-4.5 shadow-xs space-y-3">
               {/* Monetary Progress */}
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
@@ -846,27 +1109,6 @@ export default function CampaignDetailPage() {
                   {campaign.deadline && <span>Ends: {formatDate(campaign.deadline)}</span>}
                 </div>
               </div>
-
-              {/* Item Progress if items present */}
-              {items.length > 0 && (
-                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E8E6E1] space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-[#202124]">
-                    <span className="flex items-center gap-1.5 text-neutral-700">
-                      <Package className="w-3.5 h-3.5 text-[#EF4949]" />
-                      Items Funded
-                    </span>
-                    <span className="text-emerald-700 font-mono text-[11px]">
-                      {totalItemsFunded} / {totalItemsRequired} ({itemPercentage}%)
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-neutral-200 overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-600 rounded-full transition-all duration-500"
-                      style={{ width: `${itemPercentage}%` }}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* 2. DUAL-DONATION MODULE (DONATE PRODUCTS | DONATE MONEY) */}
@@ -1342,6 +1584,34 @@ export default function CampaignDetailPage() {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- MODAL 6: PHOTO LIGHTBOX ---------------- */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full flex justify-between items-center text-white pb-3">
+              <span className="text-xs font-semibold text-neutral-300">Audited Field Photograph Evidence</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition flex items-center gap-1 text-xs cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+                <span>Close</span>
+              </button>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewImage}
+              alt="Enlarged verification evidence"
+              className="w-auto h-auto max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-white/20 bg-black"
+            />
           </div>
         </div>
       )}

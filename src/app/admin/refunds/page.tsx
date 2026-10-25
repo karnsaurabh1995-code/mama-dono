@@ -42,7 +42,10 @@ export default function RefundsEnginePage() {
     }
 
     try {
-      const res = db.processRefund(selectedDonationId, refundReason.trim(), user?.name || 'Finance Admin');
+      const actor = user
+        ? { id: user.id, name: user.name, role: user.role }
+        : { id: 'user-finance-1', name: 'Finance Admin', role: 'finance' as const };
+      const res = db.processRefund(selectedDonationId, refundReason.trim(), actor);
       setDonations([...db.getDonations()]);
       setShowProcessModal(false);
       setSelectedDonationId('');

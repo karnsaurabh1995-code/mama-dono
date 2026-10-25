@@ -1,0 +1,83 @@
+{
+  "executedAt": "2026-10-25T11:27:56.520Z",
+  "totalChecks": 11,
+  "passedChecks": 11,
+  "failedChecks": 0,
+  "checks": [
+    {
+      "checkName": "Razorpay Valid HMAC Signature Verification",
+      "passed": true,
+      "severity": "Critical",
+      "description": "Server correctly verifies valid HMAC-SHA256 signature calculated from order_id|payment_id.",
+      "details": "Calculated HMAC verified: true"
+    },
+    {
+      "checkName": "Razorpay Tampered Signature Rejection",
+      "passed": true,
+      "severity": "Critical",
+      "description": "Server rejects forged or tampered payment signature.",
+      "details": "Forged signature accepted: false"
+    },
+    {
+      "checkName": "Razorpay Order ID Substitution Rejection",
+      "passed": true,
+      "severity": "Critical",
+      "description": "Server rejects signature if order ID does not match the signed token.",
+      "details": "Substituted order ID accepted: false"
+    },
+    {
+      "checkName": "Razorpay Webhook Raw Body HMAC Verification",
+      "passed": true,
+      "severity": "Critical",
+      "description": "Server correctly verifies X-Razorpay-Signature using the exact raw body string.",
+      "details": "Raw body webhook verification: true"
+    },
+    {
+      "checkName": "Razorpay Webhook Tampered Payload Rejection",
+      "passed": true,
+      "severity": "Critical",
+      "description": "Server rejects webhook when request body has been modified after signature calculation.",
+      "details": "Modified payload accepted: false"
+    },
+    {
+      "checkName": "Payment Completion Idempotency & Replay Resistance",
+      "passed": true,
+      "severity": "Critical",
+      "description": "Replaying completed payment notifications does not duplicate monetary totals or supporter count.",
+      "details": "Initial: 1042500, 1st complete: 1042600, After 3 replays: 1042600"
+    },
+    {
+      "checkName": "Server-Side Item Price & Calculation Enforcement",
+      "passed": true,
+      "severity": "High",
+      "description": "Server authoritatively enforces item unit prices and total calculation."
+    },
+    {
+      "checkName": "Timing Attack Resistance (crypto.timingSafeEqual)",
+      "passed": true,
+      "severity": "High",
+      "description": "Signature comparison must use crypto.timingSafeEqual to prevent side-channel timing attacks.",
+      "details": "crypto.timingSafeEqual confirmed in razorpay.ts"
+    },
+    {
+      "checkName": "Production Payment Signature Enforcement Gate",
+      "passed": true,
+      "severity": "High",
+      "description": "Verify route enforces cryptographic signature."
+    },
+    {
+      "checkName": "Razorpay Secret Environment Scope (Server-Only)",
+      "passed": true,
+      "severity": "Critical",
+      "description": "Razorpay Key Secret and Webhook Secret must NOT have NEXT_PUBLIC_ prefix, preventing client bundling.",
+      "details": "Secrets correctly kept server-side."
+    },
+    {
+      "checkName": "Refund Role-Based Server Authorization Gate",
+      "passed": true,
+      "severity": "High",
+      "description": "Server strictly rejects refund initiation from unauthorized roles and accepts authorized finance/admin roles.",
+      "details": "Unauthorized roles rejected, authorized finance roles accepted."
+    }
+  ]
+}

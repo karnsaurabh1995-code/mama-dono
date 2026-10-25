@@ -7,13 +7,9 @@ import { CampaignCard } from '@/components/campaign/CampaignCard';
 import { CAUSES_DATA } from '@/lib/data/causes';
 import {
   Search,
-  Filter,
   SlidersHorizontal,
   ChevronRight,
   ShieldCheck,
-  Flame,
-  Repeat,
-  PackageCheck,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -21,9 +17,6 @@ import { Button } from '@/components/ui/Button';
 export default function CampaignsPage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [urgentOnly, setUrgentOnly] = useState(false);
-  const [has80GOnly, setHas80GOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'featured' | 'newest' | 'most_funded' | 'urgent'>('featured');
 
   const allCampaigns = db.getCampaigns({ status: 'active' });
@@ -32,9 +25,6 @@ export default function CampaignsPage() {
     return allCampaigns
       .filter((c) => {
         if (selectedCategory !== 'all' && c.category !== selectedCategory) return false;
-        if (selectedType !== 'all' && c.campaignType !== selectedType) return false;
-        if (urgentOnly && !c.urgent) return false;
-        if (has80GOnly && !c.has80G) return false;
         if (search.trim()) {
           const q = search.toLowerCase();
           const matchTitle = c.title.toLowerCase().includes(q);
@@ -51,14 +41,11 @@ export default function CampaignsPage() {
         if (sortBy === 'urgent') return (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0);
         return 0;
       });
-  }, [allCampaigns, search, selectedCategory, selectedType, urgentOnly, has80GOnly, sortBy]);
+  }, [allCampaigns, search, selectedCategory, sortBy]);
 
   const resetFilters = () => {
     setSearch('');
     setSelectedCategory('all');
-    setSelectedType('all');
-    setUrgentOnly(false);
-    setHas80GOnly(false);
     setSortBy('featured');
   };
 
@@ -84,23 +71,24 @@ export default function CampaignsPage() {
           </p>
         </div>
 
-        {/* Search & Top Filter Bar */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8E6E1] shadow-xs space-y-4">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        {/* Search & Filter Controls */}
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E8E6E1] shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search input */}
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[#555B63] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by patient, illness, student, NGO, or hospital..."
-                className="w-full bg-[#FAF9F6] border border-[#E8E6E1] rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-[#202124] placeholder-neutral-400 focus:outline-none focus:border-[#E84B45]"
+                className="w-full bg-[#FAF9F6] border border-[#E8E6E1] rounded-xl pl-10 pr-10 py-3 text-xs sm:text-sm text-[#202124] placeholder-neutral-400 focus:outline-none focus:border-[#E84B45] focus:bg-white transition-all shadow-2xs"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-[#202124] p-1 rounded-md transition-colors"
+                  aria-label="Clear search"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -109,11 +97,15 @@ export default function CampaignsPage() {
 
             {/* Sort Selector */}
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-[#555B63] font-medium hidden sm:inline">Sort by:</span>
+              <label htmlFor="sort-campaigns" className="text-xs text-[#555B63] font-medium hidden sm:flex items-center gap-1.5 shrink-0">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span>Sort by:</span>
+              </label>
               <select
+                id="sort-campaigns"
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
-                className="bg-[#FAF9F6] border border-[#E8E6E1] rounded-xl px-3 py-2.5 text-xs sm:text-sm font-medium text-[#202124] focus:outline-none focus:border-[#E84B45] cursor-pointer"
+                className="w-full sm:w-auto bg-[#FAF9F6] border border-[#E8E6E1] rounded-xl px-3.5 py-3 text-xs sm:text-sm font-medium text-[#202124] focus:outline-none focus:border-[#E84B45] focus:bg-white cursor-pointer transition-all shadow-2xs"
               >
                 <option value="featured">Staff Picks & Featured</option>
                 <option value="urgent">Urgent Deadlines</option>
@@ -123,112 +115,47 @@ export default function CampaignsPage() {
             </div>
           </div>
 
-          {/* Quick Filter Badges / Type Pills */}
-          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-neutral-100 text-xs">
-            {/* Giving Type Filters */}
-            <button
-              onClick={() => setSelectedType('all')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
-                selectedType === 'all'
-                  ? 'bg-[#202124] text-white'
-                  : 'bg-[#FAF9F6] text-[#555B63] hover:bg-neutral-200'
-              }`}
-            >
-              All Types
-            </button>
-            <button
-              onClick={() => setSelectedType(selectedType === 'one-time' ? 'all' : 'one-time')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
-                selectedType === 'one-time'
-                  ? 'bg-[#E84B45] text-white'
-                  : 'bg-[#FAF9F6] text-[#555B63] hover:bg-neutral-200'
-              }`}
-            >
-              One-Time Fundraisers
-            </button>
-            <button
-              onClick={() => setSelectedType(selectedType === 'monthly' ? 'all' : 'monthly')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                selectedType === 'monthly'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-              }`}
-            >
-              <Repeat className="w-3.5 h-3.5" />
-              <span>Monthly Missions</span>
-            </button>
-            <button
-              onClick={() => setSelectedType(selectedType === 'product' ? 'all' : 'product')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                selectedType === 'product'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-              }`}
-            >
-              <PackageCheck className="w-3.5 h-3.5" />
-              <span>Product Giving</span>
-            </button>
-
-            {/* Toggle Toggles */}
-            <button
-              onClick={() => setUrgentOnly(!urgentOnly)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                urgentOnly
-                  ? 'bg-red-600 text-white'
-                  : 'bg-red-50 text-red-600 hover:bg-red-100'
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5" />
-              <span>Urgent Only</span>
-            </button>
-
-            <button
-              onClick={() => setHas80GOnly(!has80GOnly)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                has80GOnly
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>80G Tax Exemption</span>
-            </button>
-
-            {(search || selectedCategory !== 'all' || selectedType !== 'all' || urgentOnly || has80GOnly) && (
+          {/* Cause Categories Filter Bar */}
+          <div className="pt-3.5 border-t border-[#F0EFEA] space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-[#555B63] uppercase tracking-wider text-[11px]">
+                Filter by Cause
+              </span>
+              {(search || selectedCategory !== 'all') && (
+                <button
+                  onClick={resetFilters}
+                  className="text-xs text-[#E84B45] hover:text-[#c73934] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Reset all filters
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 sm:pb-0 text-xs no-scrollbar">
               <button
-                onClick={resetFilters}
-                className="ml-auto text-xs text-[#E84B45] hover:underline font-semibold"
-              >
-                Reset All Filters
-              </button>
-            )}
-          </div>
-
-          {/* Cause Categories Horizontal Scrolling Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-3 py-1.5 rounded-full font-medium whitespace-nowrap cursor-pointer transition-colors ${
-                selectedCategory === 'all'
-                  ? 'bg-[#E84B45] text-white shadow-xs'
-                  : 'bg-[#FAF9F6] text-[#555B63] hover:bg-neutral-200'
-              }`}
-            >
-              All Causes ({allCampaigns.length})
-            </button>
-            {CAUSES_DATA.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedCategory(c.id)}
-                className={`px-3 py-1.5 rounded-full font-medium whitespace-nowrap cursor-pointer transition-colors ${
-                  selectedCategory === c.id
-                    ? 'bg-[#E84B45] text-white shadow-xs'
-                    : 'bg-[#FAF9F6] text-[#555B63] hover:bg-neutral-200'
+                onClick={() => setSelectedCategory('all')}
+                className={`px-3.5 py-2 rounded-xl font-medium whitespace-nowrap cursor-pointer transition-all duration-150 ${
+                  selectedCategory === 'all'
+                    ? 'bg-[#E84B45] text-white shadow-xs font-semibold'
+                    : 'bg-[#FAF9F6] text-[#555B63] hover:text-[#202124] hover:bg-[#F3F1EC] border border-[#E8E6E1]'
                 }`}
               >
-                {c.name}
+                All Causes ({allCampaigns.length})
               </button>
-            ))}
+              {CAUSES_DATA.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCategory(c.id)}
+                  className={`px-3.5 py-2 rounded-xl font-medium whitespace-nowrap cursor-pointer transition-all duration-150 ${
+                    selectedCategory === c.id
+                      ? 'bg-[#E84B45] text-white shadow-xs font-semibold'
+                      : 'bg-[#FAF9F6] text-[#555B63] hover:text-[#202124] hover:bg-[#F3F1EC] border border-[#E8E6E1]'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
