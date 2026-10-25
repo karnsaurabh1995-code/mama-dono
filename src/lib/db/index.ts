@@ -40,6 +40,12 @@ import {
   ApiKeyRecord,
   HomepageCurationConfig,
 } from '../types';
+import {
+  encryptSecret,
+  decryptSecret,
+  maskSecret,
+  isNewSecretCandidate,
+} from '../security/crypto-vault';
 import { CAUSES_DATA } from '../data/causes';
 import { ORGANIZATIONS_DATA } from '../data/organizations';
 import { CAMPAIGNS_DATA } from '../data/campaigns';
@@ -772,9 +778,79 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     },
   ];
   private apiKeys: ApiKeyRecord[] = [...INITIAL_API_KEYS];
+  private subscribers: Set<(event: string, data: any) => void> = new Set();
 
   constructor() {
     this.bootstrapSuperAdmins();
+    this.loadPersistedState();
+  }
+
+  public subscribeUpdates(listener: (event: string, data: any) => void): () => void {
+    this.subscribers.add(listener);
+    return () => {
+      this.subscribers.delete(listener);
+    };
+  }
+
+  public notifySubscribers(event: string, data: any): void {
+    for (const listener of this.subscribers) {
+      try {
+        listener(event, data);
+      } catch (err) {
+        console.error('[DatabaseStore] Error in update subscriber:', err);
+      }
+    }
+  }
+
+  private isNode(): boolean {
+    return typeof window === 'undefined' && typeof process !== 'undefined' && Boolean(process.versions?.node);
+  }
+
+  private getPersistencePath(): string | null {
+    if (!this.isNode()) return null;
+    try {
+      const nodeRequire = (globalThis as any)['require'] || eval('require');
+      const path = nodeRequire('path');
+      return path.resolve(process.cwd(), 'data', 'database-state.json');
+    } catch {
+      return null;
+    }
+  }
+
+  private loadPersistedState(): void {
+    if (!this.isNode()) return;
+    const filePath = this.getPersistencePath();
+    if (!filePath) return;
+    try {
+      const nodeRequire = (globalThis as any)['require'] || eval('require');
+      const fs = nodeRequire('fs');
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        this.importDatabaseSnapshot(raw, 'System Initialization (Auto-Restore)');
+      }
+    } catch (err) {
+      console.error('[DatabaseStore] Could not load persisted state from disk:', err);
+    }
+  }
+
+  public persistState(): void {
+    if (!this.isNode()) return;
+    const filePath = this.getPersistencePath();
+    if (!filePath) return;
+    try {
+      const nodeRequire = (globalThis as any)['require'] || eval('require');
+      const fs = nodeRequire('fs');
+      const path = nodeRequire('path');
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const snapshot = this.exportDatabaseSnapshot();
+      fs.writeFileSync(filePath, snapshot, 'utf-8');
+      this.notifySubscribers('database_persisted', { timestamp: new Date().toISOString() });
+    } catch (err) {
+      console.error('[DatabaseStore] Could not persist state to disk:', err);
+    }
   }
 
   // ---------------- SUPER ADMIN BOOTSTRAP (IDEMPOTENT & AUDITABLE) ----------------
@@ -1965,6 +2041,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: 'global',
       details: `Settings updated: ${Object.keys(newSettings).join(', ')}`,
     });
+    this.persistState();
+    this.notifySubscribers('site_settings_updated', this.settings);
     return this.settings;
   }
 
@@ -2009,6 +2087,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: 'homepage-curation',
       details: `Updated homepage campaign placements: ${Object.keys(curation).join(', ')}`,
     });
+    this.persistState();
+    this.notifySubscribers('homepage_curation_updated', this.settings.homepageCuration);
     return { ...this.settings.homepageCuration };
   }
 
@@ -2357,7 +2437,24 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   updateGatewayConfig(id: string, updates: Partial<PaymentGatewayConfig>, actorName = 'Admin'): PaymentGatewayConfig | undefined {
     const idx = this.gateways.findIndex((g) => g.id === id);
     if (idx === -1) return undefined;
-    this.gateways[idx] = { ...this.gateways[idx], ...updates };
+
+    const sanitizedUpdates: Partial<PaymentGatewayConfig> = { ...updates };
+    if (sanitizedUpdates.secretKey) {
+      if (isNewSecretCandidate(sanitizedUpdates.secretKey)) {
+        sanitizedUpdates.secretKey = encryptSecret(sanitizedUpdates.secretKey);
+      } else {
+        delete sanitizedUpdates.secretKey;
+      }
+    }
+    if (sanitizedUpdates.webhookSecret) {
+      if (isNewSecretCandidate(sanitizedUpdates.webhookSecret)) {
+        sanitizedUpdates.webhookSecret = encryptSecret(sanitizedUpdates.webhookSecret);
+      } else {
+        delete sanitizedUpdates.webhookSecret;
+      }
+    }
+
+    this.gateways[idx] = { ...this.gateways[idx], ...sanitizedUpdates };
     this.createAuditLog({
       actorId: 'admin-1',
       actorName,
@@ -2366,6 +2463,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Payment gateway "${id}" settings modified: ${Object.keys(updates).join(', ')}`,
     });
+    this.persistState();
+    this.notifySubscribers('gateway_updated', { id, gateway: this.gateways[idx] });
     return this.gateways[idx];
   }
 
@@ -3221,6 +3320,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Provisioned employee account: ${newUser.name} (Employee ID: ${newUser.employeeId}, Roles: ${rolesDesc}, Dept: ${newUser.department}, Status: ${newUser.status})`,
     });
 
+    this.persistState();
+    this.notifySubscribers('employee_created', { employeeId: newUser.id });
+
     return {
       user: newUser,
       temporaryCredential,
@@ -3308,6 +3410,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Updated employee record for ${this.users[idx].name} (${this.users[idx].employeeId}): fields [${Object.keys(updates).join(', ')}]`,
     });
+
+    this.persistState();
+    this.notifySubscribers('employee_updated', { employeeId: id });
 
     return this.users[idx];
   }
@@ -3458,6 +3563,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Changed status for ${user.name} (${user.employeeId || id}) from "${oldStatus}" to "${status}". Sessions ${status === 'suspended' ? 'revoked' : 'preserved'}.`,
     });
 
+    this.persistState();
+    this.notifySubscribers('employee_updated', { employeeId: id });
+
     return user;
   }
 
@@ -3505,6 +3613,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Permanently removed employee record: ${user.name} (${user.employeeId || id}, ${user.email})`,
     });
 
+    this.persistState();
+    this.notifySubscribers('employee_deleted', { employeeId: id });
+
     return true;
   }
 
@@ -3547,6 +3658,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Initiated secure single-use credential reset for ${user.name} (${user.employeeId || id}). Existing sessions revoked.`,
     });
+
+    this.persistState();
+    this.notifySubscribers('employee_reset', { employeeId: id });
 
     return {
       resetToken,
@@ -3623,9 +3737,26 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     }
 
     const current = this.apiKeys[idx];
+    const sanitizedUpdates: Partial<ApiKeyRecord> = { ...updates };
+
+    if (sanitizedUpdates.secretKey) {
+      if (isNewSecretCandidate(sanitizedUpdates.secretKey)) {
+        sanitizedUpdates.secretKey = encryptSecret(sanitizedUpdates.secretKey);
+      } else {
+        delete sanitizedUpdates.secretKey;
+      }
+    }
+    if (sanitizedUpdates.webhookSecret) {
+      if (isNewSecretCandidate(sanitizedUpdates.webhookSecret)) {
+        sanitizedUpdates.webhookSecret = encryptSecret(sanitizedUpdates.webhookSecret);
+      } else {
+        delete sanitizedUpdates.webhookSecret;
+      }
+    }
+
     const updated: ApiKeyRecord = {
       ...current,
-      ...updates,
+      ...sanitizedUpdates,
       id: current.id,
       isSystemCritical: current.isSystemCritical,
       updatedBy: actor.name,
@@ -3633,9 +3764,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     };
 
     if (
-      (updates.secretKey && updates.secretKey !== current.secretKey) ||
-      (updates.webhookSecret && updates.webhookSecret !== current.webhookSecret) ||
-      (updates.publicKey && updates.publicKey !== current.publicKey)
+      (sanitizedUpdates.secretKey && sanitizedUpdates.secretKey !== current.secretKey) ||
+      (sanitizedUpdates.webhookSecret && sanitizedUpdates.webhookSecret !== current.webhookSecret) ||
+      (sanitizedUpdates.publicKey && sanitizedUpdates.publicKey !== current.publicKey)
     ) {
       updated.lastRotatedAt = new Date().toISOString();
     }
@@ -3651,6 +3782,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Superior Admin modified credentials for "${updated.name}" (${updated.service}) [Env: ${updated.environment}]`,
     });
 
+    this.persistState();
+    this.notifySubscribers('api_keys_updated', { id });
+
     return updated;
   }
 
@@ -3662,8 +3796,16 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       throw new Error('ACCESS DENIED: Super Administrator authority required to register new API credentials.');
     }
 
+    const sanitizedData = { ...data };
+    if (sanitizedData.secretKey && isNewSecretCandidate(sanitizedData.secretKey)) {
+      sanitizedData.secretKey = encryptSecret(sanitizedData.secretKey);
+    }
+    if (sanitizedData.webhookSecret && isNewSecretCandidate(sanitizedData.webhookSecret)) {
+      sanitizedData.webhookSecret = encryptSecret(sanitizedData.webhookSecret);
+    }
+
     const newKey: ApiKeyRecord = {
-      ...data,
+      ...sanitizedData,
       id: `key-custom-${Date.now()}`,
       updatedBy: actor.name,
       updatedAt: new Date().toISOString(),
@@ -3681,6 +3823,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: newKey.id,
       details: `Superior Admin created new API credential record "${newKey.name}" (${newKey.service})`,
     });
+
+    this.persistState();
+    this.notifySubscribers('api_keys_updated', { id: newKey.id });
 
     return newKey;
   }
@@ -3707,6 +3852,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Superior Admin removed API credential entry "${key.name}" (${key.service})`,
     });
 
+    this.persistState();
+    this.notifySubscribers('api_keys_updated', { id });
+
     return true;
   }
 
@@ -3725,7 +3873,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     const now = new Date().toISOString();
     const updated: ApiKeyRecord = {
       ...key,
-      secretKey: newSecret,
+      secretKey: isNewSecretCandidate(newSecret) ? encryptSecret(newSecret) : key.secretKey,
       lastRotatedAt: now,
       updatedAt: now,
       updatedBy: actor.name,
@@ -3741,6 +3889,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Superior Admin triggered cryptographic key rotation for "${key.name}" (${key.service})`,
     });
+
+    this.persistState();
+    this.notifySubscribers('api_keys_updated', { id });
 
     return updated;
   }
@@ -4637,6 +4788,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         campaignUpdateRequests: this.campaignUpdateRequests,
         apiKeys: this.apiKeys,
         auditLogs: this.auditLogs,
+        users: this.users,
       },
       null,
       2
@@ -4661,6 +4813,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       if (parsed.campaignReports) this.campaignReports = parsed.campaignReports;
       if (parsed.campaignUpdateRequests) this.campaignUpdateRequests = parsed.campaignUpdateRequests;
       if (parsed.apiKeys) this.apiKeys = parsed.apiKeys;
+      if (parsed.users && Array.isArray(parsed.users)) this.users = parsed.users;
 
       this.createAuditLog({
         actorId: 'admin-1',
@@ -4677,11 +4830,52 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     }
   }
 
+  // ---------------- CREDENTIAL DECRYPTION HELPERS ----------------
+  getDecryptedGateway(id: string): PaymentGatewayConfig | undefined {
+    const gw = this.gateways.find((g) => g.id === id);
+    if (!gw) return undefined;
+    return {
+      ...gw,
+      secretKey: gw.secretKey ? decryptSecret(gw.secretKey) : '',
+      webhookSecret: gw.webhookSecret ? decryptSecret(gw.webhookSecret) : '',
+    };
+  }
+
+  getDecryptedApiKey(idOrKeyIdentifier: string): ApiKeyRecord | undefined {
+    const key = this.apiKeys.find(
+      (k) => k.id === idOrKeyIdentifier || k.keyIdentifier === idOrKeyIdentifier
+    );
+    if (!key) return undefined;
+    return {
+      ...key,
+      secretKey: key.secretKey ? decryptSecret(key.secretKey) : undefined,
+      webhookSecret: key.webhookSecret ? decryptSecret(key.webhookSecret) : undefined,
+    };
+  }
+
+  getPublicEmployees(): Partial<User>[] {
+    const staff = this.getEmployees();
+    return staff
+      .filter((u) => u.status !== 'suspended')
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        secondaryRole: u.secondaryRole,
+        department: u.department || 'Operations',
+        jobTitle: u.jobTitle || u.role.replace('_', ' '),
+        avatarUrl: u.avatarUrl,
+      }));
+  }
 }
 
 // Global Singleton to ensure persistence across Hot Module Reloading in Next.js development
 declare global {
   var __dokind_db__: DatabaseStore | undefined;
+}
+
+if (global.__dokind_db__) {
+  Object.setPrototypeOf(global.__dokind_db__, DatabaseStore.prototype);
 }
 
 export const db = global.__dokind_db__ || new DatabaseStore();

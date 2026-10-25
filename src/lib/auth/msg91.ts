@@ -11,6 +11,7 @@
  */
 
 import { normalizePhoneNumber } from './phone';
+import { db } from '@/lib/db';
 
 export interface Msg91Config {
   authKey?: string;
@@ -48,10 +49,11 @@ const mockStore: MockOtpStore = {};
  * Retrieves sanitized MSG91 configuration from environment variables.
  */
 export function getMsg91Config(): Msg91Config {
-  const authKey = process.env.MSG91_AUTH_KEY?.trim() || '';
-  const templateId = process.env.MSG91_OTP_TEMPLATE_ID?.trim() || '';
+  const dbKey = db.getDecryptedApiKey('key-msg91-otp') || db.getDecryptedApiKey('key-fast2sms-dlt');
+  const authKey = dbKey?.secretKey || process.env.MSG91_AUTH_KEY?.trim() || '';
+  const templateId = dbKey?.publicKey || process.env.MSG91_OTP_TEMPLATE_ID?.trim() || '';
   const enabledStr = (process.env.PHONE_OTP_ENABLED || 'false').toLowerCase().trim();
-  const enabled = enabledStr === 'true' || enabledStr === '1';
+  const enabled = dbKey?.status === 'active' || enabledStr === 'true' || enabledStr === '1';
   const devModeStr = (process.env.MSG91_DEV_MODE || 'auto').toLowerCase().trim();
 
   // If no authKey is configured, automatically default to dev/mock mode

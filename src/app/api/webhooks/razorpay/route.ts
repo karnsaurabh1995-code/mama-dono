@@ -7,7 +7,8 @@ export async function POST(request: Request) {
     // 1. Read exact raw request text before JSON parsing
     const rawBody = await request.text();
     const signature = request.headers.get('x-razorpay-signature');
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const dbGateway = db.getDecryptedGateway('razorpay');
+    const webhookSecret = dbGateway?.webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET;
     const isProduction = process.env.NODE_ENV === 'production';
 
     // 2. Strict Cryptographic Signature Gate

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { db } from '@/lib/db';
 
 export interface GoogleUserInfo {
   sub: string;
@@ -8,12 +9,18 @@ export interface GoogleUserInfo {
   email_verified: boolean;
 }
 
+function getGoogleCredentials() {
+  const dbKey = db.getDecryptedApiKey('key-google-oauth');
+  const clientId = dbKey?.publicKey || process.env.GOOGLE_CLIENT_ID || '';
+  const clientSecret = dbKey?.secretKey || process.env.GOOGLE_CLIENT_SECRET || '';
+  return { clientId, clientSecret };
+}
+
 /**
- * Checks whether Google OAuth credentials are configured in the environment
+ * Checks whether Google OAuth credentials are configured in the environment or database
  */
 export function isGoogleOAuthConfigured(): boolean {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const { clientId, clientSecret } = getGoogleCredentials();
   if (!clientId || !clientSecret) return false;
   if (clientId.includes('your_google') || clientSecret.includes('your_google')) return false;
   return true;
@@ -34,7 +41,7 @@ export function getGoogleCallbackUri(origin?: string): string {
  * Generates official Google OAuth 2.0 authorization URL with anti-CSRF state and OpenID Connect scope
  */
 export function buildGoogleAuthUrl(origin: string, state: string): string {
-  const clientId = process.env.GOOGLE_CLIENT_ID || '';
+  const { clientId } = getGoogleCredentials();
   const redirectUri = getGoogleCallbackUri(origin);
 
   const params = new URLSearchParams({
@@ -57,8 +64,7 @@ export async function exchangeGoogleCodeForTokens(
   code: string,
   origin: string
 ): Promise<{ accessToken: string; idToken: string }> {
-  const clientId = process.env.GOOGLE_CLIENT_ID || '';
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+  const { clientId, clientSecret } = getGoogleCredentials();
   const redirectUri = getGoogleCallbackUri(origin);
 
   const body = new URLSearchParams({

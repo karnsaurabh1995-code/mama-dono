@@ -54,7 +54,8 @@ export async function POST(request: Request) {
 
     // 4. Strict Cryptographic Signature Gate
     const isProduction = process.env.NODE_ENV === 'production';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const dbGateway = db.getDecryptedGateway('razorpay');
+    const keySecret = dbGateway?.secretKey || process.env.RAZORPAY_KEY_SECRET;
 
     if (isProduction) {
       // Production mode: Key secret MUST be configured

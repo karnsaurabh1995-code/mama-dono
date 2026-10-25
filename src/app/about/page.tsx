@@ -2,8 +2,13 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { ShieldCheck, Heart, Award, Users, CheckCircle2, ChevronRight, Lock } from 'lucide-react';
+import { db } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 
 export default function AboutPage() {
+  const publicTeam = db.getPublicEmployees();
+
   return (
     <div className="py-12 bg-[#FAF9F6] min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -59,6 +64,53 @@ export default function AboutPage() {
             <p className="text-xs text-[#555B63] leading-relaxed">
               We charge 0% platform commission on emergency individual medical campaigns, relying solely on voluntary tips from supporters to maintain technology operations.
             </p>
+          </div>
+        </div>
+
+        {/* Leadership & Field Governance Team */}
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <span className="bg-emerald-50 text-[#25845B] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+              Verified dokind Stewards
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-[#202124] tracking-tight">
+              Leadership & Field Governance Team
+            </h2>
+            <p className="text-xs sm:text-sm text-[#62666D] max-w-2xl">
+              Our multidisciplinary team of medical reviewers, chartered accountants, field coordinators, and community advocates ensure every rupee donated reaches verified beneficiaries.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {publicTeam.map((member) => (
+              <div
+                key={member.id}
+                className="bg-white rounded-3xl border border-[#E8E6E1] p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between space-y-4"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#FFF0EF] text-[#E84B45] font-black text-base flex items-center justify-center shrink-0 border border-red-100">
+                    {member.name ? member.name.charAt(0).toUpperCase() : 'D'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold text-[#202124] truncate">{member.name}</h3>
+                    <p className="text-xs font-medium text-[#E84B45]">{member.jobTitle}</p>
+                    <span className="inline-block mt-1 text-[11px] text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-md">
+                      {member.department}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-[#F0EFEB] flex items-center justify-between text-[11px] text-[#555B63]">
+                  <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#25845B]" />
+                    Verified Officer
+                  </span>
+                  <span className="capitalize font-mono text-[10px] text-neutral-400">
+                    {member.role?.replace('_', ' ')}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

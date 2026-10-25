@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
@@ -36,6 +36,22 @@ export default function TeamManagementPage() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [toastMessage, setToastMessage] = useState('');
+
+  const refreshEmployees = async () => {
+    try {
+      const res = await fetch('/api/admin/team');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.employees) setEmployees(data.employees);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh employees:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshEmployees();
+  }, []);
 
   // Modal State for One-Time Temporary Credential Display
   const [credentialModal, setCredentialModal] = useState<{
@@ -108,24 +124,28 @@ export default function TeamManagementPage() {
   }
 
   // Action Handlers
-  const handleInitiateReset = (emp: User) => {
+  const handleInitiateReset = async (emp: User) => {
     if (!confirm(`Generate a secure temporary credential and single-use password reset link for ${emp.name}? Existing sessions will be revoked.`)) {
       return;
     }
 
     try {
-      const result = db.initiateCredentialReset(
-        emp.id,
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
-      setEmployees([...db.getEmployees()]);
+      const res = await fetch('/api/admin/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: emp.id, action: 'reset_credential' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to reset credential');
+
+      await refreshEmployees();
       setCredentialModal({
         open: true,
         employeeName: emp.name,
         employeeId: emp.employeeId || 'N/A',
         email: emp.email,
-        temporaryCredential: result.temporaryCredential,
-        resetToken: result.resetToken,
+        temporaryCredential: data.temporaryCredential,
+        resetToken: data.resetToken,
       });
       notify(`Single-use credential generated for ${emp.name}. Existing sessions revoked.`);
     } catch (err: unknown) {
@@ -133,7 +153,7 @@ export default function TeamManagementPage() {
     }
   };
 
-  const handleToggleStatus = (emp: User) => {
+  const handleToggleStatus = async (emp: User) => {
     const nextStatus = emp.status === 'suspended' ? 'active' : 'suspended';
     const actionLabel = nextStatus === 'suspended' ? 'suspend' : 'reinstate';
 
@@ -142,36 +162,43 @@ export default function TeamManagementPage() {
     }
 
     try {
-      db.setEmployeeStatus(
-        emp.id,
-        nextStatus,
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
-      setEmployees([...db.getEmployees()]);
+      const res = await fetch('/api/admin/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: emp.id, action: 'toggle_status', status: nextStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to update status');
+
+      await refreshEmployees();
       notify(`Staff account for ${emp.name} has been ${nextStatus === 'suspended' ? 'suspended' : 'reinstated'}.`);
     } catch (err: unknown) {
       alert((err as Error).message);
     }
   };
 
-  const handleRevokeSessions = (emp: User) => {
+  const handleRevokeSessions = async (emp: User) => {
     if (!confirm(`Revoke all active sessions and refresh tokens for ${emp.name}?`)) {
       return;
     }
 
     try {
-      db.revokeEmployeeSessions(
-        emp.id,
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
-      setEmployees([...db.getEmployees()]);
+      const res = await fetch('/api/admin/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: emp.id, action: 'revoke_sessions' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to revoke sessions');
+
+      await refreshEmployees();
       notify(`All active sessions revoked for ${emp.name}.`);
     } catch (err: unknown) {
       alert((err as Error).message);
     }
   };
 
-  const handleConfirmRoleChange = () => {
+  const handleConfirmRoleChange = async () => {
     if (!roleChangeModal.employee) return;
     try {
       const assignedRoles: UserRole[] =
@@ -179,19 +206,19 @@ export default function TeamManagementPage() {
           ? [roleChangeModal.selectedRole, roleChangeModal.secondaryRole as UserRole]
           : [roleChangeModal.selectedRole];
 
-      db.updateEmployee(
-        roleChangeModal.employee.id,
-        {
-          role: roleChangeModal.selectedRole,
-          secondaryRole:
-            roleChangeModal.secondaryRole && roleChangeModal.secondaryRole !== roleChangeModal.selectedRole
-              ? (roleChangeModal.secondaryRole as UserRole)
-              : undefined,
+      const res = await fetch('/api/admin/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: roleChangeModal.employee.id,
+          action: 'change_roles',
           roles: assignedRoles,
-        },
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
-      setEmployees([...db.getEmployees()]);
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to change roles');
+
+      await refreshEmployees();
       setRoleChangeModal({ open: false, employee: null, selectedRole: 'reviewer', secondaryRole: '' });
       notify(`Role(s) updated for ${roleChangeModal.employee.name}.`);
     } catch (err: unknown) {

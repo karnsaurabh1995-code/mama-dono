@@ -113,7 +113,7 @@ export default function EditEmployeePage() {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -127,25 +127,33 @@ export default function EditEmployeePage() {
         ? [role, secondaryRole as UserRole]
         : [role];
 
-      const updated = db.updateEmployee(
-        employee.id,
-        {
-          name,
-          employeeId: employeeId.trim().toUpperCase(),
-          email: email.trim().toLowerCase(),
-          role,
-          secondaryRole: (secondaryRole && secondaryRole !== role) ? (secondaryRole as UserRole) : undefined,
-          roles: assignedRoles,
-          department,
-          jobTitle,
-          status,
-          assignedCampaigns: scopeArray,
-          internalNotes,
-        },
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
+      const res = await fetch('/api/admin/team', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: employee.id,
+          updates: {
+            name,
+            employeeId: employeeId.trim().toUpperCase(),
+            email: email.trim().toLowerCase(),
+            role,
+            secondaryRole: (secondaryRole && secondaryRole !== role) ? (secondaryRole as UserRole) : undefined,
+            roles: assignedRoles,
+            department,
+            jobTitle,
+            status,
+            assignedCampaigns: scopeArray,
+            internalNotes,
+          },
+        }),
+      });
 
-      setEmployee(updated);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update employee profile');
+      }
+
+      setEmployee(data.employee);
       setToastMessage('Employee profile successfully updated and logged.');
       setTimeout(() => setToastMessage(''), 3500);
     } catch (err: unknown) {
@@ -153,20 +161,29 @@ export default function EditEmployeePage() {
     }
   };
 
-  const handleInitiateReset = () => {
+  const handleInitiateReset = async () => {
     if (!confirm(`Generate a secure temporary credential for ${employee.name}? All existing sessions will be invalidated.`)) {
       return;
     }
 
     try {
-      const result = db.initiateCredentialReset(
-        employee.id,
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
+      const res = await fetch('/api/admin/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: employee.id,
+          action: 'reset_credential',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to generate reset credential');
+      }
+
       setResetModal({
         open: true,
-        temporaryCredential: result.temporaryCredential,
-        resetToken: result.resetToken,
+        temporaryCredential: data.temporaryCredential,
+        resetToken: data.resetToken,
       });
       setToastMessage('Single-use temporary credential generated. Old sessions revoked.');
       setTimeout(() => setToastMessage(''), 3500);

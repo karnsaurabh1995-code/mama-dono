@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
@@ -23,20 +23,62 @@ import {
 
 export default function PlatformSettingsPage() {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<SiteSettings>(db.getSiteSettings());
+  const [settings, setSettings] = useState<SiteSettings>(() => db.getSiteSettings());
   const [toastMessage, setToastMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/admin/settings')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (mounted && data.settings) {
+          setSettings(data.settings);
+        }
+      })
+      .catch((err) => {
+        console.warn('Fallback to local site settings:', err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const notify = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    db.updateSiteSettings(settings, user?.name || 'Admin');
-    notify('General platform settings and security preferences saved.');
+    setIsSaving(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save settings');
+      }
+
+      setSettings(data.settings);
+      notify(data.message || 'General platform settings and security preferences saved.');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'An error occurred while saving platform settings.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleExportBackup = () => {
@@ -112,6 +154,17 @@ export default function PlatformSettingsPage() {
             <span>{toastMessage}</span>
           </div>
           <button onClick={() => setToastMessage('')}>✕</button>
+        </div>
+      )}
+
+      {/* Error notice */}
+      {errorMessage && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600" />
+            <span>{errorMessage}</span>
+          </div>
+          <button onClick={() => setErrorMessage('')}>✕</button>
         </div>
       )}
 
@@ -375,9 +428,9 @@ export default function PlatformSettingsPage() {
               </div>
 
               <div className="pt-3 border-t border-neutral-100">
-                <Button type="submit" size="sm" className="w-full bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs">
+                <Button type="submit" size="sm" disabled={isSaving} className="w-full bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs">
                   <Save className="w-3.5 h-3.5 mr-1" />
-                  Save System Settings
+                  {isSaving ? 'Saving Changes...' : 'Save System Settings'}
                 </Button>
               </div>
             </div>

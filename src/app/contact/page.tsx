@@ -12,8 +12,10 @@ import {
   ChevronRight,
   MessageSquare,
 } from 'lucide-react';
+import { useSiteSettings } from '@/providers/SiteSettingsProvider';
 
 export default function ContactPage() {
+  const { settings } = useSiteSettings();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -62,7 +64,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <strong className="block text-[#202124]">Helpline (Donor & Patient Care)</strong>
-                    <span>+91 80 4719 2300</span>
+                    <span>{settings.contactPhone}</span>
                     <span className="block text-[11px] text-neutral-400">Monday to Saturday: 9:00 AM – 7:00 PM IST</span>
                   </div>
                 </div>
@@ -73,7 +75,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <strong className="block text-[#202124]">Email Inquiries</strong>
-                    <span>support@dokind.org.in</span>
+                    <span>{settings.contactEmail}</span>
                     <span className="block text-[11px] text-neutral-400">Average response time: 2 business hours</span>
                   </div>
                 </div>
@@ -84,7 +86,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <strong className="block text-[#202124]">Registered Foundation Address</strong>
-                    <span>dokind Foundation, 4th Floor, Barakhamba Road, Connaught Place, New Delhi - 110001, India</span>
+                    <span>{settings.supportAddress}</span>
                   </div>
                 </div>
               </div>

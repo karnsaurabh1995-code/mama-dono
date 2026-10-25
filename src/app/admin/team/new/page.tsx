@@ -44,6 +44,7 @@ export default function NewEmployeePage() {
     email: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isAuthorizedAdmin =
     currentUser?.role === 'super_admin' ||
@@ -130,16 +131,19 @@ export default function NewEmployeePage() {
     setEmployeeId(db.generateNextEmployeeId());
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
     if (selectedRoles.length === 0) {
       setError('At least one role must be assigned.');
+      setIsSubmitting(false);
       return;
     }
     if (selectedRoles.length > 2) {
       setError('A single employee can have at most 2 roles at once.');
+      setIsSubmitting(false);
       return;
     }
 
@@ -152,8 +156,10 @@ export default function NewEmployeePage() {
       const primaryRole = selectedRoles[0];
       const secondaryRole = selectedRoles[1] || undefined;
 
-      const result = db.createEmployee(
-        {
+      const res = await fetch('/api/admin/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           name,
           email,
           employeeId,
@@ -165,19 +171,25 @@ export default function NewEmployeePage() {
           status,
           assignedCampaigns: scopeArray,
           internalNotes,
-        },
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to provision staff account');
+      }
 
       setCreatedResult({
-        temporaryCredential: result.temporaryCredential,
-        resetToken: result.resetToken,
-        name: result.user.name,
-        employeeId: result.user.employeeId || 'N/A',
-        email: result.user.email,
+        temporaryCredential: data.temporaryCredential,
+        resetToken: data.resetToken,
+        name: data.employee.name,
+        employeeId: data.employee.employeeId || 'N/A',
+        email: data.employee.email,
       });
     } catch (err: unknown) {
       setError((err as Error).message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

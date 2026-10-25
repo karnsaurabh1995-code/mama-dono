@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { PaymentGatewayConfig } from '@/lib/types';
@@ -24,12 +24,28 @@ import {
 
 export default function PaymentGatewaysPage() {
   const { user } = useAuth();
-  const [gateways, setGateways] = useState<PaymentGatewayConfig[]>(db.getGateways());
+  const [gateways, setGateways] = useState<PaymentGatewayConfig[]>(() => db.getGateways());
   const [selectedGatewayId, setSelectedGatewayId] = useState<string>('razorpay');
   const [showSecretKey, setShowSecretKey] = useState<Record<string, boolean>>({});
   const [toastMessage, setToastMessage] = useState('');
   const [simulatingWebhook, setSimulatingWebhook] = useState(false);
   const [webhookEvent, setWebhookEvent] = useState('payment.captured');
+
+  const refreshGateways = async () => {
+    try {
+      const res = await fetch('/api/admin/gateways');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.gateways) setGateways(data.gateways);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch gateways:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshGateways();
+  }, []);
 
   const notify = (msg: string) => {
     setToastMessage(msg);
@@ -38,11 +54,20 @@ export default function PaymentGatewaysPage() {
 
   const currentGateway = gateways.find((g) => g.id === selectedGatewayId) || gateways[0];
 
-  const handleUpdate = (updates: Partial<PaymentGatewayConfig>) => {
-    const updated = db.updateGatewayConfig(currentGateway.id, updates, user?.name || 'Admin');
-    if (updated) {
-      setGateways([...db.getGateways()]);
+  const handleUpdate = async (updates: Partial<PaymentGatewayConfig>) => {
+    try {
+      const res = await fetch('/api/admin/gateways', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentGateway.id, updates }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to update gateway');
+
+      await refreshGateways();
       notify(`Updated settings for ${currentGateway.name}.`);
+    } catch (err: any) {
+      alert(err.message || 'Error updating payment gateway');
     }
   };
 

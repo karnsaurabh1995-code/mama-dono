@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
@@ -104,6 +104,23 @@ export default function ApiKeyManagerPage() {
       return [];
     }
   });
+
+  const refreshKeys = async () => {
+    if (!isSuperAdmin) return;
+    try {
+      const res = await fetch('/api/admin/api-keys');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.keys) setKeys(data.keys);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh API keys:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshKeys();
+  }, [isSuperAdmin]);
 
   // State: search & filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -291,17 +308,17 @@ export default function ApiKeyManagerPage() {
   const handleTestConnection = async (keyItem: ApiKeyRecord) => {
     setTestingKeyId(keyItem.id);
     try {
-      // Simulate real round-trip latency & verification via db
-      await new Promise((res) => setTimeout(res, 600));
-      const result = db.testApiKeyConnection(
-        keyItem.id,
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
-      setKeys([...db.getApiKeys(currentUser || undefined)]);
-      if (result.success) {
-        notify(`${keyItem.name}: ${result.message}`, 'success');
+      const res = await fetch('/api/admin/api-keys/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: keyItem.id }),
+      });
+      const data = await res.json();
+      await refreshKeys();
+      if (data.success) {
+        notify(`${keyItem.name}: ${data.message} (${data.latencyMs}ms)`, 'success');
       } else {
-        notify(`${keyItem.name}: ${result.message}`, 'error');
+        notify(`${keyItem.name}: ${data.message}`, 'error');
       }
     } catch (err: unknown) {
       notify(`Test failed: ${(err as Error).message}`, 'error');
@@ -313,15 +330,17 @@ export default function ApiKeyManagerPage() {
   const handleTestAll = async () => {
     setTestingKeyId('all');
     try {
-      await new Promise((res) => setTimeout(res, 800));
       for (const k of keys) {
-        db.testApiKeyConnection(
-          k.id,
-          currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-        );
+        await fetch('/api/admin/api-keys/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: k.id }),
+        });
       }
-      setKeys([...db.getApiKeys(currentUser || undefined)]);
+      await refreshKeys();
       notify(`Tested all ${keys.length} API connections. Statuses updated!`, 'success');
+    } catch (err: any) {
+      notify(`Test all encountered an issue: ${err.message}`, 'error');
     } finally {
       setTestingKeyId(null);
     }
@@ -332,17 +351,24 @@ export default function ApiKeyManagerPage() {
     setEditModal({ open: true, keyRecord: keyItem });
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editModal.keyRecord) return;
 
     try {
-      db.updateApiKey(
-        editModal.keyRecord.id,
-        editFormData,
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
-      setKeys([...db.getApiKeys(currentUser || undefined)]);
+      const res = await fetch('/api/admin/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          id: editModal.keyRecord.id,
+          updates: editFormData,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to update credentials');
+
+      await refreshKeys();
       setEditModal({ open: false, keyRecord: null });
       notify(`Successfully updated credentials for "${editModal.keyRecord.name}". Audit log updated.`);
     } catch (err: unknown) {
@@ -350,7 +376,7 @@ export default function ApiKeyManagerPage() {
     }
   };
 
-  const handleRotateKey = (keyId: string) => {
+  const handleRotateKey = async (keyId: string) => {
     const key = keys.find((k) => k.id === keyId);
     if (!key) return;
 
@@ -370,20 +396,27 @@ export default function ApiKeyManagerPage() {
     }
 
     try {
-      db.rotateApiKey(
-        keyId,
-        generatedToken,
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
-      setKeys([...db.getApiKeys(currentUser || undefined)]);
+      const res = await fetch('/api/admin/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rotate',
+          id: keyId,
+          newSecret: generatedToken,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to rotate key');
+
+      await refreshKeys();
       setRevealedKeys((prev) => ({ ...prev, [keyId]: true }));
-      notify(`Rotated key for "${key.name}". New token generated and revealed.`);
+      notify(`Rotated key for "${key.name}". New token generated and encrypted.`);
     } catch (err: unknown) {
       notify(`Rotation error: ${(err as Error).message}`, 'error');
     }
   };
 
-  const handleDeleteKey = (keyItem: ApiKeyRecord) => {
+  const handleDeleteKey = async (keyItem: ApiKeyRecord) => {
     if (keyItem.isSystemCritical) {
       alert(`"${keyItem.name}" is a critical system integration and cannot be deleted.`);
       return;
@@ -393,18 +426,20 @@ export default function ApiKeyManagerPage() {
     }
 
     try {
-      db.deleteApiKey(
-        keyItem.id,
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
-      setKeys([...db.getApiKeys(currentUser || undefined)]);
+      const res = await fetch(`/api/admin/api-keys?id=${keyItem.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to delete key');
+
+      await refreshKeys();
       notify(`Deleted API credential "${keyItem.name}".`);
     } catch (err: unknown) {
       notify(`Deletion error: ${(err as Error).message}`, 'error');
     }
   };
 
-  const handleCreateNewKey = (e: React.FormEvent) => {
+  const handleCreateNewKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKeyForm.name || !newKeyForm.keyIdentifier) {
       notify('Please enter a service name and environment variable identifier.', 'error');
@@ -412,27 +447,33 @@ export default function ApiKeyManagerPage() {
     }
 
     try {
-      db.createApiKey(
-        {
-          name: newKeyForm.name,
-          service: newKeyForm.service,
-          category: newKeyForm.category,
-          environment: newKeyForm.environment,
-          status: 'active',
-          keyIdentifier: newKeyForm.keyIdentifier,
-          publicKey: newKeyForm.publicKey || undefined,
-          secretKey: newKeyForm.secretKey || undefined,
-          webhookSecret: newKeyForm.webhookSecret || undefined,
-          description: newKeyForm.description,
-          endpointUrl: newKeyForm.endpointUrl || undefined,
-          docsUrl: newKeyForm.docsUrl || undefined,
-          usageNotes: newKeyForm.usageNotes || undefined,
-          isSystemCritical: false,
-        },
-        currentUser || { id: 'usr-admin-1', name: 'Chief Administrator', role: 'super_admin' }
-      );
+      const res = await fetch('/api/admin/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          data: {
+            name: newKeyForm.name,
+            service: newKeyForm.service,
+            category: newKeyForm.category,
+            environment: newKeyForm.environment,
+            status: 'active',
+            keyIdentifier: newKeyForm.keyIdentifier,
+            publicKey: newKeyForm.publicKey || undefined,
+            secretKey: newKeyForm.secretKey || undefined,
+            webhookSecret: newKeyForm.webhookSecret || undefined,
+            description: newKeyForm.description,
+            endpointUrl: newKeyForm.endpointUrl || undefined,
+            docsUrl: newKeyForm.docsUrl || undefined,
+            usageNotes: newKeyForm.usageNotes || undefined,
+            isSystemCritical: false,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to register credential');
 
-      setKeys([...db.getApiKeys(currentUser || undefined)]);
+      await refreshKeys();
       setAddModalOpen(false);
       setNewKeyForm({
         name: '',
@@ -448,7 +489,7 @@ export default function ApiKeyManagerPage() {
         docsUrl: '',
         usageNotes: '',
       });
-      notify(`Added new API integration "${newKeyForm.name}".`);
+      notify(`Created new API credential record "${data.key.name}".`);
     } catch (err: unknown) {
       notify(`Creation error: ${(err as Error).message}`, 'error');
     }

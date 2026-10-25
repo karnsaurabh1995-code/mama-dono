@@ -21,6 +21,7 @@ import { useAuth } from '@/lib/auth/context';
 import { UserRole } from '@/lib/types';
 import { HeaderAccountSkeleton } from '../ui/Skeleton';
 import { useLoginModal } from '@/providers/AuthUIProvider';
+import { useSiteSettings } from '@/providers/SiteSettingsProvider';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -33,6 +34,7 @@ export function Header() {
   const router = useRouter();
   const { user, role, logout, isLoaded } = useAuth();
   const { openLogin } = useLoginModal();
+  const { settings } = useSiteSettings();
 
   // Focus search input when search popover opens
   useEffect(() => {
@@ -126,7 +128,30 @@ export function Header() {
     ].includes(user.role);
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EAE7E2] transition-all shadow-xs">
+    <>
+      {settings.maintenanceMode && (
+        <div className="bg-amber-500 text-neutral-950 px-4 py-2 text-center text-xs font-semibold flex items-center justify-center gap-2 border-b border-amber-600">
+          <Shield className="w-3.5 h-3.5" />
+          <span>{settings.maintenanceMessage || 'Platform maintenance in progress. All donations and campaigns remain secure.'}</span>
+        </div>
+      )}
+      {!settings.maintenanceMode && settings.topBanner && (
+        <div className={`px-4 py-1.5 text-center text-xs font-medium flex items-center justify-center gap-2 border-b ${
+          settings.topBanner.type === 'urgent'
+            ? 'bg-[#EF4949] text-white border-red-700'
+            : settings.topBanner.type === 'success'
+            ? 'bg-emerald-600 text-white border-emerald-700'
+            : 'bg-[#202124] text-white border-neutral-700'
+        }`}>
+          <span>{settings.topBanner.message}</span>
+          {settings.topBanner.link && (
+            <Link href={settings.topBanner.link} className="underline font-bold ml-1 hover:opacity-80">
+              Learn more &rarr;
+            </Link>
+          )}
+        </div>
+      )}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EAE7E2] transition-all shadow-xs">
       <div className="w-full max-w-[1560px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10">
         <div className="flex items-center justify-between h-18 sm:h-20 gap-4 lg:gap-6 xl:gap-8">
           {/* 1. LEFT REGION: dokind Wordmark (starts flush with zero excess transparent padding) */}
@@ -470,5 +495,6 @@ export function Header() {
         </div>
       )}
     </header>
+    </>
   );
 }

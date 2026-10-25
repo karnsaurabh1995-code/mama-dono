@@ -37,6 +37,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# runtime database persistence
+data/*.json
+!data/.gitkeep
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

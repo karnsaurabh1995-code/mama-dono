@@ -15,9 +15,11 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { DokindLogo } from '../common/DokindLogo';
+import { useSiteSettings } from '@/providers/SiteSettingsProvider';
 
 export function Footer() {
   const pathname = usePathname();
+  const { settings } = useSiteSettings();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +59,7 @@ export function Footer() {
             <div className="pt-2 flex flex-col gap-2 text-xs text-neutral-400">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#25845B]" />
-                <span>NITI Aayog NGO-Darpan Portal Recognized</span>
+                <span>{settings.darpanPortalRef || 'NITI Aayog NGO-Darpan Portal Recognized'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-amber-500" />
@@ -183,11 +185,11 @@ export function Footer() {
             <div className="pt-2 text-xs space-y-1.5 text-neutral-400">
               <div className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-[#EF4949]" />
-                <span>+91 80 4719 2300 (Mon-Sat, 9AM-7PM)</span>
+                <span>{settings.contactPhone} (Mon-Sat, 9AM-7PM)</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-[#EF4949]" />
-                <span>support@dokind.org.in</span>
+                <span>{settings.contactEmail}</span>
               </div>
             </div>
           </div>
@@ -218,7 +220,7 @@ export function Footer() {
 
         {/* Legal & Copyright */}
         <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <p>© 2026 dokind Foundation. All rights reserved. Registered under Indian Societies Act.</p>
+          <p>© {new Date().getFullYear()} {settings.platformName} Foundation. All rights reserved. Registered under Indian Societies Act.</p>
 
           <div className="flex items-center gap-5 flex-wrap">
             <Link href="/privacy-policy" className="hover:text-neutral-300 transition-colors">
