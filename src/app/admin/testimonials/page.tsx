@@ -1,63 +1,120 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/db';
 import { Testimonial } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
-import { Quote, Plus, Star, CheckCircle2, Trash2, X } from 'lucide-react';
+import { Quote, Plus, Star, CheckCircle2, Trash2, X, RefreshCw } from 'lucide-react';
 
 export default function TestimonialsAdminPage() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(() => db.getTestimonials());
-
+  const [isLoading, setIsLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [authorName, setAuthorName] = useState('');
   const [role, setRole] = useState('');
   const [quote, setQuote] = useState('');
 
+  const fetchTestimonials = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/admin/testimonials');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.testimonials) {
+          setTestimonials(data.testimonials);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch testimonials:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTestimonials();
+  }, []);
+
   const notify = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const handleToggleFeatured = (id: string) => {
+  const handleToggleFeatured = async (id: string) => {
     const current = testimonials.find((t) => t.id === id);
-    if (current) {
-      db.updateTestimonial(id, { featured: !current.featured });
-    }
+    if (!current) return;
+    const newFeatured = !current.featured;
+
     setTestimonials((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, featured: !t.featured } : t))
+      prev.map((t) => (t.id === id ? { ...t, featured: newFeatured } : t))
     );
-    notify('Testimonial featured state updated.');
+
+    try {
+      const res = await fetch('/api/admin/testimonials', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, updates: { featured: newFeatured } }),
+      });
+      if (!res.ok) throw new Error('Failed to update testimonial');
+      notify(`Testimonial featured state updated to ${newFeatured ? 'featured' : 'standard'}.`);
+    } catch (err: any) {
+      // rollback
+      setTestimonials((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, featured: !newFeatured } : t))
+      );
+      notify('Failed to update testimonial on server.');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    db.deleteTestimonial(id);
+  const handleDelete = async (id: string) => {
+    const previous = [...testimonials];
     setTestimonials((prev) => prev.filter((t) => t.id !== id));
-    notify('Testimonial removed.');
+
+    try {
+      const res = await fetch(`/api/admin/testimonials?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete testimonial');
+      notify('Testimonial removed.');
+    } catch (err: any) {
+      setTestimonials(previous);
+      notify('Failed to delete testimonial on server.');
+    }
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authorName.trim() || !quote.trim()) return;
 
-    const created = db.createTestimonial({
-      authorName: authorName.trim(),
-      role: role.trim() || 'Supporter',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
-      quote: quote.trim(),
-      rating: 5,
-      featured: true,
-      badge: 'Verified',
-      date: new Date().toISOString().split('T')[0],
-    });
+    try {
+      const res = await fetch('/api/admin/testimonials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          authorName: authorName.trim(),
+          role: role.trim() || 'Supporter',
+          quote: quote.trim(),
+          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
+          rating: 5,
+          featured: true,
+          badge: 'Verified',
+        }),
+      });
 
-    setTestimonials((prev) => [created, ...prev]);
-    setShowAddModal(false);
-    setAuthorName('');
-    setRole('');
-    setQuote('');
-    notify('New testimonial added.');
+      if (!res.ok) throw new Error('Failed to create testimonial');
+      const data = await res.json();
+      if (data.testimonial) {
+        setTestimonials((prev) => [data.testimonial, ...prev]);
+      }
+      setShowAddModal(false);
+      setAuthorName('');
+      setRole('');
+      setQuote('');
+      notify('New testimonial added and persisted.');
+    } catch (err: any) {
+      notify('Failed to save testimonial: ' + err.message);
+    }
   };
 
   return (
@@ -78,10 +135,16 @@ export default function TestimonialsAdminPage() {
           </p>
         </div>
 
-        <Button size="sm" onClick={() => setShowAddModal(true)} className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs">
-          <Plus className="w-3.5 h-3.5 mr-1" />
-          Add Testimonial
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={fetchTestimonials} disabled={isLoading} className="text-xs">
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button size="sm" onClick={() => setShowAddModal(true)} className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs">
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Add Testimonial
+          </Button>
+        </div>
       </div>
 
       {toastMessage && (

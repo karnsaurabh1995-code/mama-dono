@@ -81,31 +81,56 @@ export default function PlatformSettingsPage() {
     }
   };
 
-  const handleExportBackup = () => {
-    const jsonStr = db.exportDatabaseSnapshot();
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sevasetu_full_backup_snapshot_${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    notify('Full platform database snapshot downloaded as encrypted JSON.');
+  const handleExportBackup = async () => {
+    try {
+      const res = await fetch('/api/admin/database/snapshot');
+      if (!res.ok) throw new Error('Failed to export snapshot from server');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dokind_full_backup_snapshot_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      notify('Full platform database snapshot downloaded.');
+    } catch (err: any) {
+      alert('Error downloading backup: ' + err.message);
+    }
   };
 
-  const handleRestoreSubmit = (e: React.FormEvent) => {
+  const handleRestoreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!importJson.trim()) return;
 
-    const success = db.importDatabaseSnapshot(importJson, user?.name || 'Super Admin');
-    if (success) {
-      setSettings(db.getSiteSettings());
+    try {
+      let parsedPayload: any;
+      try {
+        parsedPayload = JSON.parse(importJson.trim());
+      } catch {
+        alert('Invalid JSON format.');
+        return;
+      }
+
+      const res = await fetch('/api/admin/database/snapshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsedPayload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to restore snapshot');
+      }
+
+      if (data.settings) {
+        setSettings(data.settings);
+      }
       setShowRestoreModal(false);
       setImportJson('');
-      notify('Platform state successfully restored from snapshot!');
-    } else {
-      alert('Invalid JSON snapshot structure.');
+      notify('Platform state successfully restored from snapshot and persisted!');
+    } catch (err: any) {
+      alert('Failed to restore snapshot: ' + err.message);
     }
   };
 

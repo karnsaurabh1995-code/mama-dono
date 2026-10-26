@@ -87,10 +87,29 @@ export default function HomepageCurationPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const loadedCampaigns = db.getCampaigns({ status: 'active' });
-    const loadedCuration = db.getHomepageCuration();
-    setAllCampaigns(loadedCampaigns);
-    setCuration(loadedCuration);
+    let mounted = true;
+    fetch('/api/admin/homepage-curation')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (mounted && data.success) {
+          if (data.campaigns) setAllCampaigns(data.campaigns);
+          if (data.curation) setCuration(data.curation);
+        }
+      })
+      .catch((err) => {
+        console.warn('Fallback loading curation from client db:', err);
+        const loadedCampaigns = db.getCampaigns({ status: 'active' });
+        const loadedCuration = db.getHomepageCuration();
+        setAllCampaigns(loadedCampaigns);
+        setCuration(loadedCuration);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const notify = (msg: string) => {
@@ -98,14 +117,30 @@ export default function HomepageCurationPage() {
     setTimeout(() => setToastMessage(''), 4000);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
     try {
-      db.updateHomepageCuration(curation, user?.name || 'Admin User');
-      notify('Homepage campaign placements updated and published live!');
-    } catch (e) {
-      console.error(e);
-      notify('Failed to save placements.');
+      const res = await fetch('/api/admin/homepage-curation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(curation),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save placements');
+      }
+      if (data.curation) {
+        setCuration(data.curation);
+      }
+      notify(data.message || 'Homepage campaign placements updated and published live!');
+    } catch (e: any) {
+      console.warn('Fallback updating curation in client db:', e);
+      try {
+        db.updateHomepageCuration(curation, user?.name || 'Admin User');
+        notify('Homepage campaign placements updated locally.');
+      } catch {
+        notify(e.message || 'Failed to save placements.');
+      }
     } finally {
       setIsSaving(false);
     }

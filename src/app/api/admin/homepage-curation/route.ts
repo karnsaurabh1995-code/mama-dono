@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { getServerSession } from '@/lib/auth/server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
@@ -53,6 +56,13 @@ export async function POST(request: Request) {
       },
       session.name || 'Admin User'
     );
+
+    try {
+      revalidatePath('/');
+      revalidatePath('/admin/homepage-curation');
+    } catch (e) {
+      console.warn('[HomepageCuration] Cache revalidation warning:', e);
+    }
 
     return NextResponse.json({
       success: true,

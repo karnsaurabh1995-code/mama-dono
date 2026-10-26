@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { RedirectRule } from '@/lib/types';
@@ -12,76 +12,157 @@ import {
   CheckCircle2,
   Save,
   ArrowRight,
-  Sparkles,
-  Search,
-  ExternalLink,
   X,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function SEOManagementPage() {
   const { user } = useAuth();
-  const [redirects, setRedirects] = useState<RedirectRule[]>(db.getRedirectRules());
+  const [redirects, setRedirects] = useState<RedirectRule[]>(() => db.getRedirectRules());
   const [showAddRedirect, setShowAddRedirect] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSavingSEO, setIsSavingSEO] = useState(false);
 
   // SEO Global Fields
-  const [metaTitle, setMetaTitle] = useState('SevaSetu — India’s Trusted Crowdfunding Platform');
+  const [metaTitle, setMetaTitle] = useState(() => db.getSiteSettings().metaTitle || 'dokind — India’s Transparent Crowdfunding Platform');
   const [metaDescription, setMetaDescription] = useState(
-    'Support urgent pediatric surgeries, hospital food missions, girl child scholarships, and verified grassroots NGOs across India. 100% verified campaigns with Section 80G tax benefits.'
+    () => db.getSiteSettings().metaDescription || 'Support urgent pediatric surgeries, hospital food missions, girl child scholarships, and verified grassroots NGOs across India. 100% verified campaigns with Section 80G tax benefits.'
   );
-  const [gaId, setGaId] = useState('G-SEVASETU2026');
+  const [gaId, setGaId] = useState(() => db.getSiteSettings().googleAnalyticsId || 'G-DOKIND2026');
 
   // Add Redirect Form
   const [fromPath, setFromPath] = useState('');
   const [toPath, setToPath] = useState('');
   const [statusCode, setStatusCode] = useState<301 | 302>(301);
 
+  const fetchSEOData = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/admin/redirects');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.redirects) setRedirects(data.redirects);
+        if (data.seo) {
+          if (data.seo.metaTitle) setMetaTitle(data.seo.metaTitle);
+          if (data.seo.metaDescription) setMetaDescription(data.seo.metaDescription);
+          if (data.seo.gaId) setGaId(data.seo.gaId);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch SEO data:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSEOData();
+  }, []);
+
   const notify = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const handleSaveSEO = (e: React.FormEvent) => {
+  const handleSaveSEO = async (e: React.FormEvent) => {
     e.preventDefault();
-    notify('Global SEO metadata and tracking tags saved.');
+    setIsSavingSEO(true);
+    try {
+      const res = await fetch('/api/admin/redirects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'seo',
+          metaTitle,
+          metaDescription,
+          gaId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save SEO metadata');
+      }
+      notify('Global SEO metadata and tracking tags saved and persisted.');
+    } catch (err: any) {
+      notify('Failed to save SEO metadata: ' + err.message);
+    } finally {
+      setIsSavingSEO(false);
+    }
   };
 
-  const handleCreateRedirect = (e: React.FormEvent) => {
+  const handleCreateRedirect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fromPath.trim() || !toPath.trim()) {
       alert('Both paths are required.');
       return;
     }
 
-    db.createRedirectRule(
-      {
-        fromPath: fromPath.trim(),
-        toPath: toPath.trim(),
-        statusCode,
-        isActive: true,
-      },
-      user?.name || 'Admin'
-    );
+    try {
+      const res = await fetch('/api/admin/redirects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fromPath: fromPath.trim(),
+          toPath: toPath.trim(),
+          statusCode,
+          isActive: true,
+        }),
+      });
 
-    setRedirects([...db.getRedirectRules()]);
-    setShowAddRedirect(false);
-    setFromPath('');
-    setToPath('');
-    notify(`Redirect from ${fromPath} to ${toPath} created.`);
-  };
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create redirect');
+      }
 
-  const handleDeleteRedirect = (id: string) => {
-    if (confirm('Delete this redirect rule?')) {
-      db.deleteRedirectRule(id, user?.name || 'Admin');
-      setRedirects([...db.getRedirectRules()]);
-      notify('Redirect removed.');
+      await fetchSEOData();
+      setShowAddRedirect(false);
+      setFromPath('');
+      setToPath('');
+      notify(`Redirect from ${fromPath} to ${toPath} created.`);
+    } catch (err: any) {
+      notify('Error creating redirect: ' + err.message);
     }
   };
 
-  const handleToggleActive = (rule: RedirectRule) => {
-    db.updateRedirectRule(rule.id, { isActive: !rule.isActive }, user?.name || 'Admin');
-    setRedirects([...db.getRedirectRules()]);
-    notify(`Redirect ${rule.fromPath} is now ${!rule.isActive ? 'active' : 'disabled'}.`);
+  const handleDeleteRedirect = async (id: string) => {
+    if (!confirm('Delete this redirect rule?')) return;
+
+    try {
+      const res = await fetch(`/api/admin/redirects?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to delete redirect');
+      }
+      await fetchSEOData();
+      notify('Redirect removed.');
+    } catch (err: any) {
+      notify('Error deleting redirect: ' + err.message);
+    }
+  };
+
+  const handleToggleActive = async (rule: RedirectRule) => {
+    const updatedState = !rule.isActive;
+    try {
+      const res = await fetch('/api/admin/redirects', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: rule.id,
+          updates: { isActive: updatedState },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to toggle redirect');
+      }
+      await fetchSEOData();
+      notify(`Redirect ${rule.fromPath} is now ${updatedState ? 'active' : 'disabled'}.`);
+    } catch (err: any) {
+      notify('Error updating redirect: ' + err.message);
+    }
   };
 
   return (
@@ -103,10 +184,16 @@ export default function SEOManagementPage() {
           </p>
         </div>
 
-        <Button size="sm" onClick={() => setShowAddRedirect(true)} className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs">
-          <Plus className="w-3.5 h-3.5 mr-1" />
-          Add URL Redirect
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={fetchSEOData} disabled={isLoading} className="text-xs">
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button size="sm" onClick={() => setShowAddRedirect(true)} className="bg-[#E84B45] hover:bg-[#BD302D] text-white text-xs">
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Add URL Redirect
+          </Button>
+        </div>
       </div>
 
       {/* Toast notice */}
@@ -124,9 +211,9 @@ export default function SEOManagementPage() {
       <form onSubmit={handleSaveSEO} className="bg-white p-6 rounded-2xl border border-[#E2E4E9] shadow-2xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
           <h3 className="text-sm font-bold text-[#202124]">Global Search Engine Metadata</h3>
-          <Button type="submit" size="sm" className="bg-[#202124] hover:bg-black text-white text-xs">
-            <Save className="w-3.5 h-3.5 mr-1" />
-            Save Meta Tags
+          <Button type="submit" size="sm" disabled={isSavingSEO} className="bg-[#202124] hover:bg-black text-white text-xs">
+            <Save className={`w-3.5 h-3.5 mr-1 ${isSavingSEO ? 'animate-spin' : ''}`} />
+            {isSavingSEO ? 'Saving...' : 'Save Meta Tags'}
           </Button>
         </div>
 

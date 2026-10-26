@@ -1,7 +1,7 @@
 import React from 'react';
 import { db } from '@/lib/db';
 import { formatINR, formatTimeAgo } from '@/lib/utils';
-import { Campaign } from '@/lib/types';
+import { Campaign, PageSection } from '@/lib/types';
 import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { FeaturedCausesAndCampaigns } from '@/components/home/FeaturedCausesAndCampaigns';
 import { MonthlyDonationSection } from '@/components/home/MonthlyDonationSection';
@@ -13,6 +13,8 @@ import { AwardsAndMediaSection } from '@/components/home/AwardsAndMediaSection';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { LiveDonationTicker } from '@/components/common/LiveDonationTicker';
 
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   const activeCampaigns = db.getCampaigns({ status: 'active' });
   const stats = db.getPlatformStats();
@@ -21,6 +23,7 @@ export default function HomePage() {
   const faqs = db.getFAQs(undefined, true, true);
   const siteSettings = db.getSiteSettings();
   const curation = db.getHomepageCuration();
+  const publishedSections = db.getPublishedPageSections('home');
 
   // Curated Hero Campaigns
   const heroCampaigns = (curation.heroCampaignIds || [])
@@ -106,39 +109,85 @@ export default function HomePage() {
     };
   });
 
+  const renderSection = (sec: PageSection) => {
+    switch (sec.type) {
+      case 'hero':
+        return <HeroCarousel key={sec.id} initialCampaigns={heroCampaigns.length > 0 ? heroCampaigns : undefined} />;
+      case 'urgent_strip':
+        return (
+          <div className="mt-4 sm:mt-6" key={sec.id}>
+            <LiveDonationTicker
+              initialEvents={initialTickerEvents}
+              mode={siteSettings.tickerMode}
+              trustMessages={siteSettings.trustMessages}
+            />
+          </div>
+        );
+      case 'categories':
+      case 'featured_campaigns':
+      case 'products':
+        return (
+          <FeaturedCausesAndCampaigns
+            key={sec.id}
+            initialCampaigns={featuredCampaigns.length > 0 ? featuredCampaigns : activeCampaigns}
+          />
+        );
+      case 'monthly_missions':
+        return <MonthlyDonationSection key={sec.id} missions={displayMissions} />;
+      case 'cta_box':
+        return <StartCampaignSection key={sec.id} />;
+      case 'stats':
+        return <OurImpactSection key={sec.id} stats={stats} />;
+      case 'testimonials':
+        return <TestimonialsCarousel key={sec.id} testimonials={testimonials} />;
+      case 'faq':
+        return <HomepageFAQSection key={sec.id} faqs={faqs} />;
+      default:
+        return null;
+    }
+  };
+
+  const visibleSections = publishedSections.filter((s) => s.isVisible !== false);
+
   return (
     <div className="flex flex-col min-h-screen">
-      {/* 1. Hero Campaign Carousel (Clicking or Tapping anywhere opens campaign detail page) */}
-      <HeroCarousel initialCampaigns={heroCampaigns.length > 0 ? heroCampaigns : undefined} />
+      {visibleSections.length > 0 ? (
+        visibleSections.map(renderSection)
+      ) : (
+        <>
+          {/* 1. Hero Campaign Carousel */}
+          <HeroCarousel initialCampaigns={heroCampaigns.length > 0 ? heroCampaigns : undefined} />
 
-      {/* 2. Full-Width Horizontal Live Donation & Trust Ticker (DonateKart Reference - Directly beneath Hero) */}
-      <div className="mt-4 sm:mt-6">
-        <LiveDonationTicker
-          initialEvents={initialTickerEvents}
-          mode={siteSettings.tickerMode}
-          trustMessages={siteSettings.trustMessages}
-        />
-      </div>
+          {/* 2. Full-Width Horizontal Live Donation & Trust Ticker */}
+          <div className="mt-4 sm:mt-6">
+            <LiveDonationTicker
+              initialEvents={initialTickerEvents}
+              mode={siteSettings.tickerMode}
+              trustMessages={siteSettings.trustMessages}
+            />
+          </div>
 
-      {/* 3. Featured Cause and Campaign Discovery Section (Curated by Admin) */}
-      <FeaturedCausesAndCampaigns
-        initialCampaigns={featuredCampaigns.length > 0 ? featuredCampaigns : activeCampaigns}
-      />
+          {/* 3. Featured Cause and Campaign Discovery Section */}
+          <FeaturedCausesAndCampaigns
+            initialCampaigns={featuredCampaigns.length > 0 ? featuredCampaigns : activeCampaigns}
+          />
 
-      {/* 4. Monthly Donation Programs Section (Curated by Admin) */}
-      <MonthlyDonationSection missions={displayMissions} />
+          {/* 4. Monthly Donation Programs Section */}
+          <MonthlyDonationSection missions={displayMissions} />
 
-      {/* 5. Start a Campaign Promotional Section */}
-      <StartCampaignSection />
+          {/* 5. Start a Campaign Promotional Section */}
+          <StartCampaignSection />
 
-      {/* 6. Our Impact Statistics and Beneficiary Image */}
-      <OurImpactSection stats={stats} />
+          {/* 6. Our Impact Statistics and Beneficiary Image */}
+          <OurImpactSection stats={stats} />
 
-      {/* 7. Donor Testimonials Carousel */}
-      <TestimonialsCarousel testimonials={testimonials} />
+          {/* 7. Donor Testimonials Carousel */}
+          <TestimonialsCarousel testimonials={testimonials} />
 
-      {/* 8. Administrator-Controlled FAQ Section (Questions About Giving?) */}
-      <HomepageFAQSection faqs={faqs} />
+          {/* 8. Administrator-Controlled FAQ Section */}
+          <HomepageFAQSection faqs={faqs} />
+        </>
+      )}
 
       {/* 9. Featured In National Media Mentions */}
       <AwardsAndMediaSection />

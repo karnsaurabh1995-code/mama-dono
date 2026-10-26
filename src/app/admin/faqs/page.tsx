@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { FAQItem } from '@/lib/types';
@@ -13,19 +13,18 @@ import {
   CheckCircle2,
   Trash2,
   Edit2,
-  ArrowUpDown,
   Home,
-  Check,
   X,
   Eye,
-  AlertCircle,
   MoveUp,
   MoveDown,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function AdminFAQPage() {
   const { user } = useAuth();
-  const [faqs, setFaqs] = useState<FAQItem[]>(db.getFAQs());
+  const [faqs, setFaqs] = useState<FAQItem[]>(() => db.getFAQs());
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState('');
@@ -44,9 +43,26 @@ export default function AdminFAQPage() {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const refreshFaqs = () => {
-    setFaqs([...db.getFAQs()]);
+  const fetchFaqs = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/admin/faqs');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.faqs) {
+          setFaqs(data.faqs);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load faqs from server:', e);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchFaqs();
+  }, []);
 
   const handleOpenAddModal = () => {
     setEditingFaq(null);
@@ -68,70 +84,107 @@ export default function AdminFAQPage() {
     setShowModal(true);
   };
 
-  const handleSaveModal = (e: React.FormEvent) => {
+  const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalQuestion.trim() || !modalAnswer.trim()) return;
 
-    if (editingFaq) {
-      db.updateFAQ(
-        editingFaq.id,
-        {
-          question: modalQuestion.trim(),
-          answer: modalAnswer.trim(),
-          category: modalCategory,
-          showOnHomepage: modalShowHomepage,
-          isActive: modalIsActive,
-        },
-        user?.name || 'Admin'
-      );
-      notify(`FAQ "${modalQuestion.substring(0, 30)}..." updated successfully.`);
-    } else {
-      db.createFAQ(
-        {
-          question: modalQuestion.trim(),
-          answer: modalAnswer.trim(),
-          category: modalCategory,
-          showOnHomepage: modalShowHomepage,
-          isActive: modalIsActive,
-        },
-        user?.name || 'Admin'
-      );
-      notify('New FAQ added to directory.');
-    }
+    try {
+      if (editingFaq) {
+        const res = await fetch('/api/admin/faqs', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingFaq.id,
+            updates: {
+              question: modalQuestion.trim(),
+              answer: modalAnswer.trim(),
+              category: modalCategory,
+              showOnHomepage: modalShowHomepage,
+              isActive: modalIsActive,
+            },
+          }),
+        });
 
-    refreshFaqs();
-    setShowModal(false);
+        if (!res.ok) throw new Error('Failed to update FAQ');
+        notify(`FAQ "${modalQuestion.substring(0, 30)}..." updated successfully.`);
+      } else {
+        const res = await fetch('/api/admin/faqs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: modalQuestion.trim(),
+            answer: modalAnswer.trim(),
+            category: modalCategory,
+            showOnHomepage: modalShowHomepage,
+            isActive: modalIsActive,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Failed to create FAQ');
+        notify('New FAQ added to directory.');
+      }
+
+      await fetchFaqs();
+      setShowModal(false);
+    } catch (err: any) {
+      notify('Error saving FAQ: ' + err.message);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to remove this FAQ?')) {
-      db.deleteFAQ(id, user?.name || 'Admin');
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this FAQ?')) return;
+
+    try {
+      const res = await fetch(`/api/admin/faqs?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete FAQ');
       notify('FAQ successfully deleted.');
-      refreshFaqs();
+      await fetchFaqs();
+    } catch (err: any) {
+      notify('Error deleting FAQ: ' + err.message);
     }
   };
 
-  const handleToggleHomepage = (faq: FAQItem) => {
-    db.updateFAQ(
-      faq.id,
-      { showOnHomepage: faq.showOnHomepage === false ? true : false },
-      user?.name || 'Admin'
-    );
-    notify(`FAQ homepage visibility toggled.`);
-    refreshFaqs();
+  const handleToggleHomepage = async (faq: FAQItem) => {
+    const newValue = faq.showOnHomepage === false;
+    try {
+      const res = await fetch('/api/admin/faqs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: faq.id,
+          updates: { showOnHomepage: newValue },
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update FAQ');
+      notify(`FAQ homepage visibility toggled.`);
+      await fetchFaqs();
+    } catch (err: any) {
+      notify('Error toggling homepage status: ' + err.message);
+    }
   };
 
-  const handleToggleActive = (faq: FAQItem) => {
-    db.updateFAQ(
-      faq.id,
-      { isActive: faq.isActive === false ? true : false },
-      user?.name || 'Admin'
-    );
-    notify(`FAQ status toggled.`);
-    refreshFaqs();
+  const handleToggleActive = async (faq: FAQItem) => {
+    const newValue = faq.isActive === false;
+    try {
+      const res = await fetch('/api/admin/faqs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: faq.id,
+          updates: { isActive: newValue },
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update FAQ');
+      notify(`FAQ status toggled.`);
+      await fetchFaqs();
+    } catch (err: any) {
+      notify('Error toggling active status: ' + err.message);
+    }
   };
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
     const newIdx = direction === 'up' ? index - 1 : index + 1;
     if (newIdx < 0 || newIdx >= faqs.length) return;
 
@@ -140,9 +193,23 @@ export default function AdminFAQPage() {
     reordered[index] = reordered[newIdx];
     reordered[newIdx] = temp;
 
-    db.reorderFAQs(reordered.map((f) => f.id), user?.name || 'Admin');
-    refreshFaqs();
-    notify('FAQ order updated.');
+    setFaqs(reordered);
+
+    try {
+      const res = await fetch('/api/admin/faqs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reorder: true,
+          orderedIds: reordered.map((f) => f.id),
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to persist order');
+      notify('FAQ order updated and persisted.');
+    } catch (err: any) {
+      notify('Error saving FAQ order: ' + err.message);
+      await fetchFaqs();
+    }
   };
 
   // Filtered faqs
@@ -175,6 +242,10 @@ export default function AdminFAQPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={fetchFaqs} disabled={isLoading} className="text-xs">
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Link href="/faq" target="_blank">
             <Button size="sm" variant="outline" className="text-xs">
               <Eye className="w-3.5 h-3.5 mr-1" />

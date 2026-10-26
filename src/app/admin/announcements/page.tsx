@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { Announcement } from '@/lib/types';
@@ -18,7 +18,7 @@ import {
 
 export default function AnnouncementsPage() {
   const { user } = useAuth();
-  const [announcements, setAnnouncements] = useState<Announcement[]>(db.getAnnouncements());
+  const [announcements, setAnnouncements] = useState<Announcement[]>(() => db.getAnnouncements());
   const [showAddModal, setShowAddModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
@@ -29,51 +29,119 @@ export default function AnnouncementsPage() {
   const [type, setType] = useState<'info' | 'urgent' | 'success'>('urgent');
   const [placement, setPlacement] = useState<'top_banner' | 'home_hero' | 'modal'>('top_banner');
 
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/admin/announcements')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (mounted && data.announcements) {
+          setAnnouncements(data.announcements);
+        }
+      })
+      .catch((err) => {
+        console.warn('Fallback loading announcements:', err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const notify = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const handleToggleActive = (ann: Announcement) => {
-    db.updateAnnouncement(ann.id, { isActive: !ann.isActive }, user?.name || 'Admin');
-    setAnnouncements([...db.getAnnouncements()]);
-    notify(`Announcement "${ann.title}" is now ${!ann.isActive ? 'active' : 'hidden'}.`);
+  const handleToggleActive = async (ann: Announcement) => {
+    try {
+      const res = await fetch('/api/admin/announcements', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: ann.id,
+          updates: { isActive: !ann.isActive },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to update');
+      setAnnouncements((prev) =>
+        prev.map((a) => (a.id === ann.id ? { ...a, isActive: !ann.isActive } : a))
+      );
+      notify(`Announcement "${ann.title}" is now ${!ann.isActive ? 'active' : 'hidden'}.`);
+    } catch {
+      db.updateAnnouncement(ann.id, { isActive: !ann.isActive }, user?.name || 'Admin');
+      setAnnouncements([...db.getAnnouncements()]);
+      notify(`Announcement "${ann.title}" is now ${!ann.isActive ? 'active' : 'hidden'}.`);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this announcement?')) {
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this announcement?')) return;
+    try {
+      const res = await fetch(`/api/admin/announcements?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to delete');
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      notify('Announcement deleted.');
+    } catch {
       db.deleteAnnouncement(id, user?.name || 'Admin');
       setAnnouncements([...db.getAnnouncements()]);
       notify('Announcement deleted.');
     }
   };
 
-  const handleCreateAnnouncement = (e: React.FormEvent) => {
+  const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) {
       alert('Please enter a title and message.');
       return;
     }
 
-    db.createAnnouncement(
-      {
-        title: title.trim(),
-        message: message.trim(),
-        link: link.trim() || undefined,
-        type,
-        placement,
-        isActive: true,
-        startDate: new Date().toISOString(),
-      },
-      user?.name || 'Admin'
-    );
-
-    setAnnouncements([...db.getAnnouncements()]);
-    setShowAddModal(false);
-    setTitle('');
-    setMessage('');
-    setLink('');
-    notify('New announcement created and broadcasted.');
+    try {
+      const res = await fetch('/api/admin/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          message: message.trim(),
+          link: link.trim() || undefined,
+          type,
+          placement,
+          isActive: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to create');
+      setAnnouncements((prev) => [data.announcement, ...prev]);
+      setShowAddModal(false);
+      setTitle('');
+      setMessage('');
+      setLink('');
+      notify('New announcement created and broadcasted.');
+    } catch {
+      const created = db.createAnnouncement(
+        {
+          title: title.trim(),
+          message: message.trim(),
+          link: link.trim() || undefined,
+          type,
+          placement,
+          isActive: true,
+          startDate: new Date().toISOString(),
+        },
+        user?.name || 'Admin'
+      );
+      setAnnouncements([...db.getAnnouncements()]);
+      setShowAddModal(false);
+      setTitle('');
+      setMessage('');
+      setLink('');
+      notify('New announcement created and broadcasted.');
+    }
   };
 
   return (

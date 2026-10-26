@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { PageSection, PageSectionType, PageVersion } from '@/lib/types';
@@ -70,11 +70,33 @@ export default function WebsiteBuilderPage() {
   const [undoStack, setUndoStack] = useState<PageSection[][]>([]);
   const [redoStack, setRedoStack] = useState<PageSection[][]>([]);
 
-  // Load sections on page change
-  useEffect(() => {
-    const pageData = db.getPageSections(selectedPage);
+  // Load sections on page change via API with fallback
+  const loadPageData = useCallback(async (slug: string) => {
+    try {
+      const res = await fetch(`/api/admin/website-builder?slug=${encodeURIComponent(slug)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          const list = data.draftSections || [];
+          setSections(list);
+          setHistoryVersions(data.versions || []);
+          if (list.length > 0) {
+            setSelectedSectionId(list[0].id);
+          } else {
+            setSelectedSectionId(null);
+          }
+          setHasUnpublishedChanges(false);
+          setUndoStack([]);
+          setRedoStack([]);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Fallback loading page data from db singleton:', e);
+    }
+    const pageData = db.getPageSections(slug);
     setSections(JSON.parse(JSON.stringify(pageData)));
-    setHistoryVersions(db.getPageVersions(selectedPage));
+    setHistoryVersions(db.getPageVersions(slug));
     if (pageData.length > 0) {
       setSelectedSectionId(pageData[0].id);
     } else {
@@ -83,7 +105,11 @@ export default function WebsiteBuilderPage() {
     setHasUnpublishedChanges(false);
     setUndoStack([]);
     setRedoStack([]);
-  }, [selectedPage]);
+  }, []);
+
+  useEffect(() => {
+    loadPageData(selectedPage);
+  }, [selectedPage, loadPageData]);
 
   const notify = (msg: string) => {
     setToastMessage(msg);
@@ -187,43 +213,111 @@ export default function WebsiteBuilderPage() {
     notify(`Added section: ${template.name}`);
   };
 
-  // Save Draft (Local to DB draft collection)
-  const handleSaveDraft = () => {
-    db.updatePageSections(selectedPage, sections, user?.name || 'Content Editor');
-    setHasUnpublishedChanges(true);
-    notify('Draft changes saved to administrative workspace.');
-  };
-
-  // Publish Live
-  const handlePublishLive = () => {
-    db.updatePageSections(selectedPage, sections, user?.name || 'Content Editor');
-    const res = db.publishPageSections(selectedPage, user?.name || 'Content Editor');
-    setHistoryVersions(db.getPageVersions(selectedPage));
-    setHasUnpublishedChanges(false);
-    notify(`Success! Version #${res.version} is now LIVE on public website.`);
-  };
-
-  // Restore Previous Version
-  const handleRestoreVersion = (versionNumber: number) => {
+  // Save Draft (Local to DB draft collection via API with fallback)
+  const handleSaveDraft = async () => {
     try {
-      const restored = db.restorePageVersion(selectedPage, versionNumber, user?.name || 'Content Editor');
-      setSections(JSON.parse(JSON.stringify(restored)));
-      setShowHistoryModal(false);
-      setHasUnpublishedChanges(false);
-      notify(`Restored page to published Version #${versionNumber}.`);
-    } catch (err: any) {
-      alert(err.message);
+      const res = await fetch('/api/admin/website-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: selectedPage,
+          action: 'save_draft',
+          sections,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to save draft');
+      setHasUnpublishedChanges(true);
+      notify('Draft changes saved to administrative workspace.');
+    } catch {
+      db.updatePageSections(selectedPage, sections, user?.name || 'Content Editor');
+      setHasUnpublishedChanges(true);
+      notify('Draft changes saved to administrative workspace.');
     }
   };
 
-  // Reset to default
-  const handleResetToDefault = () => {
-    if (confirm('Are you sure you want to reset this page layout to default system settings?')) {
-      const def = db.resetPageSectionsToDefault(selectedPage, user?.name || 'Content Editor');
-      setSections(JSON.parse(JSON.stringify(def)));
+  // Publish Live via API with fallback
+  const handlePublishLive = async () => {
+    try {
+      const res = await fetch('/api/admin/website-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: selectedPage,
+          action: 'publish',
+          sections,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to publish');
+      setHistoryVersions(data.versions || db.getPageVersions(selectedPage));
+      setHasUnpublishedChanges(false);
+      notify(`Success! Version #${data.version} is now LIVE on public website.`);
+    } catch {
+      db.updatePageSections(selectedPage, sections, user?.name || 'Content Editor');
+      const res = db.publishPageSections(selectedPage, user?.name || 'Content Editor');
       setHistoryVersions(db.getPageVersions(selectedPage));
       setHasUnpublishedChanges(false);
-      notify('Page layout reset to factory baseline.');
+      notify(`Success! Version #${res.version} is now LIVE on public website.`);
+    }
+  };
+
+  // Restore Previous Version via API with fallback
+  const handleRestoreVersion = async (versionNumber: number) => {
+    try {
+      const res = await fetch('/api/admin/website-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: selectedPage,
+          action: 'restore',
+          versionNumber,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to restore');
+      setSections(data.sections);
+      setShowHistoryModal(false);
+      setHasUnpublishedChanges(false);
+      notify(`Restored page to published Version #${versionNumber}.`);
+    } catch {
+      try {
+        const restored = db.restorePageVersion(selectedPage, versionNumber, user?.name || 'Content Editor');
+        setSections(JSON.parse(JSON.stringify(restored)));
+        setShowHistoryModal(false);
+        setHasUnpublishedChanges(false);
+        notify(`Restored page to published Version #${versionNumber}.`);
+      } catch (err: any) {
+        alert(err.message);
+      }
+    }
+  };
+
+  // Reset to default via API with fallback
+  const handleResetToDefault = async () => {
+    if (confirm('Are you sure you want to reset this page layout to default system settings?')) {
+      try {
+        const res = await fetch('/api/admin/website-builder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slug: selectedPage,
+            action: 'reset',
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Failed to reset');
+        setSections(data.sections);
+        setHistoryVersions(data.versions || db.getPageVersions(selectedPage));
+        setHasUnpublishedChanges(false);
+        notify('Page layout reset to factory baseline.');
+      } catch {
+        const def = db.resetPageSectionsToDefault(selectedPage, user?.name || 'Content Editor');
+        setSections(JSON.parse(JSON.stringify(def)));
+        setHistoryVersions(db.getPageVersions(selectedPage));
+        setHasUnpublishedChanges(false);
+        notify('Page layout reset to factory baseline.');
+      }
     }
   };
 

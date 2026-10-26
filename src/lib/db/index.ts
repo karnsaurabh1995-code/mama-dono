@@ -747,6 +747,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         'camp-hunger-mumbai-hospital',
       ],
     },
+    metaTitle: 'dokind — India’s Transparent Crowdfunding & Giving Platform',
+    metaDescription: 'Support urgent pediatric surgeries, hospital food missions, girl child scholarships, and verified grassroots NGOs across India. 100% verified campaigns with Section 80G tax benefits.',
+    googleAnalyticsId: 'G-DOKIND2026',
   };
   private badgeStyles: Record<BadgeType, BadgeStyleConfig> = { ...DEFAULT_BADGE_STYLES };
   private campaignReports: CampaignReport[] = [
@@ -833,10 +836,10 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     }
   }
 
-  public persistState(): void {
-    if (!this.isNode()) return;
+  public persistState(): boolean {
+    if (!this.isNode()) return false;
     const filePath = this.getPersistencePath();
-    if (!filePath) return;
+    if (!filePath) return false;
     try {
       const nodeRequire = (globalThis as any)['require'] || eval('require');
       const fs = nodeRequire('fs');
@@ -846,10 +849,21 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         fs.mkdirSync(dir, { recursive: true });
       }
       const snapshot = this.exportDatabaseSnapshot();
-      fs.writeFileSync(filePath, snapshot, 'utf-8');
+      // Atomic write pattern: write to unique temporary file, then atomically replace destination
+      const tempPath = `${filePath}.${Date.now()}.${Math.random().toString(36).substring(2, 8)}.tmp`;
+      fs.writeFileSync(tempPath, snapshot, 'utf-8');
+      try {
+        fs.renameSync(tempPath, filePath);
+      } catch {
+        // Fallback for Windows file lock / concurrent handle
+        fs.copyFileSync(tempPath, filePath);
+        try { fs.unlinkSync(tempPath); } catch {}
+      }
       this.notifySubscribers('database_persisted', { timestamp: new Date().toISOString() });
+      return true;
     } catch (err) {
       console.error('[DatabaseStore] Could not persist state to disk:', err);
+      return false;
     }
   }
 
@@ -1751,6 +1765,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: newFaq.id,
       details: `Created FAQ: "${newFaq.question.substring(0, 40)}..."`,
     });
+    this.persistState();
+    this.notifySubscribers('faqs_updated', { action: 'created', id: newFaq.id });
     return newFaq;
   }
 
@@ -1766,6 +1782,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Updated FAQ ${id}`,
     });
+    this.persistState();
+    this.notifySubscribers('faqs_updated', { action: 'updated', id });
     return this.faqs[idx];
   }
 
@@ -1781,6 +1799,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Deleted FAQ: "${deleted.question.substring(0, 40)}..."`,
     });
+    this.persistState();
+    this.notifySubscribers('faqs_updated', { action: 'deleted', id });
     return true;
   }
 
@@ -1797,6 +1817,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: 'faqs',
       details: `Reordered ${orderedIds.length} FAQs`,
     });
+    this.persistState();
+    this.notifySubscribers('faqs_updated', { action: 'reordered', ids: orderedIds });
     return this.getFAQs();
   }
 
@@ -1816,6 +1838,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       ...data,
     };
     this.testimonials.push(testimonial);
+    this.persistState();
+    this.notifySubscribers('testimonials_updated', { action: 'created', id: testimonial.id });
     return testimonial;
   }
 
@@ -1823,13 +1847,20 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     const idx = this.testimonials.findIndex((t) => t.id === id);
     if (idx === -1) return null;
     this.testimonials[idx] = { ...this.testimonials[idx], ...updates };
+    this.persistState();
+    this.notifySubscribers('testimonials_updated', { action: 'updated', id });
     return this.testimonials[idx];
   }
 
   deleteTestimonial(id: string): boolean {
     const initialLen = this.testimonials.length;
     this.testimonials = this.testimonials.filter((t) => t.id !== id);
-    return this.testimonials.length < initialLen;
+    const deleted = this.testimonials.length < initialLen;
+    if (deleted) {
+      this.persistState();
+      this.notifySubscribers('testimonials_updated', { action: 'deleted', id });
+    }
+    return deleted;
   }
 
   // ---------------- MEDIA RECOGNITION (FEATURED IN NATIONAL MEDIA) ----------------
@@ -2251,6 +2282,17 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     return [...this.pageSections[pageSlug]].sort((a, b) => a.order - b.order);
   }
 
+  getPublishedPageSections(pageSlug: string): PageSection[] {
+    const versions = this.pageVersions[pageSlug];
+    if (versions && versions.length > 0) {
+      const latest = versions[0];
+      if (latest && latest.sections && Array.isArray(latest.sections)) {
+        return [...latest.sections].sort((a, b) => a.order - b.order);
+      }
+    }
+    return this.getPageSections(pageSlug);
+  }
+
   updatePageSections(pageSlug: string, sections: PageSection[], actorName = 'Admin'): PageSection[] {
     this.pageSections[pageSlug] = sections.map((s, idx) => ({ ...s, order: idx }));
     this.createAuditLog({
@@ -2261,6 +2303,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: pageSlug,
       details: `Saved ${sections.length} draft sections for page "${pageSlug}"`,
     });
+    this.persistState();
+    this.notifySubscribers('page_sections_draft_updated', { pageSlug });
     return this.pageSections[pageSlug];
   }
 
@@ -2293,6 +2337,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Published live version #${nextVer} for page "${pageSlug}" with ${currentSections.length} sections`,
     });
 
+    this.persistState();
+    this.notifySubscribers('page_sections_published', { pageSlug, version: nextVer });
     return { success: true, version: nextVer };
   }
 
@@ -2613,6 +2659,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: newAnn.id,
       details: `Created announcement "${newAnn.title}" for placement ${newAnn.placement}`,
     });
+    this.persistState();
+    this.notifySubscribers('announcements_updated', { action: 'created', id: newAnn.id });
     return newAnn;
   }
 
@@ -2628,6 +2676,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Updated announcement ${this.announcements[idx].title}`,
     });
+    this.persistState();
+    this.notifySubscribers('announcements_updated', { action: 'updated', id });
     return this.announcements[idx];
   }
 
@@ -2643,6 +2693,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Removed announcement ${id}`,
     });
+    this.persistState();
+    this.notifySubscribers('announcements_updated', { action: 'deleted', id });
     return true;
   }
 
@@ -2751,6 +2803,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: newRule.id,
       details: `Created ${rule.statusCode} redirect from ${rule.fromPath} -> ${rule.toPath}`,
     });
+    this.persistState();
+    this.notifySubscribers('redirects_updated', { action: 'created', rule: newRule });
     return newRule;
   }
 
@@ -2758,6 +2812,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     const idx = this.redirectRules.findIndex((r) => r.id === id);
     if (idx === -1) return undefined;
     this.redirectRules[idx] = { ...this.redirectRules[idx], ...updates };
+    this.persistState();
+    this.notifySubscribers('redirects_updated', { action: 'updated', id, updates });
     return this.redirectRules[idx];
   }
 
@@ -2765,6 +2821,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     const idx = this.redirectRules.findIndex((r) => r.id === id);
     if (idx === -1) return false;
     this.redirectRules.splice(idx, 1);
+    this.persistState();
+    this.notifySubscribers('redirects_updated', { action: 'deleted', id });
     return true;
   }
 
@@ -3979,6 +4037,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: id,
       details: `Updated cause category: ${this.causes[idx].name}`,
     });
+    this.persistState();
+    this.notifySubscribers('causes_updated', { action: 'updated', id });
     return this.causes[idx];
   }
 
@@ -3992,6 +4052,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: cause.id,
       details: `Added new cause category: ${cause.name}`,
     });
+    this.persistState();
+    this.notifySubscribers('causes_updated', { action: 'created', cause });
     return cause;
   }
 
@@ -4789,6 +4851,12 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         apiKeys: this.apiKeys,
         auditLogs: this.auditLogs,
         users: this.users,
+        testimonials: this.testimonials,
+        faqs: this.faqs,
+        stories: this.stories,
+        blogs: this.blogs,
+        causes: this.causes,
+        rolePermissions: this.rolePermissions,
       },
       null,
       2
@@ -4798,22 +4866,37 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   importDatabaseSnapshot(jsonData: string, actorName = 'Admin'): boolean {
     try {
       const parsed = JSON.parse(jsonData);
-      if (parsed.campaigns) this.campaigns = parsed.campaigns;
-      if (parsed.campaignItemNeeds) this.campaignItemNeeds = parsed.campaignItemNeeds;
-      if (parsed.physicalItemPledges) this.physicalItemPledges = parsed.physicalItemPledges;
-      if (parsed.campaignRevisionSubmissions) this.campaignRevisionSubmissions = parsed.campaignRevisionSubmissions;
-      if (parsed.campaignUpdates) this.campaignUpdates = parsed.campaignUpdates;
-      if (parsed.organizations) this.organizations = parsed.organizations;
-      if (parsed.donations) this.donations = parsed.donations;
-      if (parsed.pageSections) this.pageSections = parsed.pageSections;
-      if (parsed.theme) this.theme = parsed.theme;
-      if (parsed.gateways) this.gateways = parsed.gateways;
-      if (parsed.settings) this.settings = parsed.settings;
-      if (parsed.badgeStyles) this.badgeStyles = parsed.badgeStyles;
-      if (parsed.campaignReports) this.campaignReports = parsed.campaignReports;
-      if (parsed.campaignUpdateRequests) this.campaignUpdateRequests = parsed.campaignUpdateRequests;
-      if (parsed.apiKeys) this.apiKeys = parsed.apiKeys;
+      if (parsed.campaigns && Array.isArray(parsed.campaigns)) this.campaigns = parsed.campaigns;
+      if (parsed.campaignItemNeeds && Array.isArray(parsed.campaignItemNeeds)) this.campaignItemNeeds = parsed.campaignItemNeeds;
+      if (parsed.physicalItemPledges && Array.isArray(parsed.physicalItemPledges)) this.physicalItemPledges = parsed.physicalItemPledges;
+      if (parsed.campaignRevisionSubmissions && Array.isArray(parsed.campaignRevisionSubmissions)) this.campaignRevisionSubmissions = parsed.campaignRevisionSubmissions;
+      if (parsed.campaignUpdates && Array.isArray(parsed.campaignUpdates)) this.campaignUpdates = parsed.campaignUpdates;
+      if (parsed.organizations && Array.isArray(parsed.organizations)) this.organizations = parsed.organizations;
+      if (parsed.donations && Array.isArray(parsed.donations)) this.donations = parsed.donations;
+      if (parsed.pageSections && typeof parsed.pageSections === 'object') this.pageSections = parsed.pageSections;
+      if (parsed.pageVersions && typeof parsed.pageVersions === 'object') this.pageVersions = parsed.pageVersions;
+      if (parsed.theme && typeof parsed.theme === 'object') this.theme = parsed.theme;
+      if (parsed.gateways && Array.isArray(parsed.gateways)) this.gateways = parsed.gateways;
+      if (parsed.settings && typeof parsed.settings === 'object') this.settings = parsed.settings;
+      if (parsed.badgeStyles && typeof parsed.badgeStyles === 'object') this.badgeStyles = parsed.badgeStyles;
+      if (parsed.campaignReports && Array.isArray(parsed.campaignReports)) this.campaignReports = parsed.campaignReports;
+      if (parsed.campaignUpdateRequests && Array.isArray(parsed.campaignUpdateRequests)) this.campaignUpdateRequests = parsed.campaignUpdateRequests;
+      if (parsed.apiKeys && Array.isArray(parsed.apiKeys)) this.apiKeys = parsed.apiKeys;
       if (parsed.users && Array.isArray(parsed.users)) this.users = parsed.users;
+      if (parsed.announcements && Array.isArray(parsed.announcements)) this.announcements = parsed.announcements;
+      if (parsed.faqs && Array.isArray(parsed.faqs)) this.faqs = parsed.faqs;
+      if (parsed.testimonials && Array.isArray(parsed.testimonials)) this.testimonials = parsed.testimonials;
+      if (parsed.stories && Array.isArray(parsed.stories)) this.stories = parsed.stories;
+      if (parsed.blogs && Array.isArray(parsed.blogs)) this.blogs = parsed.blogs;
+      if (parsed.causes && Array.isArray(parsed.causes)) this.causes = parsed.causes;
+      if (parsed.redirectRules && Array.isArray(parsed.redirectRules)) this.redirectRules = parsed.redirectRules;
+      if (parsed.forms && Array.isArray(parsed.forms)) this.forms = parsed.forms;
+      if (parsed.formSubmissions && Array.isArray(parsed.formSubmissions)) this.formSubmissions = parsed.formSubmissions;
+      if (parsed.mediaItems && Array.isArray(parsed.mediaItems)) this.mediaItems = parsed.mediaItems;
+      if (parsed.emailTemplates && Array.isArray(parsed.emailTemplates)) this.emailTemplates = parsed.emailTemplates;
+      if (parsed.manualDonations && Array.isArray(parsed.manualDonations)) this.manualDonations = parsed.manualDonations;
+      if (parsed.products && Array.isArray(parsed.products)) this.products = parsed.products;
+      if (parsed.recurringPlans && Array.isArray(parsed.recurringPlans)) this.recurringPlans = parsed.recurringPlans;
 
       this.createAuditLog({
         actorId: 'admin-1',

@@ -590,6 +590,10 @@ export interface SiteSettings {
   newsletterFrameSize?: 'normal' | 'large' | 'compact';
   // Admin-Curated Campaign Placement & Section Configuration
   homepageCuration?: HomepageCurationConfig;
+  // SEO Metadata
+  metaTitle?: string;
+  metaDescription?: string;
+  googleAnalyticsId?: string;
 }
 
 export interface HomepageCurationConfig {
