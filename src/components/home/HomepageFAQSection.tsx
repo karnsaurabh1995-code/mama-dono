@@ -8,9 +8,12 @@ import { Button } from '@/components/ui/Button';
 
 interface HomepageFAQSectionProps {
   faqs?: FAQItem[];
+  title?: string;
+  subtitle?: string;
+  badge?: string;
 }
 
-export function HomepageFAQSection({ faqs = [] }: HomepageFAQSectionProps) {
+export function HomepageFAQSection({ faqs = [], title, subtitle, badge }: HomepageFAQSectionProps) {
   // Filter for active FAQs configured for the homepage, fallback to initial if none specifically marked
   const activeFaqs = faqs.filter((f) => f.isActive !== false && f.showOnHomepage !== false);
   const displayFaqs = activeFaqs.length > 0 ? activeFaqs.slice(0, 6) : faqs.slice(0, 6);
@@ -30,13 +33,13 @@ export function HomepageFAQSection({ faqs = [] }: HomepageFAQSectionProps) {
         <div className="text-center space-y-3">
           <span className="text-xs font-bold uppercase tracking-wider text-[#EF4949] bg-[#FFF0EF] px-3.5 py-1.5 rounded-full inline-flex items-center gap-1.5 border border-red-100">
             <HelpCircle className="w-3.5 h-3.5" />
-            <span>TRANSPARENCY & ASSISTANCE</span>
+            <span>{badge || 'TRANSPARENCY & ASSISTANCE'}</span>
           </span>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#202124] tracking-tight">
-            Questions About Giving?
+            {title || 'Questions About Giving?'}
           </h2>
           <p className="text-xs sm:text-sm text-[#555B63] max-w-xl mx-auto leading-relaxed">
-            Everything you need to know about donation security, Section 80G tax benefits, patient verification, and transparent fund utilization.
+            {subtitle || 'Everything you need to know about donation security, Section 80G tax benefits, patient verification, and transparent fund utilization.'}
           </p>
         </div>
 

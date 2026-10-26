@@ -1,1 +1,186 @@
-[]
+[
+  {
+    "id": "LEAK-generic-api-key-verify-admin-integration.ts-43",
+    "title": "Exposed Credential: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "severity": "Critical",
+    "confidence": "High",
+    "status": "unresolved",
+    "component": "scripts/verify-admin-integration.ts",
+    "file": "scripts/verify-admin-integration.ts",
+    "line": 43,
+    "cwe": "CWE-798: Use of Hard-coded Credentials",
+    "owasp": "A07:2021 - Identification and Authentication Failures",
+    "description": "Gitleaks detected a hardcoded credential or secret matching rule 'generic-api-key'.",
+    "evidence": "Match rule: generic-api-key; Secret: rzp***REDACTED***11; Commit: ae1f05b02789df09b24295e5faf8ea1a4ba99399",
+    "reproduction": "Inspect file 'scripts/verify-admin-integration.ts' around line 43",
+    "impact": "Exposed credentials can allow unauthorized access to third-party services, databases, or payment gateways.",
+    "remediation": "Immediately revoke the credential, rotate the secret in the provider dashboard, and store it in server-side environment variables.",
+    "scanner": "gitleaks",
+    "rawReference": {
+      "rule": "generic-api-key",
+      "file": "scripts/verify-admin-integration.ts",
+      "line": 43
+    }
+  },
+  {
+    "id": "LEAK-generic-api-key-verify-admin-integration.ts-145",
+    "title": "Exposed Credential: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "severity": "Critical",
+    "confidence": "High",
+    "status": "unresolved",
+    "component": "scripts/verify-admin-integration.ts",
+    "file": "scripts/verify-admin-integration.ts",
+    "line": 145,
+    "cwe": "CWE-798: Use of Hard-coded Credentials",
+    "owasp": "A07:2021 - Identification and Authentication Failures",
+    "description": "Gitleaks detected a hardcoded credential or secret matching rule 'generic-api-key'.",
+    "evidence": "Match rule: generic-api-key; Secret: rzp***REDACTED***87; Commit: ae1f05b02789df09b24295e5faf8ea1a4ba99399",
+    "reproduction": "Inspect file 'scripts/verify-admin-integration.ts' around line 145",
+    "impact": "Exposed credentials can allow unauthorized access to third-party services, databases, or payment gateways.",
+    "remediation": "Immediately revoke the credential, rotate the secret in the provider dashboard, and store it in server-side environment variables.",
+    "scanner": "gitleaks",
+    "rawReference": {
+      "rule": "generic-api-key",
+      "file": "scripts/verify-admin-integration.ts",
+      "line": 145
+    }
+  },
+  {
+    "id": "LEAK-generic-api-key-razorpay-security.test.ts-9",
+    "title": "Exposed Credential: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "severity": "Critical",
+    "confidence": "High",
+    "status": "unresolved",
+    "component": "security/tests/razorpay-security.test.ts",
+    "file": "security/tests/razorpay-security.test.ts",
+    "line": 9,
+    "cwe": "CWE-798: Use of Hard-coded Credentials",
+    "owasp": "A07:2021 - Identification and Authentication Failures",
+    "description": "Gitleaks detected a hardcoded credential or secret matching rule 'generic-api-key'.",
+    "evidence": "Match rule: generic-api-key; Secret: rzp***REDACTED***11; Commit: 5df99a89c663925bbc73061f2c64fe20842081a5",
+    "reproduction": "Inspect file 'security/tests/razorpay-security.test.ts' around line 9",
+    "impact": "Exposed credentials can allow unauthorized access to third-party services, databases, or payment gateways.",
+    "remediation": "Immediately revoke the credential, rotate the secret in the provider dashboard, and store it in server-side environment variables.",
+    "scanner": "gitleaks",
+    "rawReference": {
+      "rule": "generic-api-key",
+      "file": "security/tests/razorpay-security.test.ts",
+      "line": 9
+    }
+  },
+  {
+    "id": "LEAK-generic-api-key-razorpay-integrity.ts-22",
+    "title": "Exposed Credential: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "severity": "Critical",
+    "confidence": "High",
+    "status": "unresolved",
+    "component": "security/scanners/razorpay-integrity.ts",
+    "file": "security/scanners/razorpay-integrity.ts",
+    "line": 22,
+    "cwe": "CWE-798: Use of Hard-coded Credentials",
+    "owasp": "A07:2021 - Identification and Authentication Failures",
+    "description": "Gitleaks detected a hardcoded credential or secret matching rule 'generic-api-key'.",
+    "evidence": "Match rule: generic-api-key; Secret: tes***REDACTED***10; Commit: 5df99a89c663925bbc73061f2c64fe20842081a5",
+    "reproduction": "Inspect file 'security/scanners/razorpay-integrity.ts' around line 22",
+    "impact": "Exposed credentials can allow unauthorized access to third-party services, databases, or payment gateways.",
+    "remediation": "Immediately revoke the credential, rotate the secret in the provider dashboard, and store it in server-side environment variables.",
+    "scanner": "gitleaks",
+    "rawReference": {
+      "rule": "generic-api-key",
+      "file": "security/scanners/razorpay-integrity.ts",
+      "line": 22
+    }
+  },
+  {
+    "id": "LEAK-generic-api-key-api-keys.ts-59",
+    "title": "Exposed Credential: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "severity": "Critical",
+    "confidence": "High",
+    "status": "unresolved",
+    "component": "src/lib/data/api-keys.ts",
+    "file": "src/lib/data/api-keys.ts",
+    "line": 59,
+    "cwe": "CWE-798: Use of Hard-coded Credentials",
+    "owasp": "A07:2021 - Identification and Authentication Failures",
+    "description": "Gitleaks detected a hardcoded credential or secret matching rule 'generic-api-key'.",
+    "evidence": "Match rule: generic-api-key; Secret: GOC***REDACTED***AB; Commit: 5df99a89c663925bbc73061f2c64fe20842081a5",
+    "reproduction": "Inspect file 'src/lib/data/api-keys.ts' around line 59",
+    "impact": "Exposed credentials can allow unauthorized access to third-party services, databases, or payment gateways.",
+    "remediation": "Immediately revoke the credential, rotate the secret in the provider dashboard, and store it in server-side environment variables.",
+    "scanner": "gitleaks",
+    "rawReference": {
+      "rule": "generic-api-key",
+      "file": "src/lib/data/api-keys.ts",
+      "line": 59
+    }
+  },
+  {
+    "id": "LEAK-generic-api-key-api-keys.ts-124",
+    "title": "Exposed Credential: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "severity": "Critical",
+    "confidence": "High",
+    "status": "unresolved",
+    "component": "src/lib/data/api-keys.ts",
+    "file": "src/lib/data/api-keys.ts",
+    "line": 124,
+    "cwe": "CWE-798: Use of Hard-coded Credentials",
+    "owasp": "A07:2021 - Identification and Authentication Failures",
+    "description": "Gitleaks detected a hardcoded credential or secret matching rule 'generic-api-key'.",
+    "evidence": "Match rule: generic-api-key; Secret: 6Lf***REDACTED***et; Commit: 5df99a89c663925bbc73061f2c64fe20842081a5",
+    "reproduction": "Inspect file 'src/lib/data/api-keys.ts' around line 124",
+    "impact": "Exposed credentials can allow unauthorized access to third-party services, databases, or payment gateways.",
+    "remediation": "Immediately revoke the credential, rotate the secret in the provider dashboard, and store it in server-side environment variables.",
+    "scanner": "gitleaks",
+    "rawReference": {
+      "rule": "generic-api-key",
+      "file": "src/lib/data/api-keys.ts",
+      "line": 124
+    }
+  },
+  {
+    "id": "LEAK-generic-api-key-api-keys.ts-219",
+    "title": "Exposed Credential: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "severity": "Critical",
+    "confidence": "High",
+    "status": "unresolved",
+    "component": "src/lib/data/api-keys.ts",
+    "file": "src/lib/data/api-keys.ts",
+    "line": 219,
+    "cwe": "CWE-798: Use of Hard-coded Credentials",
+    "owasp": "A07:2021 - Identification and Authentication Failures",
+    "description": "Gitleaks detected a hardcoded credential or secret matching rule 'generic-api-key'.",
+    "evidence": "Match rule: generic-api-key; Secret: re_***REDACTED***BB; Commit: 5df99a89c663925bbc73061f2c64fe20842081a5",
+    "reproduction": "Inspect file 'src/lib/data/api-keys.ts' around line 219",
+    "impact": "Exposed credentials can allow unauthorized access to third-party services, databases, or payment gateways.",
+    "remediation": "Immediately revoke the credential, rotate the secret in the provider dashboard, and store it in server-side environment variables.",
+    "scanner": "gitleaks",
+    "rawReference": {
+      "rule": "generic-api-key",
+      "file": "src/lib/data/api-keys.ts",
+      "line": 219
+    }
+  },
+  {
+    "id": "LEAK-generic-api-key-api-keys.ts-267",
+    "title": "Exposed Credential: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "severity": "Critical",
+    "confidence": "High",
+    "status": "unresolved",
+    "component": "src/lib/data/api-keys.ts",
+    "file": "src/lib/data/api-keys.ts",
+    "line": 267,
+    "cwe": "CWE-798: Use of Hard-coded Credentials",
+    "owasp": "A07:2021 - Identification and Authentication Failures",
+    "description": "Gitleaks detected a hardcoded credential or secret matching rule 'generic-api-key'.",
+    "evidence": "Match rule: generic-api-key; Secret: f2s***REDACTED***88; Commit: 5df99a89c663925bbc73061f2c64fe20842081a5",
+    "reproduction": "Inspect file 'src/lib/data/api-keys.ts' around line 267",
+    "impact": "Exposed credentials can allow unauthorized access to third-party services, databases, or payment gateways.",
+    "remediation": "Immediately revoke the credential, rotate the secret in the provider dashboard, and store it in server-side environment variables.",
+    "scanner": "gitleaks",
+    "rawReference": {
+      "rule": "generic-api-key",
+      "file": "src/lib/data/api-keys.ts",
+      "line": 267
+    }
+  }
+]

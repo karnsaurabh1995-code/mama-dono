@@ -130,18 +130,67 @@ export default function HomePage() {
           <FeaturedCausesAndCampaigns
             key={sec.id}
             initialCampaigns={featuredCampaigns.length > 0 ? featuredCampaigns : activeCampaigns}
+            title={sec.title}
+            subtitle={sec.subtitle}
+            badge={sec.badge}
+            ctaText={sec.ctaText}
+            ctaLink={sec.ctaLink}
+            itemLimit={sec.settings?.itemLimit}
           />
         );
       case 'monthly_missions':
-        return <MonthlyDonationSection key={sec.id} missions={displayMissions} />;
+        return (
+          <MonthlyDonationSection
+            key={sec.id}
+            missions={displayMissions}
+            title={sec.title}
+            subtitle={sec.subtitle}
+            badge={sec.badge}
+            ctaText={sec.ctaText}
+            ctaLink={sec.ctaLink}
+          />
+        );
       case 'cta_box':
-        return <StartCampaignSection key={sec.id} />;
+        return (
+          <StartCampaignSection
+            key={sec.id}
+            title={sec.title}
+            subtitle={sec.subtitle}
+            badge={sec.badge}
+            ctaText={sec.ctaText}
+            ctaLink={sec.ctaLink}
+          />
+        );
       case 'stats':
-        return <OurImpactSection key={sec.id} stats={stats} />;
+        return (
+          <OurImpactSection
+            key={sec.id}
+            stats={stats}
+            title={sec.title}
+            subtitle={sec.subtitle}
+            badge={sec.badge}
+          />
+        );
       case 'testimonials':
-        return <TestimonialsCarousel key={sec.id} testimonials={testimonials} />;
+        return (
+          <TestimonialsCarousel
+            key={sec.id}
+            testimonials={testimonials}
+            title={sec.title}
+            subtitle={sec.subtitle}
+            badge={sec.badge}
+          />
+        );
       case 'faq':
-        return <HomepageFAQSection key={sec.id} faqs={faqs} />;
+        return (
+          <HomepageFAQSection
+            key={sec.id}
+            faqs={faqs}
+            title={sec.title}
+            subtitle={sec.subtitle}
+            badge={sec.badge}
+          />
+        );
       default:
         return null;
     }

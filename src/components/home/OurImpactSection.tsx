@@ -10,9 +10,12 @@ interface OurImpactSectionProps {
     verifiedNGOs: number;
     documentedBeneficiaries: number;
   };
+  title?: string;
+  subtitle?: string;
+  badge?: string;
 }
 
-export function OurImpactSection({ stats }: OurImpactSectionProps) {
+export function OurImpactSection({ stats, title, subtitle, badge }: OurImpactSectionProps) {
   return (
     <section className="py-20 bg-[#FAF9F6] border-b border-[#E8E6E1]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,13 +25,13 @@ export function OurImpactSection({ stats }: OurImpactSectionProps) {
             <div className="relative z-10 space-y-6">
               <div>
                 <span className="text-xs font-bold uppercase tracking-widest text-[#EF4949] bg-[#EF4949]/15 px-3 py-1 rounded-full border border-[#EF4949]/30 inline-block mb-3">
-                  TRANSPARENT METRICS
+                  {badge || 'TRANSPARENT METRICS'}
                 </span>
                 <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-                  Our Impact in Verified Numbers
+                  {title || 'Our Impact in Verified Numbers'}
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-400 mt-2 max-w-lg leading-relaxed">
-                  Real lives touched through transparent giving. Every metric is backed by verified bank disbursements, doctor notes, and audited NGO receipts.
+                  {subtitle || 'Real lives touched through transparent giving. Every metric is backed by verified bank disbursements, doctor notes, and audited NGO receipts.'}
                 </p>
               </div>
 

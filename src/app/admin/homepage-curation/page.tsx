@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { Campaign, HomepageCurationConfig } from '@/lib/types';
 import { formatINR } from '@/lib/utils';
@@ -100,11 +99,8 @@ export default function HomepageCurationPage() {
         }
       })
       .catch((err) => {
-        console.warn('Fallback loading curation from client db:', err);
-        const loadedCampaigns = db.getCampaigns({ status: 'active' });
-        const loadedCuration = db.getHomepageCuration();
-        setAllCampaigns(loadedCampaigns);
-        setCuration(loadedCuration);
+        console.error('Failed to load homepage curation from server:', err);
+        setToastMessage('Could not load curation from server: ' + err.message);
       });
 
     return () => {
@@ -134,13 +130,8 @@ export default function HomepageCurationPage() {
       }
       notify(data.message || 'Homepage campaign placements updated and published live!');
     } catch (e: any) {
-      console.warn('Fallback updating curation in client db:', e);
-      try {
-        db.updateHomepageCuration(curation, user?.name || 'Admin User');
-        notify('Homepage campaign placements updated locally.');
-      } catch {
-        notify(e.message || 'Failed to save placements.');
-      }
+      console.error('Failed to update curation on server:', e);
+      notify('Failed to save placements: ' + (e.message || 'Server error'));
     } finally {
       setIsSaving(false);
     }

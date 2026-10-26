@@ -3,7 +3,21 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Heart, ShieldCheck, Clock, Users, ArrowRight, CheckCircle2 } from 'lucide-react';
 
-export function StartCampaignSection() {
+interface StartCampaignSectionProps {
+  title?: string;
+  subtitle?: string;
+  badge?: string;
+  ctaText?: string;
+  ctaLink?: string;
+}
+
+export function StartCampaignSection({
+  title,
+  subtitle,
+  badge,
+  ctaText,
+  ctaLink,
+}: StartCampaignSectionProps = {}) {
   return (
     <section className="py-20 bg-white border-b border-[#E8E6E1]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,14 +58,20 @@ export function StartCampaignSection() {
           <div className="lg:col-span-7 space-y-6">
             <div>
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#EF4949] bg-[#FFF0EF] px-3.5 py-1.5 rounded-full inline-block mb-3 border border-[#FEE2E2]">
-                START A CAMPAIGN
+                {badge || 'START A CAMPAIGN'}
               </span>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#202124] tracking-tight leading-[1.15]">
-                Start a Campaign. <br />
-                <span className="text-[#EF4949]">Help Someone Move Forward.</span>
+                {title ? (
+                  title
+                ) : (
+                  <>
+                    Start a Campaign. <br />
+                    <span className="text-[#EF4949]">Help Someone Move Forward.</span>
+                  </>
+                )}
               </h2>
               <p className="text-sm sm:text-base text-[#555B63] mt-3 leading-relaxed max-w-xl">
-                Whether you need urgent emergency funds for a critical hospital surgery, child nutrition, or grassroots education, dokind connects your cause with thousands of compassionate donors across India.
+                {subtitle || 'Whether you need urgent emergency funds for a critical hospital surgery, child nutrition, or grassroots education, dokind connects your cause with thousands of compassionate donors across India.'}
               </p>
             </div>
 
@@ -100,9 +120,9 @@ export function StartCampaignSection() {
 
             {/* CTA Buttons */}
             <div className="pt-3 flex flex-wrap items-center gap-4">
-              <Link href="/start-campaign">
+              <Link href={ctaLink || '/start-campaign'}>
                 <Button size="lg" className="bg-[#EF4949] hover:bg-[#D93838] text-white font-bold text-sm px-7 py-3.5 shadow-md rounded-xl flex items-center gap-2">
-                  <span>Start a Fundraiser Now</span>
+                  <span>{ctaText || 'Start a Fundraiser Now'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>

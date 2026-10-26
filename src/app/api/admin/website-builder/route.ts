@@ -2,9 +2,33 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { getServerSession } from '@/lib/auth/server';
-import { PageSection } from '@/lib/types';
+import { PageSection, PageSectionType } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+
+const VALID_PAGE_SLUGS = [
+  'home',
+  'campaigns',
+  'monthly-giving',
+  'product-giving',
+  'about',
+  'how-it-works',
+  'donate-checkout',
+  'contact-faq',
+];
+
+const VALID_SECTION_TYPES: PageSectionType[] = [
+  'hero',
+  'urgent_strip',
+  'categories',
+  'featured_campaigns',
+  'monthly_missions',
+  'products',
+  'stats',
+  'testimonials',
+  'faq',
+  'cta_box',
+];
 
 function getRevalidateTarget(slug: string): string {
   switch (slug) {
@@ -29,6 +53,48 @@ function getRevalidateTarget(slug: string): string {
   }
 }
 
+function validateSections(sections: any[]): { valid: boolean; error?: string; cleanSections?: PageSection[] } {
+  if (!Array.isArray(sections) || sections.length === 0) {
+    return { valid: false, error: 'Sections payload must be a non-empty array.' };
+  }
+
+  const cleanSections: PageSection[] = [];
+
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i];
+    if (!s || typeof s !== 'object') {
+      return { valid: false, error: `Section at index ${i} is not a valid object.` };
+    }
+
+    if (!s.id || typeof s.id !== 'string') {
+      return { valid: false, error: `Section at index ${i} is missing a valid 'id' string.` };
+    }
+
+    if (!s.type || !VALID_SECTION_TYPES.includes(s.type)) {
+      return {
+        valid: false,
+        error: `Section "${s.id}" has unsupported type "${s.type}". Allowed: ${VALID_SECTION_TYPES.join(', ')}`,
+      };
+    }
+
+    cleanSections.push({
+      id: String(s.id).trim(),
+      pageSlug: String(s.pageSlug || 'home').trim(),
+      type: s.type,
+      title: typeof s.title === 'string' ? s.title.trim() : '',
+      subtitle: typeof s.subtitle === 'string' ? s.subtitle.trim() : undefined,
+      badge: typeof s.badge === 'string' ? s.badge.trim() : undefined,
+      ctaText: typeof s.ctaText === 'string' ? s.ctaText.trim() : undefined,
+      ctaLink: typeof s.ctaLink === 'string' ? s.ctaLink.trim() : undefined,
+      order: typeof s.order === 'number' ? s.order : i,
+      isVisible: s.isVisible !== false,
+      settings: typeof s.settings === 'object' && s.settings !== null ? s.settings : {},
+    });
+  }
+
+  return { valid: true, cleanSections };
+}
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession();
@@ -37,7 +103,8 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const slug = searchParams.get('slug') || 'home';
+    const rawSlug = searchParams.get('slug') || 'home';
+    const slug = VALID_PAGE_SLUGS.includes(rawSlug) ? rawSlug : 'home';
 
     const draftSections = db.getPageSections(slug);
     const publishedSections = db.getPublishedPageSections(slug);
@@ -64,17 +131,20 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const slug = body.slug || body.pageSlug || 'home';
+    const rawSlug = body.slug || body.pageSlug || 'home';
+    const slug = VALID_PAGE_SLUGS.includes(rawSlug) ? rawSlug : 'home';
     const { action, sections, versionNumber } = body;
 
     const actorName = session.name || 'Content Editor';
     const targetPath = getRevalidateTarget(slug);
 
     if (action === 'save_draft') {
-      if (!Array.isArray(sections)) {
-        return NextResponse.json({ error: 'Invalid sections array' }, { status: 400 });
+      const validation = validateSections(sections);
+      if (!validation.valid || !validation.cleanSections) {
+        return NextResponse.json({ error: validation.error || 'Invalid sections array' }, { status: 400 });
       }
-      const updated = db.updatePageSections(slug, sections as PageSection[], actorName);
+
+      const updated = db.updatePageSections(slug, validation.cleanSections, actorName);
       return NextResponse.json({
         success: true,
         message: 'Draft page sections saved successfully.',
@@ -83,10 +153,33 @@ export async function POST(request: Request) {
     }
 
     if (action === 'publish') {
+      let cleanSectionsToPublish: PageSection[];
+
       if (Array.isArray(sections)) {
-        db.updatePageSections(slug, sections as PageSection[], actorName);
+        const validation = validateSections(sections);
+        if (!validation.valid || !validation.cleanSections) {
+          return NextResponse.json({ error: validation.error || 'Invalid sections array' }, { status: 400 });
+        }
+        cleanSectionsToPublish = validation.cleanSections;
+        db.updatePageSections(slug, cleanSectionsToPublish, actorName);
+      } else {
+        cleanSectionsToPublish = db.getPageSections(slug);
       }
+
+      // Execute authoritative publication with atomic persistence guarantee
       const publishRes = db.publishPageSections(slug, actorName);
+
+      // Read back from authoritative store to verify persistence
+      const authoritativePublished = db.getPublishedPageSections(slug);
+      const allVersions = db.getPageVersions(slug);
+      const latestVer = allVersions[0];
+
+      if (!latestVer || latestVer.versionNumber !== publishRes.version || authoritativePublished.length === 0) {
+        return NextResponse.json(
+          { error: 'Publish verification failed: committed published state could not be read back from durable storage.' },
+          { status: 500 }
+        );
+      }
 
       // Revalidate cache for the live public route
       try {
@@ -99,8 +192,8 @@ export async function POST(request: Request) {
         success: true,
         message: `Version #${publishRes.version} published live!`,
         version: publishRes.version,
-        publishedSections: db.getPublishedPageSections(slug),
-        versions: db.getPageVersions(slug),
+        publishedSections: authoritativePublished,
+        versions: allVersions,
       });
     }
 

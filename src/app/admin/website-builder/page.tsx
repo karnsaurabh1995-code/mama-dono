@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { db } from '@/lib/db';
 import { useAuth } from '@/lib/auth/context';
 import { PageSection, PageSectionType, PageVersion } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
@@ -65,46 +64,39 @@ export default function WebsiteBuilderPage() {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
   const [historyVersions, setHistoryVersions] = useState<PageVersion[]>([]);
+  const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [isLoadingPage, setIsLoadingPage] = useState<boolean>(false);
 
   // History stack for undo / redo
   const [undoStack, setUndoStack] = useState<PageSection[][]>([]);
   const [redoStack, setRedoStack] = useState<PageSection[][]>([]);
 
-  // Load sections on page change via API with fallback
+  // Load sections on page change via authoritative API
   const loadPageData = useCallback(async (slug: string) => {
+    setIsLoadingPage(true);
     try {
       const res = await fetch(`/api/admin/website-builder?slug=${encodeURIComponent(slug)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          const list = data.draftSections || [];
-          setSections(list);
-          setHistoryVersions(data.versions || []);
-          if (list.length > 0) {
-            setSelectedSectionId(list[0].id);
-          } else {
-            setSelectedSectionId(null);
-          }
-          setHasUnpublishedChanges(false);
-          setUndoStack([]);
-          setRedoStack([]);
-          return;
-        }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to load page data');
+      const list = data.draftSections || [];
+      setSections(list);
+      setHistoryVersions(data.versions || []);
+      if (list.length > 0) {
+        setSelectedSectionId(list[0].id);
+      } else {
+        setSelectedSectionId(null);
       }
-    } catch (e) {
-      console.warn('Fallback loading page data from db singleton:', e);
+      setHasUnpublishedChanges(false);
+      setUndoStack([]);
+      setRedoStack([]);
+    } catch (e: any) {
+      console.error('Failed to load page data from server:', e);
+      setToastMessage('Could not load page data: ' + (e.message || 'Server error'));
+    } finally {
+      setIsLoadingPage(false);
     }
-    const pageData = db.getPageSections(slug);
-    setSections(JSON.parse(JSON.stringify(pageData)));
-    setHistoryVersions(db.getPageVersions(slug));
-    if (pageData.length > 0) {
-      setSelectedSectionId(pageData[0].id);
-    } else {
-      setSelectedSectionId(null);
-    }
-    setHasUnpublishedChanges(false);
-    setUndoStack([]);
-    setRedoStack([]);
   }, []);
 
   useEffect(() => {
@@ -213,8 +205,9 @@ export default function WebsiteBuilderPage() {
     notify(`Added section: ${template.name}`);
   };
 
-  // Save Draft (Local to DB draft collection via API with fallback)
+  // Save Draft (Authoritative server API without browser-only mutations)
   const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
     try {
       const res = await fetch('/api/admin/website-builder', {
         method: 'POST',
@@ -227,17 +220,21 @@ export default function WebsiteBuilderPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to save draft');
+      if (data.sections) {
+        setSections(data.sections);
+      }
       setHasUnpublishedChanges(true);
       notify('Draft changes saved to administrative workspace.');
-    } catch {
-      db.updatePageSections(selectedPage, sections, user?.name || 'Content Editor');
-      setHasUnpublishedChanges(true);
-      notify('Draft changes saved to administrative workspace.');
+    } catch (err: any) {
+      notify('Save draft failed: ' + (err.message || 'Server error'));
+    } finally {
+      setIsSavingDraft(false);
     }
   };
 
-  // Publish Live via API with fallback
+  // Publish Live via Authoritative Server API
   const handlePublishLive = async () => {
+    setIsPublishing(true);
     try {
       const res = await fetch('/api/admin/website-builder', {
         method: 'POST',
@@ -250,19 +247,22 @@ export default function WebsiteBuilderPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to publish');
-      setHistoryVersions(data.versions || db.getPageVersions(selectedPage));
+      if (data.publishedSections) {
+        setSections(data.publishedSections);
+      }
+      if (data.versions) {
+        setHistoryVersions(data.versions);
+      }
       setHasUnpublishedChanges(false);
       notify(`Success! Version #${data.version} is now LIVE on public website.`);
-    } catch {
-      db.updatePageSections(selectedPage, sections, user?.name || 'Content Editor');
-      const res = db.publishPageSections(selectedPage, user?.name || 'Content Editor');
-      setHistoryVersions(db.getPageVersions(selectedPage));
-      setHasUnpublishedChanges(false);
-      notify(`Success! Version #${res.version} is now LIVE on public website.`);
+    } catch (err: any) {
+      notify('Publish failed: ' + (err.message || 'Server error'));
+    } finally {
+      setIsPublishing(false);
     }
   };
 
-  // Restore Previous Version via API with fallback
+  // Restore Previous Version via Server API
   const handleRestoreVersion = async (versionNumber: number) => {
     try {
       const res = await fetch('/api/admin/website-builder', {
@@ -276,24 +276,18 @@ export default function WebsiteBuilderPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to restore');
-      setSections(data.sections);
+      if (data.sections) {
+        setSections(data.sections);
+      }
       setShowHistoryModal(false);
       setHasUnpublishedChanges(false);
       notify(`Restored page to published Version #${versionNumber}.`);
-    } catch {
-      try {
-        const restored = db.restorePageVersion(selectedPage, versionNumber, user?.name || 'Content Editor');
-        setSections(JSON.parse(JSON.stringify(restored)));
-        setShowHistoryModal(false);
-        setHasUnpublishedChanges(false);
-        notify(`Restored page to published Version #${versionNumber}.`);
-      } catch (err: any) {
-        alert(err.message);
-      }
+    } catch (err: any) {
+      alert('Restore failed: ' + (err.message || 'Server error'));
     }
   };
 
-  // Reset to default via API with fallback
+  // Reset to default via Server API
   const handleResetToDefault = async () => {
     if (confirm('Are you sure you want to reset this page layout to default system settings?')) {
       try {
@@ -307,16 +301,16 @@ export default function WebsiteBuilderPage() {
         });
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Failed to reset');
-        setSections(data.sections);
-        setHistoryVersions(data.versions || db.getPageVersions(selectedPage));
+        if (data.sections) {
+          setSections(data.sections);
+        }
+        if (data.versions) {
+          setHistoryVersions(data.versions);
+        }
         setHasUnpublishedChanges(false);
         notify('Page layout reset to factory baseline.');
-      } catch {
-        const def = db.resetPageSectionsToDefault(selectedPage, user?.name || 'Content Editor');
-        setSections(JSON.parse(JSON.stringify(def)));
-        setHistoryVersions(db.getPageVersions(selectedPage));
-        setHasUnpublishedChanges(false);
-        notify('Page layout reset to factory baseline.');
+      } catch (err: any) {
+        alert('Reset failed: ' + (err.message || 'Server error'));
       }
     }
   };
@@ -441,15 +435,15 @@ export default function WebsiteBuilderPage() {
           </button>
 
           {/* Save Draft */}
-          <Button size="sm" variant="outline" onClick={handleSaveDraft} className="text-xs">
-            <Save className="w-3.5 h-3.5 mr-1" />
-            Save Draft
+          <Button size="sm" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft || isPublishing} className="text-xs">
+            <Save className={`w-3.5 h-3.5 mr-1 ${isSavingDraft ? 'animate-spin' : ''}`} />
+            {isSavingDraft ? 'Saving Draft...' : 'Save Draft'}
           </Button>
 
           {/* Publish Live */}
-          <Button size="sm" onClick={handlePublishLive} className="text-xs bg-[#E84B45] hover:bg-[#BD302D] text-white">
-            <Send className="w-3.5 h-3.5 mr-1" />
-            Publish Live
+          <Button size="sm" onClick={handlePublishLive} disabled={isSavingDraft || isPublishing} className="text-xs bg-[#E84B45] hover:bg-[#BD302D] text-white">
+            <Send className={`w-3.5 h-3.5 mr-1 ${isPublishing ? 'animate-spin' : ''}`} />
+            {isPublishing ? 'Publishing Live...' : 'Publish Live'}
           </Button>
         </div>
       </div>

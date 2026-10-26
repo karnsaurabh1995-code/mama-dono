@@ -820,7 +820,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     }
   }
 
-  private loadPersistedState(): void {
+  public loadPersistedState(): void {
     if (!this.isNode()) return;
     const filePath = this.getPersistencePath();
     if (!filePath) return;
@@ -834,6 +834,24 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     } catch (err) {
       console.error('[DatabaseStore] Could not load persisted state from disk:', err);
     }
+  }
+
+  public reloadFromDisk(): boolean {
+    if (!this.isNode()) return false;
+    const filePath = this.getPersistencePath();
+    if (!filePath) return false;
+    try {
+      const nodeRequire = (globalThis as any)['require'] || eval('require');
+      const fs = nodeRequire('fs');
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        this.importDatabaseSnapshot(raw, 'Explicit Disk Reload');
+        return true;
+      }
+    } catch (err) {
+      console.error('[DatabaseStore] Could not reload persisted state from disk:', err);
+    }
+    return false;
   }
 
   public persistState(): boolean {
@@ -2109,6 +2127,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
 
   updateHomepageCuration(curation: Partial<HomepageCurationConfig>, actorName = 'Admin'): HomepageCurationConfig {
     const current = this.getHomepageCuration();
+    const previous = this.settings.homepageCuration ? { ...this.settings.homepageCuration } : undefined;
     this.settings.homepageCuration = { ...current, ...curation };
     this.createAuditLog({
       actorId: 'admin-1',
@@ -2118,7 +2137,11 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: 'homepage-curation',
       details: `Updated homepage campaign placements: ${Object.keys(curation).join(', ')}`,
     });
-    this.persistState();
+    const persisted = this.persistState();
+    if (!persisted) {
+      if (previous) this.settings.homepageCuration = previous;
+      throw new Error('Durable persistence failed: could not write homepage curation to disk.');
+    }
     this.notifySubscribers('homepage_curation_updated', this.settings.homepageCuration);
     return { ...this.settings.homepageCuration };
   }
@@ -2294,6 +2317,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   }
 
   updatePageSections(pageSlug: string, sections: PageSection[], actorName = 'Admin'): PageSection[] {
+    const previous = this.pageSections[pageSlug] ? JSON.parse(JSON.stringify(this.pageSections[pageSlug])) : null;
     this.pageSections[pageSlug] = sections.map((s, idx) => ({ ...s, order: idx }));
     this.createAuditLog({
       actorId: 'admin-1',
@@ -2303,7 +2327,11 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: pageSlug,
       details: `Saved ${sections.length} draft sections for page "${pageSlug}"`,
     });
-    this.persistState();
+    const persisted = this.persistState();
+    if (!persisted) {
+      if (previous) this.pageSections[pageSlug] = previous;
+      throw new Error(`Durable persistence failed: could not write draft sections for "${pageSlug}" to disk.`);
+    }
     this.notifySubscribers('page_sections_draft_updated', { pageSlug });
     return this.pageSections[pageSlug];
   }
@@ -2337,7 +2365,11 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       details: `Published live version #${nextVer} for page "${pageSlug}" with ${currentSections.length} sections`,
     });
 
-    this.persistState();
+    const persisted = this.persistState();
+    if (!persisted) {
+      this.pageVersions[pageSlug].shift();
+      throw new Error(`Durable persistence failed: could not write published version #${nextVer} to disk.`);
+    }
     this.notifySubscribers('page_sections_published', { pageSlug, version: nextVer });
     return { success: true, version: nextVer };
   }
@@ -2351,6 +2383,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     const target = versions.find((v) => v.versionNumber === versionNumber);
     if (!target) throw new Error(`Version #${versionNumber} not found for page ${pageSlug}`);
 
+    const previous = this.pageSections[pageSlug] ? JSON.parse(JSON.stringify(this.pageSections[pageSlug])) : null;
     this.pageSections[pageSlug] = JSON.parse(JSON.stringify(target.sections));
     this.createAuditLog({
       actorId: 'admin-1',
@@ -2360,6 +2393,12 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       targetId: pageSlug,
       details: `Restored page "${pageSlug}" to version #${versionNumber}`,
     });
+    const persisted = this.persistState();
+    if (!persisted) {
+      if (previous) this.pageSections[pageSlug] = previous;
+      throw new Error(`Durable persistence failed: could not write restored state for "${pageSlug}" to disk.`);
+    }
+    this.notifySubscribers('page_sections_draft_updated', { pageSlug });
     return this.pageSections[pageSlug];
   }
 

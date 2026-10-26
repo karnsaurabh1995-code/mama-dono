@@ -6,9 +6,12 @@ import { Quote, ChevronLeft, ChevronRight, Star, BadgeCheck } from 'lucide-react
 
 interface TestimonialsCarouselProps {
   testimonials: Testimonial[];
+  title?: string;
+  subtitle?: string;
+  badge?: string;
 }
 
-export function TestimonialsCarousel({ testimonials }: TestimonialsCarouselProps) {
+export function TestimonialsCarousel({ testimonials, title, subtitle, badge }: TestimonialsCarouselProps) {
   const [scrollIndex, setScrollIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,13 +36,13 @@ export function TestimonialsCarousel({ testimonials }: TestimonialsCarouselProps
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#EF4949] bg-[#FFF0EF] px-3.5 py-1.5 rounded-full inline-block mb-2 border border-[#FEE2E2]">
-              STORIES OF TRUST
+              {badge || 'STORIES OF TRUST'}
             </span>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#202124] tracking-tight">
-              Loved by Donors, Doctors & Beneficiaries
+              {title || 'Loved by Donors, Doctors & Beneficiaries'}
             </h2>
             <p className="text-xs sm:text-sm text-[#555B63] mt-1 max-w-xl">
-              Real reflections from compassionate individuals and medical professionals who trust dokind every day.
+              {subtitle || 'Real reflections from compassionate individuals and medical professionals who trust dokind every day.'}
             </p>
           </div>
 
