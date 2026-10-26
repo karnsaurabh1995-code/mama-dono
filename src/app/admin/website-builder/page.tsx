@@ -36,8 +36,8 @@ const AVAILABLE_PAGES = [
   { slug: 'product-giving', label: 'Product Giving (/product-giving)' },
   { slug: 'about', label: 'About Us (/about)' },
   { slug: 'how-it-works', label: 'How It Works (/how-it-works)' },
-  { slug: 'donate-checkout', label: 'Donation Checkout (/donate)' },
-  { slug: 'contact-faq', label: 'Contact & FAQs (/contact, /faq)' },
+  { slug: 'contact', label: 'Contact Us (/contact)' },
+  { slug: 'help', label: 'Help Center & FAQs (/help)' },
 ];
 
 const SECTION_TEMPLATES: { type: PageSectionType; name: string; defaultTitle: string; defaultDesc: string }[] = [

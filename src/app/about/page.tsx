@@ -3,11 +3,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { ShieldCheck, Heart, Award, Users, CheckCircle2, ChevronRight, Lock } from 'lucide-react';
 import { db } from '@/lib/db';
+import { PublishedSectionsRenderer } from '@/components/common/PublishedSectionsRenderer';
 
 export const dynamic = 'force-dynamic';
 
 export default function AboutPage() {
   const publicTeam = db.getPublicEmployees();
+  const publishedSections = db.getPublishedPageSections('about');
+  const heroSec = publishedSections.find((s) => s.type === 'hero' && s.isVisible !== false);
 
   return (
     <div className="py-12 bg-[#FAF9F6] min-h-screen">
@@ -24,13 +27,13 @@ export default function AboutPage() {
         {/* Hero */}
         <div className="space-y-4 max-w-3xl">
           <span className="bg-[#FFF0EF] text-[#EF4949] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-            Our Mission & Governance
+            {heroSec?.badge || 'Our Mission & Governance'}
           </span>
           <h1 className="text-3xl sm:text-5xl font-black text-[#202124] tracking-tight">
-            Building India’s Most Transparent Bridge for Generous Giving
+            {heroSec?.title || 'Building India’s Most Transparent Bridge for Generous Giving'}
           </h1>
           <p className="text-sm sm:text-base text-[#62666D] leading-relaxed">
-            dokind was founded with a singular conviction: when an Indian family faces an unbearable medical catastrophe or social hardship, they should never have to suffer alone in silence. Every kind act counts.
+            {heroSec?.subtitle || 'dokind was founded with a singular conviction: when an Indian family faces an unbearable medical catastrophe or social hardship, they should never have to suffer alone in silence. Every kind act counts.'}
           </p>
         </div>
 

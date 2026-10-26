@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+import { db } from '@/lib/db';
 import React from 'react';
 import Link from 'next/link';
 import { MissionCard } from '@/components/home/MissionCard';
@@ -56,6 +58,8 @@ export const MISSIONS = [
 ];
 
 export default function MonthlyGivingPage() {
+  const publishedSections = db.getPublishedPageSections('monthly-giving');
+  const heroSec = publishedSections.find((s) => s.type === 'hero' && s.isVisible !== false);
   return (
     <div className="py-10 bg-[#FAF9F6] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
@@ -73,13 +77,13 @@ export default function MonthlyGivingPage() {
           <div className="max-w-2xl space-y-4 relative z-10">
             <span className="bg-blue-500/30 text-blue-200 border border-blue-400/40 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full inline-flex items-center gap-1.5">
               <Repeat className="w-3.5 h-3.5" />
-              <span>Give.do Inspired Sustained Impact</span>
+              <span>{heroSec?.badge || 'Give.do Inspired Sustained Impact'}</span>
             </span>
             <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Small Monthly Gifts. Lifelong Transformation.
+              {heroSec?.title || 'Small Monthly Gifts. Lifelong Transformation.'}
             </h1>
             <p className="text-sm sm:text-base text-blue-100 leading-relaxed">
-              When you give monthly, non-profits spend less time fundraising and more time curing illnesses, teaching children, and feeding families. Cancel or pause anytime in 1 click.
+              {heroSec?.subtitle || 'When you give monthly, non-profits spend less time fundraising and more time curing illnesses, teaching children, and feeding families. Cancel or pause anytime in 1 click.'}
             </p>
           </div>
         </div>

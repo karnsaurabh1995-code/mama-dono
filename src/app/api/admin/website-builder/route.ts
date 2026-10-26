@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { publishingRepo } from '@/lib/publishing/repository';
 import { getServerSession } from '@/lib/auth/server';
 import { PageSection, PageSectionType } from '@/lib/types';
 
@@ -13,7 +14,8 @@ const VALID_PAGE_SLUGS = [
   'product-giving',
   'about',
   'how-it-works',
-  'donate-checkout',
+  'contact',
+  'help',
   'contact-faq',
 ];
 
@@ -44,10 +46,11 @@ function getRevalidateTarget(slug: string): string {
       return '/about';
     case 'how-it-works':
       return '/how-it-works';
-    case 'donate-checkout':
-      return '/donate';
+    case 'contact':
     case 'contact-faq':
       return '/contact';
+    case 'help':
+      return '/help';
     default:
       return '/';
   }
@@ -106,9 +109,9 @@ export async function GET(request: Request) {
     const rawSlug = searchParams.get('slug') || 'home';
     const slug = VALID_PAGE_SLUGS.includes(rawSlug) ? rawSlug : 'home';
 
-    const draftSections = db.getPageSections(slug);
-    const publishedSections = db.getPublishedPageSections(slug);
-    const versions = db.getPageVersions(slug);
+    const draftSections = await publishingRepo.getDraftSections(slug);
+    const publishedSections = await publishingRepo.getPublishedSections(slug);
+    const versions = await publishingRepo.getVersions(slug);
 
     return NextResponse.json({
       success: true,
@@ -144,7 +147,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: validation.error || 'Invalid sections array' }, { status: 400 });
       }
 
-      const updated = db.updatePageSections(slug, validation.cleanSections, actorName);
+      const updated = await publishingRepo.saveDraft(slug, validation.cleanSections, actorName);
       return NextResponse.json({
         success: true,
         message: 'Draft page sections saved successfully.',
@@ -161,25 +164,12 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: validation.error || 'Invalid sections array' }, { status: 400 });
         }
         cleanSectionsToPublish = validation.cleanSections;
-        db.updatePageSections(slug, cleanSectionsToPublish, actorName);
       } else {
-        cleanSectionsToPublish = db.getPageSections(slug);
+        cleanSectionsToPublish = await publishingRepo.getDraftSections(slug);
       }
 
-      // Execute authoritative publication with atomic persistence guarantee
-      const publishRes = db.publishPageSections(slug, actorName);
-
-      // Read back from authoritative store to verify persistence
-      const authoritativePublished = db.getPublishedPageSections(slug);
-      const allVersions = db.getPageVersions(slug);
-      const latestVer = allVersions[0];
-
-      if (!latestVer || latestVer.versionNumber !== publishRes.version || authoritativePublished.length === 0) {
-        return NextResponse.json(
-          { error: 'Publish verification failed: committed published state could not be read back from durable storage.' },
-          { status: 500 }
-        );
-      }
+      // Execute authoritative publication through shared publishing repository
+      const publishRes = await publishingRepo.publish(slug, cleanSectionsToPublish, actorName);
 
       // Revalidate cache for the live public route
       try {
@@ -188,11 +178,13 @@ export async function POST(request: Request) {
         console.warn('[WebsiteBuilder] Cache revalidation warning:', e);
       }
 
+      const allVersions = await publishingRepo.getVersions(slug);
+
       return NextResponse.json({
         success: true,
         message: `Version #${publishRes.version} published live!`,
         version: publishRes.version,
-        publishedSections: authoritativePublished,
+        publishedSections: publishRes.publishedSections,
         versions: allVersions,
       });
     }
@@ -201,7 +193,7 @@ export async function POST(request: Request) {
       if (typeof versionNumber !== 'number') {
         return NextResponse.json({ error: 'versionNumber is required for restore' }, { status: 400 });
       }
-      const restored = db.restorePageVersion(slug, versionNumber, actorName);
+      const restored = await publishingRepo.restoreVersion(slug, versionNumber, actorName);
       try {
         revalidatePath(targetPath);
       } catch (e) {
@@ -216,7 +208,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'reset') {
-      const def = db.resetPageSectionsToDefault(slug, actorName);
+      const def = await publishingRepo.resetToDefault(slug, actorName);
       try {
         revalidatePath(targetPath);
       } catch (e) {
@@ -227,7 +219,7 @@ export async function POST(request: Request) {
         success: true,
         message: `Reset page "${slug}" to default baseline.`,
         sections: def,
-        versions: db.getPageVersions(slug),
+        versions: await publishingRepo.getVersions(slug),
       });
     }
 

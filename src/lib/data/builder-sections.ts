@@ -166,3 +166,351 @@ export const INITIAL_HOME_SECTIONS: PageSection[] = [
     },
   },
 ];
+
+export const INITIAL_ABOUT_SECTIONS: PageSection[] = [
+  {
+    id: 'sec-about-hero',
+    pageSlug: 'about',
+    type: 'hero',
+    title: 'Building India’s Most Transparent Bridge for Generous Giving',
+    subtitle: 'dokind was founded with a singular conviction: when an Indian family faces an unbearable medical catastrophe or social hardship, they should never have to suffer alone in silence.',
+    badge: 'Our Mission & Governance',
+    ctaText: 'Explore Verified Causes',
+    ctaLink: '/campaigns',
+    order: 0,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-about-stats',
+    pageSlug: 'about',
+    type: 'stats',
+    title: 'Our Impact in Verified Numbers',
+    subtitle: 'Real lives touched through transparent giving. Every metric is backed by verified hospital disbursements and audited NGO receipts.',
+    badge: 'Transparent Metrics',
+    order: 1,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-about-testimonials',
+    pageSlug: 'about',
+    type: 'testimonials',
+    title: 'Loved by Donors, Doctors & Beneficiaries',
+    subtitle: 'Real reflections from compassionate individuals and medical professionals who trust dokind every day.',
+    badge: 'Stories of Trust',
+    order: 2,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-about-faq',
+    pageSlug: 'about',
+    type: 'faq',
+    title: 'Governance & Verification FAQs',
+    subtitle: 'How we audit NGOs, handle hospital escrows, and maintain 100% transparency.',
+    badge: 'Integrity Standards',
+    order: 3,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-about-cta',
+    pageSlug: 'about',
+    type: 'cta_box',
+    title: 'Partner with dokind Foundation',
+    subtitle: 'Are you an audited NGO or corporate CSR partner? Join our verified network.',
+    ctaText: 'Verify Your Organization',
+    ctaLink: '/verify-organization',
+    order: 4,
+    isVisible: true,
+    settings: {},
+  },
+];
+
+export const INITIAL_HOW_IT_WORKS_SECTIONS: PageSection[] = [
+  {
+    id: 'sec-hiw-hero',
+    pageSlug: 'how-it-works',
+    type: 'hero',
+    title: 'How dokind Bridges Donors & Genuine Causes',
+    subtitle: 'A step-by-step breakdown of how medical verification, secure payments, and direct hospital disbursements happen in practice.',
+    badge: 'Transparent Giving Architecture',
+    ctaText: 'Start a Fundraiser',
+    ctaLink: '/start-campaign',
+    order: 0,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-hiw-categories',
+    pageSlug: 'how-it-works',
+    type: 'categories',
+    title: 'Explore How Different Causes Work',
+    subtitle: 'From emergency hospital escrow to student direct sponsorship.',
+    order: 1,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-hiw-faq',
+    pageSlug: 'how-it-works',
+    type: 'faq',
+    title: 'Common Verification & Disbursement Questions',
+    subtitle: 'Learn how doctor verification and Section 80G tax benefits operate.',
+    badge: 'Helpful Guidance',
+    order: 2,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-hiw-cta',
+    pageSlug: 'how-it-works',
+    type: 'cta_box',
+    title: 'Ready to Help or Need Urgent Support?',
+    subtitle: 'Get an emergency medical campaign live in under 3 hours.',
+    ctaText: 'Start a Free Campaign Today',
+    ctaLink: '/start-campaign',
+    order: 3,
+    isVisible: true,
+    settings: {},
+  },
+];
+
+export const INITIAL_CAMPAIGNS_SECTIONS: PageSection[] = [
+  {
+    id: 'sec-camp-hero',
+    pageSlug: 'campaigns',
+    type: 'hero',
+    title: 'Discover Verified Campaigns Across India',
+    subtitle: 'Support emergency surgeries, village girl scholarships, hospital daily meals, and essential supply drives. 100% verified documentation with instant 80G tax exemption receipts.',
+    badge: '100% Verified Non-Profit Giving',
+    ctaText: 'Start a Campaign',
+    ctaLink: '/start-campaign',
+    order: 0,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-camp-featured',
+    pageSlug: 'campaigns',
+    type: 'featured_campaigns',
+    title: 'Urgent & Featured Appeals',
+    subtitle: 'Campaigns requiring immediate community support.',
+    order: 1,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-camp-cta',
+    pageSlug: 'campaigns',
+    type: 'cta_box',
+    title: 'Have a Critical Medical Emergency in Your Family?',
+    subtitle: 'Do not wait. We verify and disburse straight to treating hospitals with 0% platform fee.',
+    ctaText: 'Start a Fundraiser Now',
+    ctaLink: '/start-campaign',
+    order: 2,
+    isVisible: true,
+    settings: {},
+  },
+];
+
+export const INITIAL_MONTHLY_SECTIONS: PageSection[] = [
+  {
+    id: 'sec-monthly-hero',
+    pageSlug: 'monthly-giving',
+    type: 'hero',
+    title: 'Small Monthly Gifts. Lifelong Transformation.',
+    subtitle: 'When you give monthly, non-profits spend less time fundraising and more time curing illnesses, teaching children, and feeding families. Cancel or pause anytime in 1 click.',
+    badge: 'Give.do Inspired Sustained Impact',
+    ctaText: 'Explore Monthly Missions',
+    ctaLink: '#missions',
+    order: 0,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-monthly-missions-list',
+    pageSlug: 'monthly-giving',
+    type: 'monthly_missions',
+    title: 'Active Monthly Missions',
+    subtitle: 'Choose a cause you care about and create recurring change every month.',
+    badge: 'Recurring Impact',
+    order: 1,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-monthly-testimonials',
+    pageSlug: 'monthly-giving',
+    type: 'testimonials',
+    title: 'Reflections from Monthly Patrons',
+    subtitle: 'Why thousands of everyday citizens choose to support monthly giving circles.',
+    order: 2,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-monthly-faq',
+    pageSlug: 'monthly-giving',
+    type: 'faq',
+    title: 'Monthly Giving & Automatic Renewal FAQs',
+    subtitle: 'Answers to billing cycles, pausing memberships, and annual 80G tax reports.',
+    order: 3,
+    isVisible: true,
+    settings: {},
+  },
+];
+
+export const INITIAL_PRODUCT_SECTIONS: PageSection[] = [
+  {
+    id: 'sec-prod-hero',
+    pageSlug: 'product-giving',
+    type: 'hero',
+    title: 'Don’t Just Donate Money. Donate Tangible Essentials.',
+    subtitle: 'Every item is requisitioned by on-ground NGOs, procured directly at wholesale prices, and distributed with geotagged photo proof sent straight to your email.',
+    badge: 'DonateKart Inspired Physical Giving',
+    ctaText: 'Browse Needed Products',
+    ctaLink: '#products',
+    order: 0,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-prod-catalog',
+    pageSlug: 'product-giving',
+    type: 'products',
+    title: 'Verified Tangible Needs Catalog',
+    subtitle: 'Fund exact items — ration kits, school kits, and hospital beds — with vendor dispatch tracking.',
+    order: 1,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-prod-faq',
+    pageSlug: 'product-giving',
+    type: 'faq',
+    title: 'Product Procurement & Distribution FAQs',
+    subtitle: 'How wholesale procurement works, quality audits, and delivery proof.',
+    order: 2,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-prod-cta',
+    pageSlug: 'product-giving',
+    type: 'cta_box',
+    title: 'Have Bulk Supplies or Wholesale Goods to Donate?',
+    subtitle: 'Connect with our procurement and logistics desk to coordinate vendor deliveries.',
+    ctaText: 'Contact Procurement Desk',
+    ctaLink: '/contact',
+    order: 3,
+    isVisible: true,
+    settings: {},
+  },
+];
+
+export const INITIAL_CONTACT_SECTIONS: PageSection[] = [
+  {
+    id: 'sec-contact-hero',
+    pageSlug: 'contact',
+    type: 'hero',
+    title: 'We’re Here to Help You',
+    subtitle: 'Have questions regarding your 80G tax receipt, setting up an emergency medical fundraiser, or partner NGO verification? Reach out to our dedicated support desk.',
+    badge: 'Direct Support Desk',
+    ctaText: 'Send a Message',
+    ctaLink: '#form',
+    order: 0,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-contact-faq',
+    pageSlug: 'contact',
+    type: 'faq',
+    title: 'Frequently Asked Questions',
+    subtitle: 'Quick answers to the most common inquiries before you submit a ticket.',
+    order: 1,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-contact-cta',
+    pageSlug: 'contact',
+    type: 'cta_box',
+    title: 'Medical Emergency Helpline',
+    subtitle: 'Our patient support desk works 24/7 to coordinate ICU emergency verifications.',
+    ctaText: 'Start Emergency Campaign',
+    ctaLink: '/start-campaign',
+    order: 2,
+    isVisible: true,
+    settings: {},
+  },
+];
+
+export const INITIAL_HELP_SECTIONS: PageSection[] = [
+  {
+    id: 'sec-help-hero',
+    pageSlug: 'help',
+    type: 'hero',
+    title: 'Help Center & Knowledge Base',
+    subtitle: 'Learn about donation security, Section 80G tax deductions, verification standards, and recurring monthly giving.',
+    badge: 'Support & FAQs',
+    ctaText: 'Browse Knowledge Base',
+    ctaLink: '#faqs',
+    order: 0,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-help-faq',
+    pageSlug: 'help',
+    type: 'faq',
+    title: 'Comprehensive Knowledge Base & FAQs',
+    subtitle: 'Detailed answers to donor, organizer, and NGO questions.',
+    order: 1,
+    isVisible: true,
+    settings: {},
+  },
+  {
+    id: 'sec-help-cta',
+    pageSlug: 'help',
+    type: 'cta_box',
+    title: 'Still Have Unanswered Questions?',
+    subtitle: 'Our customer support and grievance officers respond within 24 hours.',
+    ctaText: 'Submit a Support Ticket',
+    ctaLink: '/contact',
+    order: 2,
+    isVisible: true,
+    settings: {},
+  },
+];
+
+export function getInitialSectionsForSlug(slug: string): PageSection[] {
+  switch (slug) {
+    case 'home':
+      return JSON.parse(JSON.stringify(INITIAL_HOME_SECTIONS));
+    case 'about':
+      return JSON.parse(JSON.stringify(INITIAL_ABOUT_SECTIONS));
+    case 'how-it-works':
+      return JSON.parse(JSON.stringify(INITIAL_HOW_IT_WORKS_SECTIONS));
+    case 'campaigns':
+      return JSON.parse(JSON.stringify(INITIAL_CAMPAIGNS_SECTIONS));
+    case 'monthly-giving':
+      return JSON.parse(JSON.stringify(INITIAL_MONTHLY_SECTIONS));
+    case 'product-giving':
+      return JSON.parse(JSON.stringify(INITIAL_PRODUCT_SECTIONS));
+    case 'contact':
+    case 'contact-faq':
+      return JSON.parse(JSON.stringify(INITIAL_CONTACT_SECTIONS));
+    case 'help':
+    case 'faq':
+      return JSON.parse(JSON.stringify(INITIAL_HELP_SECTIONS));
+    default:
+      return JSON.parse(JSON.stringify(INITIAL_HOME_SECTIONS)).map((s: PageSection) => ({
+        ...s,
+        id: `sec-${slug}-${s.type}`,
+        pageSlug: slug,
+      }));
+  }
+}

@@ -1,3 +1,4 @@
+import { db } from '@/lib/db';
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +14,11 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function HowItWorksPage() {
+  const publishedSections = db.getPublishedPageSections('how-it-works');
+  const heroSec = publishedSections.find((s) => s.type === 'hero' && s.isVisible !== false);
   return (
     <div className="py-12 bg-[#FAF9F6] min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -29,13 +34,13 @@ export default function HowItWorksPage() {
         {/* Hero */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <span className="bg-[#FFF0EF] text-[#E84B45] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-            Transparent Giving Architecture
+            {heroSec?.badge || 'Transparent Giving Architecture'}
           </span>
           <h1 className="text-3xl sm:text-5xl font-black text-[#202124] tracking-tight">
-            How dokind Bridges Donors & Genuine Causes
+            {heroSec?.title || 'How dokind Bridges Donors & Genuine Causes'}
           </h1>
           <p className="text-sm text-[#555B63] leading-relaxed">
-            A step-by-step breakdown of how medical verification, secure payments, and direct hospital disbursements happen in practice.
+            {heroSec?.subtitle || 'A step-by-step breakdown of how medical verification, secure payments, and direct hospital disbursements happen in practice.'}
           </p>
         </div>
 

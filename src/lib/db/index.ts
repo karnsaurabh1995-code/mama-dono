@@ -54,7 +54,7 @@ import { STORIES_DATA } from '../data/stories';
 import { BLOGS_DATA } from '../data/blogs';
 import { FAQS_DATA } from '../data/faqs';
 import { INITIAL_DONATIONS_DATA } from '../data/donations';
-import { INITIAL_HOME_SECTIONS } from '../data/builder-sections';
+import { INITIAL_HOME_SECTIONS, getInitialSectionsForSlug } from '../data/builder-sections';
 import { normalizePhoneNumber, arePhonesEqual } from '../auth/phone';
 import { INITIAL_GATEWAYS_DATA } from '../data/gateways';
 import { INITIAL_MEDIA_DATA } from '../data/media';
@@ -820,6 +820,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     }
   }
 
+  private lastDiskMtime: number = 0;
+
   public loadPersistedState(): void {
     if (!this.isNode()) return;
     const filePath = this.getPersistencePath();
@@ -830,6 +832,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       if (fs.existsSync(filePath)) {
         const raw = fs.readFileSync(filePath, 'utf-8');
         this.importDatabaseSnapshot(raw, 'System Initialization (Auto-Restore)');
+        try {
+          this.lastDiskMtime = fs.statSync(filePath).mtimeMs;
+        } catch {}
       }
     } catch (err) {
       console.error('[DatabaseStore] Could not load persisted state from disk:', err);
@@ -846,12 +851,35 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       if (fs.existsSync(filePath)) {
         const raw = fs.readFileSync(filePath, 'utf-8');
         this.importDatabaseSnapshot(raw, 'Explicit Disk Reload');
+        try {
+          this.lastDiskMtime = fs.statSync(filePath).mtimeMs;
+        } catch {}
         return true;
       }
     } catch (err) {
       console.error('[DatabaseStore] Could not reload persisted state from disk:', err);
     }
     return false;
+  }
+
+  public syncWithDiskIfChanged(): void {
+    if (!this.isNode()) return;
+    const filePath = this.getPersistencePath();
+    if (!filePath) return;
+    try {
+      const nodeRequire = (globalThis as any)['require'] || eval('require');
+      const fs = nodeRequire('fs');
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (stats.mtimeMs > this.lastDiskMtime) {
+          const raw = fs.readFileSync(filePath, 'utf-8');
+          this.importDatabaseSnapshot(raw, 'Disk Change Auto-Sync');
+          this.lastDiskMtime = stats.mtimeMs;
+        }
+      }
+    } catch {
+      // Ignore sync errors during hot access
+    }
   }
 
   public persistState(): boolean {
@@ -877,6 +905,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         fs.copyFileSync(tempPath, filePath);
         try { fs.unlinkSync(tempPath); } catch {}
       }
+      try {
+        this.lastDiskMtime = fs.statSync(filePath).mtimeMs;
+      } catch {}
       this.notifySubscribers('database_persisted', { timestamp: new Date().toISOString() });
       return true;
     } catch (err) {
@@ -2077,6 +2108,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
 
   // Settings & Audit Logs
   getSiteSettings(): SiteSettings {
+    this.syncWithDiskIfChanged();
     return { ...this.settings };
   }
 
@@ -2096,6 +2128,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   }
 
   getHomepageCuration(): HomepageCurationConfig {
+    this.syncWithDiskIfChanged();
     if (!this.settings.homepageCuration) {
       this.settings.homepageCuration = {
         heroCampaignIds: [
@@ -2294,18 +2327,15 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
 
   // ---------------- WEBSITE BUILDER ----------------
   getPageSections(pageSlug: string): PageSection[] {
-    if (!this.pageSections[pageSlug]) {
-      // Default to empty or cloned home sections
-      this.pageSections[pageSlug] = [...INITIAL_HOME_SECTIONS].map((s) => ({
-        ...s,
-        id: `sec-${pageSlug}-${Math.random().toString(36).substring(2, 7)}`,
-        pageSlug,
-      }));
+    this.syncWithDiskIfChanged();
+    if (!this.pageSections[pageSlug] || this.pageSections[pageSlug].length === 0) {
+      this.pageSections[pageSlug] = getInitialSectionsForSlug(pageSlug);
     }
     return [...this.pageSections[pageSlug]].sort((a, b) => a.order - b.order);
   }
 
   getPublishedPageSections(pageSlug: string): PageSection[] {
+    this.syncWithDiskIfChanged();
     const versions = this.pageVersions[pageSlug];
     if (versions && versions.length > 0) {
       const latest = versions[0];
@@ -2375,6 +2405,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   }
 
   getPageVersions(pageSlug: string): PageVersion[] {
+    this.syncWithDiskIfChanged();
     return this.pageVersions[pageSlug] || [];
   }
 
@@ -4991,17 +5022,15 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   }
 }
 
-// Global Singleton to ensure persistence across Hot Module Reloading in Next.js development
+// Global Singleton to ensure shared in-memory state across all environments
 declare global {
   var __dokind_db__: DatabaseStore | undefined;
 }
 
-if (global.__dokind_db__) {
+if (!global.__dokind_db__) {
+  global.__dokind_db__ = new DatabaseStore();
+} else {
   Object.setPrototypeOf(global.__dokind_db__, DatabaseStore.prototype);
 }
 
-export const db = global.__dokind_db__ || new DatabaseStore();
-
-if (process.env.NODE_ENV !== 'production') {
-  global.__dokind_db__ = db;
-}
+export const db = global.__dokind_db__;

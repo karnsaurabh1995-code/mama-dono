@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import React from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
@@ -6,6 +7,8 @@ import { ChevronRight, PackageCheck, Truck, ShieldCheck, CheckCircle2 } from 'lu
 
 export default function ProductGivingDirectoryPage() {
   const products = db.getProducts();
+  const publishedSections = db.getPublishedPageSections('product-giving');
+  const heroSec = publishedSections.find((s) => s.type === 'hero' && s.isVisible !== false);
 
   return (
     <div className="py-10 bg-[#FAF9F6] min-h-screen">
@@ -24,13 +27,13 @@ export default function ProductGivingDirectoryPage() {
           <div className="max-w-2xl space-y-4 relative z-10">
             <span className="bg-amber-600/40 text-amber-200 border border-amber-400/30 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full inline-flex items-center gap-1.5">
               <PackageCheck className="w-3.5 h-3.5" />
-              <span>DonateKart Inspired Physical Giving</span>
+              <span>{heroSec?.badge || 'DonateKart Inspired Physical Giving'}</span>
             </span>
             <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Don’t Just Donate Money. Donate Tangible Essentials.
+              {heroSec?.title || 'Don’t Just Donate Money. Donate Tangible Essentials.'}
             </h1>
             <p className="text-sm sm:text-base text-amber-100 leading-relaxed">
-              Every item is requisitioned by on-ground NGOs, procured directly at wholesale prices, and distributed with geotagged photo proof sent straight to your email.
+              {heroSec?.subtitle || 'Every item is requisitioned by on-ground NGOs, procured directly at wholesale prices, and distributed with geotagged photo proof sent straight to your email.'}
             </p>
           </div>
         </div>

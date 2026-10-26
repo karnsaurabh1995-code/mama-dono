@@ -17,7 +17,7 @@ interface Mission {
 }
 
 interface MonthlyDonationSectionProps {
-  missions: Mission[];
+  missions?: Mission[];
   title?: string;
   subtitle?: string;
   badge?: string;
@@ -26,7 +26,7 @@ interface MonthlyDonationSectionProps {
 }
 
 export function MonthlyDonationSection({
-  missions,
+  missions = [],
   title,
   subtitle,
   badge,

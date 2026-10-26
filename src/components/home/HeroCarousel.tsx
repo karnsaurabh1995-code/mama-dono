@@ -60,16 +60,30 @@ const DEFAULT_HERO_SLIDES: HeroSlide[] = [
 
 interface HeroCarouselProps {
   initialCampaigns?: Campaign[];
+  title?: string;
+  subtitle?: string;
+  badge?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  settings?: Record<string, any>;
 }
 
-export function HeroCarousel({ initialCampaigns }: HeroCarouselProps) {
+export function HeroCarousel({
+  initialCampaigns,
+  title,
+  subtitle,
+  badge,
+  ctaText,
+  ctaLink,
+  settings,
+}: HeroCarouselProps) {
   const router = useRouter();
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Transform campaigns into curated slides, or fall back to default slides
-  const slides: HeroSlide[] =
+  const baseSlides: HeroSlide[] =
     initialCampaigns && initialCampaigns.length > 0
       ? initialCampaigns.map((camp) => ({
           id: camp.id,
@@ -92,6 +106,23 @@ export function HeroCarousel({ initialCampaigns }: HeroCarouselProps) {
           },
         }))
       : DEFAULT_HERO_SLIDES;
+
+  // Apply configured hero section overrides from Website Builder to the lead slide
+  const slides: HeroSlide[] = baseSlides.map((s, idx) => {
+    if (idx === 0) {
+      return {
+        ...s,
+        headline: title && title.trim() ? title.trim() : s.headline,
+        subtext: subtitle && subtitle.trim() ? subtitle.trim() : s.subtext,
+        verificationBadgeText: badge && badge.trim() ? badge.trim() : s.verificationBadgeText,
+        primaryAction: {
+          label: ctaText && ctaText.trim() ? ctaText.trim() : s.primaryAction.label,
+          href: ctaLink && ctaLink.trim() ? ctaLink.trim() : s.primaryAction.href,
+        },
+      };
+    }
+    return s;
+  });
 
   const nextSlide = () => {
     setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
@@ -150,7 +181,10 @@ export function HeroCarousel({ initialCampaigns }: HeroCarouselProps) {
         {/* Split-Panel Composition: Left Charcoal Text Panel + Right Photographic Panel */}
         <div className="flex flex-col md:flex-row min-h-[540px] md:min-h-[560px] lg:min-h-[580px] xl:min-h-[620px] w-full items-stretch">
           {/* Left Solid Charcoal Text Panel (~48% desktop width, generous breathing room) */}
-          <div className="w-full md:w-1/2 lg:w-[48%] shrink-0 flex flex-col justify-between p-6 sm:p-8 md:p-10 lg:p-12 xl:p-14 z-20 relative bg-[#18191B] order-2 md:order-1">
+          <div
+            className="w-full md:w-1/2 lg:w-[48%] shrink-0 flex flex-col justify-between p-6 sm:p-8 md:p-10 lg:p-12 xl:p-14 z-20 relative bg-[#18191B] order-2 md:order-1"
+            style={{ backgroundColor: settings?.bgColor || undefined }}
+          >
             <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-500">
               {/* Badges: Category & Verification */}
               <div className="flex items-center gap-2.5 flex-wrap">
@@ -167,7 +201,10 @@ export function HeroCarousel({ initialCampaigns }: HeroCarouselProps) {
               </div>
 
               {/* Crisp pure white headline */}
-              <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-[40px] font-black !text-white tracking-tight leading-[1.18] drop-shadow-xs max-w-xl group-hover:text-[#FFF0EF] transition-colors">
+              <h1
+                className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-[40px] font-black !text-white tracking-tight leading-[1.18] drop-shadow-xs max-w-xl group-hover:text-[#FFF0EF] transition-colors"
+                style={{ color: settings?.textColor || undefined }}
+              >
                 {slide.headline}
               </h1>
 
