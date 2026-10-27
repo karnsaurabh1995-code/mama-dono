@@ -28,7 +28,7 @@ async function runTests() {
     const singleEmp = db.createEmployee(
       {
         name: 'Aarav Gupta Single',
-        email: 'aarav.single832467.${Date.now()}.${Math.floor(Math.random()*10000)}@dokind.org.in',
+        email: 'test_emp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000) + '@dokind.org.in',
         role: 'lead_generator',
         department: 'Campaign Outreach',
         jobTitle: 'Lead Generator',
@@ -54,7 +54,7 @@ async function runTests() {
     const dualEmp = db.createEmployee(
       {
         name: 'Pooja Verma Dual',
-        email: 'pooja.dual.${Date.now()}.${Math.floor(Math.random()*10000)}@dokind.org.in',
+        email: 'test_emp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000) + '@dokind.org.in',
         role: 'lead_generator',
         secondaryRole: 'content_writer',
         department: 'Outreach & Editorial',
@@ -84,7 +84,7 @@ async function runTests() {
       db.createEmployee(
         {
           name: 'Triple Role Candidate',
-          email: 'triple.fail.${Date.now()}.${Math.floor(Math.random()*10000)}@dokind.org.in',
+          email: 'test_emp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000) + '@dokind.org.in',
           role: 'lead_generator',
           roles: ['lead_generator', 'content_writer', 'reviewer'] as UserRole[],
           department: 'Overloaded',
@@ -112,7 +112,7 @@ async function runTests() {
     const empToUpdate = db.createEmployee(
       {
         name: 'Ramesh Updatable',
-        email: 'ramesh.update.${Date.now()}.${Math.floor(Math.random()*10000)}@dokind.org.in',
+        email: 'test_emp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000) + '@dokind.org.in',
         role: 'content_writer',
       },
       superAdmin
@@ -144,7 +144,7 @@ async function runTests() {
     const emp = db.createEmployee(
       {
         name: 'Strict Limit Target',
-        email: 'limit.target832467.${Date.now()}.${Math.floor(Math.random()*10000)}@dokind.org.in',
+        email: 'test_emp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000) + '@dokind.org.in',
         role: 'reviewer',
       },
       superAdmin
@@ -179,7 +179,7 @@ async function runTests() {
     const empWithTwo = db.createEmployee(
       {
         name: 'Meena Dual Remove',
-        email: 'meena.remove832467.${Date.now()}.${Math.floor(Math.random()*10000)}@dokind.org.in',
+        email: 'test_emp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000) + '@dokind.org.in',
         role: 'lead_generator',
         secondaryRole: 'content_writer',
       },
@@ -211,7 +211,7 @@ async function runTests() {
     const dupEmp = db.createEmployee(
       {
         name: 'Duplicate Role Test',
-        email: 'dup.role832467.${Date.now()}.${Math.floor(Math.random()*10000)}@dokind.org.in',
+        email: 'test_emp_' + Date.now() + '_' + Math.floor(Math.random() * 1000000) + '@dokind.org.in',
         role: 'reviewer',
         secondaryRole: 'reviewer', // duplicate
       },
