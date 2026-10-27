@@ -64,7 +64,7 @@ export function AuthProvider({
   useEffect(() => {
     try {
       const savedUser =
-        localStorage.getItem('dokind_user') || localStorage.getItem('sevasetu_user');
+        localStorage.getItem('dokind_user') || localStorage.getItem('dokind_user');
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
         // If initialUser was not supplied by server (e.g. cookie missing on first visit), adopt localStorage
@@ -137,7 +137,7 @@ export function AuthProvider({
   const logout = () => {
     setUser(null);
     localStorage.removeItem('dokind_user');
-    localStorage.removeItem('sevasetu_user');
+    localStorage.removeItem('dokind_user');
     syncCookie(null);
   };
 

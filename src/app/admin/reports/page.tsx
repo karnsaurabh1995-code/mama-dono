@@ -51,7 +51,7 @@ export default function ExportReportsPage() {
       d.amount,
       'YES (50% Deduction under Sec 80G)',
     ]);
-    downloadCSV(`sevasetu_80G_tax_report_${Date.now()}.csv`, headers, rows);
+    downloadCSV(`dokind_80G_tax_report_${Date.now()}.csv`, headers, rows);
   };
 
   // 2. All Transactions Master Ledger
@@ -71,7 +71,7 @@ export default function ExportReportsPage() {
       d.razorpayOrderId,
       d.paymentMethod,
     ]);
-    downloadCSV(`sevasetu_master_ledger_${Date.now()}.csv`, headers, rows);
+    downloadCSV(`dokind_master_ledger_${Date.now()}.csv`, headers, rows);
   };
 
   // 3. Campaign Performance Summary
@@ -90,7 +90,7 @@ export default function ExportReportsPage() {
       c.has80G ? 'YES' : 'NO',
       `"${c.organizerName}"`,
     ]);
-    downloadCSV(`sevasetu_campaigns_summary_${Date.now()}.csv`, headers, rows);
+    downloadCSV(`dokind_campaigns_summary_${Date.now()}.csv`, headers, rows);
   };
 
   // 4. Offline Wire Vouchers Report
@@ -109,7 +109,7 @@ export default function ExportReportsPage() {
       w.status,
       w.reconciledBy || 'Pending',
     ]);
-    downloadCSV(`sevasetu_bank_wire_reconciliations_${Date.now()}.csv`, headers, rows);
+    downloadCSV(`dokind_bank_wire_reconciliations_${Date.now()}.csv`, headers, rows);
   };
 
   return (

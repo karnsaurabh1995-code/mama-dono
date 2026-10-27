@@ -39,18 +39,39 @@ DROP POLICY IF EXISTS "Public read active published pages" ON public.page_publis
 DROP POLICY IF EXISTS "Admins manage page drafts" ON public.page_drafts;
 DROP POLICY IF EXISTS "Admins manage published versions" ON public.page_published_versions;
 
--- Public can read active published page versions
+-- Public can read active published page versions only
 CREATE POLICY "Public read active published pages"
   ON public.page_published_versions FOR SELECT
   USING (is_active = TRUE);
 
--- Super admins, content editors, and authenticated server clients can manage drafts and versions
+-- Service role and authenticated administrators can manage page drafts
 CREATE POLICY "Admins manage page drafts"
   ON public.page_drafts FOR ALL
-  USING (true);
+  TO authenticated, service_role
+  USING (
+    auth.role() = 'service_role' OR
+    (auth.jwt() ->> 'role') IN ('super_admin', 'admin', 'content_editor') OR
+    (auth.jwt() -> 'app_metadata' ->> 'role') IN ('super_admin', 'admin', 'content_editor')
+  )
+  WITH CHECK (
+    auth.role() = 'service_role' OR
+    (auth.jwt() ->> 'role') IN ('super_admin', 'admin', 'content_editor') OR
+    (auth.jwt() -> 'app_metadata' ->> 'role') IN ('super_admin', 'admin', 'content_editor')
+  );
 
+-- Service role and authenticated administrators can manage published versions
 CREATE POLICY "Admins manage published versions"
   ON public.page_published_versions FOR ALL
-  USING (true);
+  TO authenticated, service_role
+  USING (
+    auth.role() = 'service_role' OR
+    (auth.jwt() ->> 'role') IN ('super_admin', 'admin', 'content_editor') OR
+    (auth.jwt() -> 'app_metadata' ->> 'role') IN ('super_admin', 'admin', 'content_editor')
+  )
+  WITH CHECK (
+    auth.role() = 'service_role' OR
+    (auth.jwt() ->> 'role') IN ('super_admin', 'admin', 'content_editor') OR
+    (auth.jwt() -> 'app_metadata' ->> 'role') IN ('super_admin', 'admin', 'content_editor')
+  );
 
 COMMIT;

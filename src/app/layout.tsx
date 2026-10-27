@@ -18,21 +18,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'dokind — Transparent Crowdfunding & Compassionate Giving in India',
+  title: 'Dokind — Transparent Crowdfunding & Compassionate Giving in India',
   description:
     'Small acts. Real impact. Support urgent pediatric surgeries, rural child education, hospital meals, and verified grassroots non-profits across India with 100% transparent Section 80G tax benefits.',
   keywords: [
-    'dokind',
+    'Dokind',
     'crowdfunding India',
     'medical fundraiser',
     '80G tax benefit donation',
     'verified NGO donation',
-    'Give.do alternative',
-    'DonateKart alternative',
     'monthly giving India',
     'product giving',
   ],
-  authors: [{ name: 'dokind Foundation' }],
+  authors: [{ name: 'Dokind Foundation' }],
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://dokind.org.in'),
   icons: {
     icon: '/dokind-icon.svg',
@@ -40,17 +38,17 @@ export const metadata: Metadata = {
     apple: '/dokind-icon.svg',
   },
   openGraph: {
-    title: 'dokind — Small acts. Real impact. Transparent Indian Crowdfunding',
+    title: 'Dokind — Small acts. Real impact. Transparent Indian Crowdfunding',
     description:
-      'Verified crowdfunding for emergency surgeries, child education, food relief, and audited grassroots non-profits.',
+      'Verified crowdfunding for emergency surgeries, child education, food relief, and audited grassroots non-profits across India.',
     url: 'https://dokind.org.in',
-    siteName: 'dokind',
+    siteName: 'Dokind',
     images: [
       {
         url: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80',
         width: 1200,
         height: 630,
-        alt: 'dokind India Crowdfunding',
+        alt: 'Dokind India Crowdfunding',
       },
     ],
     locale: 'en_IN',
@@ -58,7 +56,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'dokind — India’s Trusted Giving Platform',
+    title: "Dokind — India's Trusted Giving Platform",
     description:
       'Support verified medical and educational campaigns in India with 80G tax deduction receipts.',
   },

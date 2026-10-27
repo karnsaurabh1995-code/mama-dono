@@ -34,7 +34,7 @@ export default function NewsletterMarketingPage() {
     const encoded = encodeURI(csvContent);
     const a = document.createElement('a');
     a.href = encoded;
-    a.download = `sevasetu_newsletter_subscribers_${Date.now()}.csv`;
+    a.download = `dokind_newsletter_subscribers_${Date.now()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

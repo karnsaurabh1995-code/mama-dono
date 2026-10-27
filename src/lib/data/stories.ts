@@ -10,7 +10,7 @@ export const STORIES_DATA: ImpactStory[] = [
 
 Priya's father works as an agricultural laborer in rural Dharmapuri, earning less than ₹8,000 monthly. The cost of advanced multi-channel cochlear implants, surgery, and 2 years of auditory-verbal therapy was astronomical.
 
-Through a verified community campaign on SevaSetu, 540 donors raised ₹13,20,000 in just 26 days. Today, Priya is enrolled in standard first grade, learning Tamil and English alongside her peers.`,
+Through a verified community campaign on Dokind, 540 donors raised ₹13,20,000 in just 26 days. Today, Priya is enrolled in standard first grade, learning Tamil and English alongside her peers.`,
     imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1000&q=80',
     author: 'Asha Jyoti Medical Social Work Team',
     category: 'medical',

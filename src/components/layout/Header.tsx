@@ -352,13 +352,16 @@ export function Header() {
                   )}
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => openLogin()}
+                <Link
+                  href="/login"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openLogin();
+                  }}
                   className="inline-flex items-center justify-center text-xs xl:text-sm font-semibold text-[#202124] hover:text-[#EF4949] px-4.5 xl:px-5 py-2.5 rounded-full hover:bg-[#FAF9F6] border border-[#EAE7E2] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   Log In
-                </button>
+                </Link>
               )}
             </div>
           </div>

@@ -18,7 +18,7 @@ function assert(condition: boolean, message: string) {
 }
 
 console.log('================================================================');
-console.log('SEVASETU PLATFORM — COMPREHENSIVE VERIFICATION & TEST SUITE');
+console.log('DOKIND PLATFORM — COMPREHENSIVE VERIFICATION & TEST SUITE');
 console.log('================================================================\n');
 
 // 1. Indian Currency Formatter Tests

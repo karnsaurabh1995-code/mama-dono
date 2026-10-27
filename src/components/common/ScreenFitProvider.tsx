@@ -125,7 +125,7 @@ export function ScreenFitProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       {/* Responsive Screen Fit Floating Controller */}
-      {!isDismissed && (
+      {process.env.NEXT_PUBLIC_ENABLE_SCREEN_HUD === 'true' && !isDismissed && (
         <aside
           aria-label="Responsive Screen Fit Controller"
           className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-50 pointer-events-auto print:hidden font-sans"

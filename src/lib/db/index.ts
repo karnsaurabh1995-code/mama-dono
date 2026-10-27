@@ -4654,7 +4654,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         imageUrl: sub.proposedArtwork?.mainPosterUrl || 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=80',
         beneficiaryName: sub.proposedBeneficiaryName || 'Field Community',
         beneficiaryLocation: sub.proposedBeneficiaryLocation || 'India',
-        organizerName: 'SevaSetu Foundation',
+        organizerName: 'Dokind Foundation',
         organizerRole: 'organization',
         organizerId: 'org-hope-india',
         itemizedBudget: [],

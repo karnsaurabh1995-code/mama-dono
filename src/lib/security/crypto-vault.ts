@@ -16,12 +16,21 @@ const AUTH_TAG_LENGTH = 16; // 128 bits authentication tag
 
 /**
  * Derives a consistent 256-bit (32 byte) master key from environment secrets.
+ * Throws a fatal configuration error in production if no master key is supplied.
  */
 function getMasterKey(): Buffer {
-  const rawKey =
-    process.env.ENCRYPTION_MASTER_KEY ||
-    process.env.AUTH_SECRET ||
-    'dokind-master-crypto-secret-key-32bytes-min-2026';
+  const rawKey = process.env.ENCRYPTION_MASTER_KEY || process.env.AUTH_SECRET;
+
+  if (!rawKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'FATAL: ENCRYPTION_MASTER_KEY or AUTH_SECRET environment variable must be set in production to encrypt/decrypt secrets.'
+      );
+    }
+    // In local non-production development, use an explicit development fallback if not set
+    const devFallbackKey = 'dokind-local-dev-only-master-crypto-secret-key-32bytes';
+    return crypto.createHash('sha256').update(devFallbackKey).digest();
+  }
 
   // Use SHA-256 to guarantee exact 32 bytes for AES-256
   return crypto.createHash('sha256').update(rawKey).digest();
@@ -85,15 +94,16 @@ export function decryptSecret(ciphertext: string): string {
     let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
-  } catch (err: any) {
-    console.error('Failed to decrypt secret with master key:', err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Failed to decrypt secret with master key:', msg);
     return '';
   }
 }
 
 /**
  * Produces a safe, non-revealing display mask for an API key or secret.
- * e.g., '••••••••••••1a8f' or 'Unconfigured'
+ * e.g., '••••••••••••1a8f' or 'Not Configured'
  */
 export function maskSecret(secret?: string, visibleChars = 4): string {
   if (!secret) return 'Not Configured';

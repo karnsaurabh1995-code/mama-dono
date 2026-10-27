@@ -194,7 +194,7 @@ export default function TaxReceiptViewPage() {
               1. This is to certify that the donation amount mentioned above has been received with thanks as a voluntary contribution towards charitable objectives of health and relief.
             </p>
             <p>
-              2. Donations to SevaSetu Foundation are eligible for deduction under Section 80G(5)(vi) of the Income Tax Act, 1961. This transaction will be reported in annual Form 10BD for donor credit into AIS (Annual Information Statement).
+              2. Donations to Dokind Foundation are eligible for deduction under Section 80G(5)(vi) of the Income Tax Act, 1961. This transaction will be reported in annual Form 10BD for donor credit into AIS (Annual Information Statement).
             </p>
             <p>
               3. No goods, commercial favors, or services were provided in consideration for this charitable contribution.
@@ -204,7 +204,7 @@ export default function TaxReceiptViewPage() {
           {/* Signatures */}
           <div className="flex items-end justify-between pt-6 border-t border-neutral-200 text-xs text-neutral-600">
             <div>
-              <span className="font-bold text-[#202124]">SevaSetu Foundation</span>
+              <span className="font-bold text-[#202124]">Dokind Foundation</span>
               <p className="text-[11px] text-neutral-400">Authorized Signatory</p>
             </div>
             <div className="text-right text-[10px] text-neutral-400 font-mono">

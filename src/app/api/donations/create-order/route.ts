@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     });
 
     const dbGateway = db.getDecryptedGateway('razorpay');
-    const razorpayKeyId = dbGateway?.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_SevaSetu2026';
+    const razorpayKeyId = dbGateway?.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_Dokind2026';
     const isLiveGatewayConfigured = Boolean(
       (dbGateway?.secretKey || process.env.RAZORPAY_KEY_SECRET) &&
       (dbGateway?.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID)

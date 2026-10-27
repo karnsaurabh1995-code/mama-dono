@@ -33,7 +33,7 @@ function runStaffAndItemsTestSuite() {
     imageUrl: 'https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=1200&q=80',
     beneficiaryName: 'Displaced Riverine Villages',
     beneficiaryLocation: 'Barpeta District, Assam',
-    organizerName: 'SevaSetu Disaster Operations',
+    organizerName: 'Dokind Disaster Operations',
     organizerRole: 'organization',
     organizerId: 'org-hope-india',
     itemizedBudget: [

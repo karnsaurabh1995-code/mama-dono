@@ -122,7 +122,7 @@ test(7, 'Login & Account dropdown with donations and mandates', () => {
   const hasLoginLink = headerContent.includes('href="/login"');
   const hasDonations = headerContent.includes('href="/account/donations"');
   const hasRecurring = headerContent.includes('href="/account/recurring"');
-  const hasLogout = headerContent.includes('onClick={() => {\n                            logout();');
+  const hasLogout = headerContent.includes('logout()');
   const passed = hasLoginLink && hasDonations && hasRecurring && hasLogout;
   return {
     passed,

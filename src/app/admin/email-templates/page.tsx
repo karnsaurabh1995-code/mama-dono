@@ -60,7 +60,7 @@ export default function EmailTemplatesPage() {
     .replace(/{{date}}/g, '23 October 2026')
     .replace(/{{payment_method}}/g, 'UPI (Google Pay)')
     .replace(/{{organizer_name}}/g, 'Ramesh Devendra')
-    .replace(/{{campaign_url}}/g, 'https://sevasetu.org.in/campaigns/aarav-heart-surgery');
+    .replace(/{{campaign_url}}/g, 'https://dokind.org.in/campaigns/aarav-heart-surgery');
 
   return (
     <div className="space-y-6">
@@ -178,7 +178,7 @@ export default function EmailTemplatesPage() {
               <strong className="text-neutral-800">Subject:</strong> {subject}
             </p>
             <p className="text-neutral-500 mt-1">
-              <strong className="text-neutral-800">From:</strong> SevaSetu Foundation &lt;donations@sevasetu.org.in&gt;
+              <strong className="text-neutral-800">From:</strong> Dokind Foundation &lt;donations@dokind.org.in&gt;
             </p>
           </div>
 

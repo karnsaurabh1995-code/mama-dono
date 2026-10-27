@@ -46,7 +46,7 @@ export default function AuditLogsPage() {
     const encoded = encodeURI(csvContent);
     const a = document.createElement('a');
     a.setAttribute('href', encoded);
-    a.setAttribute('download', `sevasetu_audit_trail_${Date.now()}.csv`);
+    a.setAttribute('download', `dokind_audit_trail_${Date.now()}.csv`);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

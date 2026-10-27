@@ -30,7 +30,7 @@ export default function AdminPagesCMS() {
     { slug: 'campaigns', title: 'Campaign Directory & Filters', type: 'system', status: 'published', sectionsCount: 6, lastUpdated: '2026-10-20' },
     { slug: 'monthly-giving', title: 'Monthly Missions & Sustained Giving', type: 'system', status: 'published', sectionsCount: 5, lastUpdated: '2026-10-18' },
     { slug: 'product-giving', title: 'Product Giving Essentials Catalog', type: 'system', status: 'published', sectionsCount: 5, lastUpdated: '2026-10-15' },
-    { slug: 'about', title: 'About SevaSetu & Trust Principles', type: 'system', status: 'published', sectionsCount: 4, lastUpdated: '2026-10-12' },
+    { slug: 'about', title: 'About Dokind & Trust Principles', type: 'system', status: 'published', sectionsCount: 4, lastUpdated: '2026-10-12' },
     { slug: 'how-it-works', title: 'How It Works Dual Journey', type: 'system', status: 'published', sectionsCount: 4, lastUpdated: '2026-10-10' },
     { slug: 'donate-checkout', title: 'Donation Checkout Microcopy', type: 'system', status: 'published', sectionsCount: 3, lastUpdated: '2026-10-21' },
     { slug: 'contact-faq', title: 'Help Center & FAQs', type: 'system', status: 'published', sectionsCount: 4, lastUpdated: '2026-10-19' },

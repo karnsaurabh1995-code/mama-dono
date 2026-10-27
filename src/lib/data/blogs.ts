@@ -5,20 +5,20 @@ export const BLOGS_DATA: BlogPost[] = [
     id: 'blog-80g-tax-guide-2026',
     slug: 'guide-to-section-80g-tax-deductions-charitable-donations',
     title: 'The Complete Guide to Section 80G Tax Deductions for Charitable Donations in India',
-    summary: 'Learn how your donations on SevaSetu reduce your taxable income under the Indian Income Tax Act, how Form 10BE certificates work, and how to verify 80G credentials.',
+    summary: 'Learn how your donations on Dokind reduce your taxable income under the Indian Income Tax Act, how Form 10BE certificates work, and how to verify 80G credentials.',
     content: `Under Section 80G of the Indian Income Tax Act, 1961, individual and corporate taxpayers can claim a deduction from their gross total income for donations made to eligible charitable institutions and registered relief funds.
 
 ### What is Section 80G Deduction?
 When you donate to a verified non-profit organization that holds a valid Section 80G registration certificate issued by the Income Tax Department, up to 50% (or in specific central funds, 100%) of the donated amount qualifies as an eligible tax deduction, subject to qualifying limits (typically 10% of your Adjusted Gross Total Income).
 
-### How to Claim Your Deduction on SevaSetu
+### How to Claim Your Deduction on Dokind
 1. **Provide Your PAN**: To claim Section 80G tax benefits, providing your 10-digit Permanent Account Number (PAN) during checkout is mandatory under CBDT guidelines.
 2. **Instant 80G Receipt**: You receive an instantaneous donation acknowledgment receipt containing the NGO's 12A/80G unique registration number (URN) and transaction ID.
 3. **Annual Form 10BE Certificate**: Registered NGOs file Form 10BD with the Income Tax Department annually. The department then generates Form 10BE for donors, which automatically pre-fills in your AIS (Annual Information Statement) on the e-filing tax portal.
 
 ### Important Tax Compliance Tips
 - Cash donations exceeding ₹2,000 are not eligible for 80G deductions; always donate via digital payment methods (UPI, NetBanking, Debit/Credit Cards).
-- In-kind donations (e.g., donating old clothes directly) do not qualify for cash deductions under Section 80G. However, monetary sponsorships towards verified product campaigns on SevaSetu do qualify when routed through an 80G-certified nonprofit partner.`,
+- In-kind donations (e.g., donating old clothes directly) do not qualify for cash deductions under Section 80G. However, monetary sponsorships towards verified product campaigns on Dokind do qualify when routed through an 80G-certified nonprofit partner.`,
     category: 'Tax & Compliance',
     author: {
       name: 'CA Rajeshwari Iyer',
@@ -38,7 +38,7 @@ When you donate to a verified non-profit organization that holds a valid Section
     content: `When a loved one is faced with a sudden medical catastrophe—such as cancer, premature infant ICU care, organ failure, or road trauma—the emotional toll is overwhelming. Hospital estimates often exceed years of family savings in days.
 
 ### Essential Documents to Gather First
-Before launching an emergency fundraiser on SevaSetu, have digital copies of:
+Before launching an emergency fundraiser on Dokind, have digital copies of:
 - **Hospital Treatment Estimate Letter**: Signed on official hospital letterhead with the treating consultant doctor's stamp and estimated ICU/surgery costs.
 - **Diagnostic Reports**: Biopsy, CT/MRI scans, or pathology reports confirming the clinical diagnosis.
 - **Government ID**: Aadhaar Card or Voter ID of the patient and the legal guardian or campaigner.
@@ -48,7 +48,7 @@ Before launching an emergency fundraiser on SevaSetu, have digital copies of:
 1. **Be Transparent and Specific**: Clearly explain the patient's condition, what medical procedures have already occurred, and how much has already been spent from family savings.
 2. **Break Down the Budget**: Show line-item needs (e.g. ICU stay ₹3,00,000; Chemo drugs ₹4,50,000; Surgery ₹2,50,000). Donors trust itemized transparency.
 3. **Share Meaningful Updates**: When the patient enters surgery, moves out of the ICU, or begins physiotherapy, post regular updates with photos. Donors who see progress are inspired to share with their networks.
-4. **Direct Hospital Disbursement**: For maximum trust, SevaSetu allows direct fund transfers to the treating hospital's accounts upon verification.`,
+4. **Direct Hospital Disbursement**: For maximum trust, Dokind allows direct fund transfers to the treating hospital's accounts upon verification.`,
     category: 'Fundraiser Guides',
     author: {
       name: 'Dr. Alok Verma',
@@ -71,7 +71,7 @@ Product-giving represents a profound paradigm shift inspired by grassroots model
 
 ### The Mechanics of Product Giving
 - **Verified Demand**: Partner NGOs survey ground requirements and request specific items (e.g. 500 dry ration bags, 200 school uniforms, 50 folding wheelchairs).
-- **Direct Wholesale Procurement**: SevaSetu partners with certified wholesale manufacturers to secure supplies at bulk wholesale pricing, stretching every rupee further than retail purchases.
+- **Direct Wholesale Procurement**: Dokind partners with certified wholesale manufacturers to secure supplies at bulk wholesale pricing, stretching every rupee further than retail purchases.
 - **Fulfillment & Geotagged Proof**: Once a product campaign is funded, items are dispatched directly to the NGO's distribution camp. Donors receive photo and video evidence with timestamped and geotagged documentation showing beneficiaries receiving the items.`,
     category: 'Transparency',
     author: {

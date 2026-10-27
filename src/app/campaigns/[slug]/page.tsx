@@ -428,7 +428,7 @@ export default function CampaignDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* ================= LEFT COLUMN: MAIN CAMPAIGN CONTENT (8 Cols) ================= */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-8">
-            {/* 1. Campaign Main Poster Carousel (Interactive Multi-Poster Gallery Supporting 2-3 Posters) */}
+            {/* 1. Campaign Main Poster Carousel (aspect-[16/10] container with CampaignBadgeGroup overlay) */}
             <div className="space-y-4">
               <CampaignPosterCarousel
                 campaign={campaign}
@@ -1071,7 +1071,7 @@ export default function CampaignDetailPage() {
           </div>
 
           {/* ================= RIGHT COLUMN: STICKY DONATION PANEL (4 Cols) ================= */}
-          <div className="hidden lg:block lg:col-span-5 xl:col-span-4 sticky top-[80px] space-y-3.5">
+          <div className="hidden lg:block lg:col-span-5 xl:col-span-4 sticky top-24 space-y-3.5">
             {/* 1. Progress Summary Card */}
             <div className="bg-white rounded-3xl border border-[#E8E6E1] pt-3.5 px-4.5 pb-4 sm:pt-4 sm:px-5 sm:pb-4.5 shadow-xs space-y-3">
               {/* Monetary Progress */}
