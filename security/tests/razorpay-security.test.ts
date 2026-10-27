@@ -102,7 +102,7 @@ assert.strictEqual(
 console.log('✅ PASS 5: Tampered webhook body rejected.');
 
 // 6. Database payment completion idempotency test
-const campaign = db.getCampaigns()[0];
+const campaign = db.getCampaigns().find((c) => db.getCampaignItemNeeds(c.id).length > 0) || db.getCampaigns()[0];
 const initialRaised = campaign.raisedAmount;
 const initialSupporters = campaign.supporterCount;
 
