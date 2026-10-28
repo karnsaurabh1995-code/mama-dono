@@ -24,9 +24,9 @@ export const INITIAL_HOME_SECTIONS: PageSection[] = [
     id: 'sec-urgent-strip',
     pageSlug: 'home',
     type: 'urgent_strip',
-    title: 'Critical Medical Emergencies Requiring Urgent Funding Within 24-48 Hours',
-    subtitle: 'Direct hospital vendor guarantees ensure patient treatments start without administrative delay.',
-    badge: 'Emergency Alert',
+    title: '',
+    subtitle: '',
+    badge: '',
     order: 1,
     isVisible: true,
     settings: {

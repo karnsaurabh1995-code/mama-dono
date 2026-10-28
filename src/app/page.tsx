@@ -82,29 +82,6 @@ export default function HomePage() {
       case 'urgent_strip':
         return (
           <div className="mt-4 sm:mt-6" key={sec.id}>
-            {(sec.title || sec.badge || sec.subtitle) && (
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-red-50/70 border border-red-200/60 rounded-2xl px-4 py-2.5">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    {sec.badge && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-100 px-2.5 py-0.5 rounded-full border border-red-200">
-                        {sec.badge}
-                      </span>
-                    )}
-                    {sec.title && (
-                      <h3 className="text-xs sm:text-sm font-bold text-red-950 tracking-tight">
-                        {sec.title}
-                      </h3>
-                    )}
-                  </div>
-                  {sec.subtitle && (
-                    <p className="text-[11px] sm:text-xs text-red-700/90 font-medium">
-                      {sec.subtitle}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
             <LiveDonationTicker
               initialEvents={initialTickerEvents}
               mode={siteSettings.tickerMode}
