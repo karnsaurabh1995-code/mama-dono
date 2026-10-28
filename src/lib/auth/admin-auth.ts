@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { verifyPassword, hashPasswordSync } from './password';
 import { User, UserRole } from '@/lib/types';
@@ -72,6 +73,20 @@ export function clearAdminAttempts(identifier: string, ip: string): void {
   loginAttempts.delete(`${ip}:${cleanId}`);
 }
 
+export function resetAllAdminRateLimits(): void {
+  loginAttempts.clear();
+}
+
+function constantTimeCompare(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, 'utf-8');
+  const bBuf = Buffer.from(b, 'utf-8');
+  if (aBuf.length !== bBuf.length) {
+    crypto.timingSafeEqual(aBuf, aBuf);
+    return false;
+  }
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
 export async function authenticateAdmin(
   identifier: string,
   password: string
@@ -83,43 +98,84 @@ export async function authenticateAdmin(
   const clean = identifier.trim();
   const user = db.getUserByUsernameOrEmail(clean);
 
-  // If user does not exist or has no password hash or is suspended
-  if (!user || !user.passwordHash || user.status === 'suspended') {
-    return { success: false, error: 'Invalid Admin ID or Password.' };
-  }
-  // Verify password using timingSafeEqual
-  let passwordMatches = await verifyPassword(password, user.passwordHash);
-
-  // Fallback support for designated bootstrap admin passwords (sarthakraj726 / sarthak726)
-  if (!passwordMatches) {
-    const isSarthak = user.username === 'sarthakraj2009' || user.email === 'sarthakraj726@gmail.com';
-    const isSaurabh = user.username === 'karnsaurabh' || user.email === 'karnsaurabh1995@gmail.com';
-    if (isSarthak && (password === 'sarthakraj726' || password === 'sarthak726')) {
-      passwordMatches = true;
-      user.passwordHash = hashPasswordSync(password);
-      db.updateUser(user.id, { passwordHash: user.passwordHash });
-    } else if (isSaurabh && (password === 'sarthakraj726' || password === 'sarthak726' || password === 'saurabh1995' || password === 'karnsaurabh1995')) {
-      passwordMatches = true;
-      user.passwordHash = hashPasswordSync(password);
-      db.updateUser(user.id, { passwordHash: user.passwordHash });
-    }
-  }
-
-  if (!passwordMatches) {
+  // If user does not exist or is suspended -> reject with generic non-enumerating error
+  if (!user || user.status === 'suspended') {
     return { success: false, error: 'Invalid Admin ID or Password.' };
   }
 
-  // Verify role has administration access
-  const isSuperAdmin = user.role === 'super_admin' || (user.secondaryRole === 'super_admin');
-  const hasStaffRole = ALLOWED_ADMIN_ROLES.includes(user.role) || (user.secondaryRole && ALLOWED_ADMIN_ROLES.includes(user.secondaryRole));
+  // Verify role has administrative access
+  const isSuperAdmin = user.role === 'super_admin' || user.secondaryRole === 'super_admin';
+  const hasStaffRole =
+    ALLOWED_ADMIN_ROLES.includes(user.role) ||
+    (user.secondaryRole && ALLOWED_ADMIN_ROLES.includes(user.secondaryRole));
 
   if (!isSuperAdmin && !hasStaffRole) {
     return { success: false, error: 'Access denied: insufficient administrative privileges.' };
   }
 
+  // Path A: Standard Authentication when passwordHash is present
+  // Once a password hash is stored, ONLY the password matching that hash can authenticate.
+  // There is NO fallback to bootstrap passwords once a hash is present.
+  if (user.passwordHash) {
+    const passwordMatches = await verifyPassword(password, user.passwordHash);
+    if (!passwordMatches) {
+      return { success: false, error: 'Invalid Admin ID or Password.' };
+    }
+
+    return {
+      success: true,
+      user,
+      requiresPasswordChange: !!user.requiresPasswordChange,
+    };
+  }
+
+  // Path B: Strict One-Time Bootstrap Path when account has NO passwordHash
+  // ONLY permitted for designated Super Admin accounts
+  const isDesignated = isSuperAdmin && db.isDesignatedSuperAdmin(user.email);
+  if (!isDesignated) {
+    return { success: false, error: 'Invalid Admin ID or Password.' };
+  }
+
+  // Determine bootstrap secret:
+  // In production: must be explicitly provided via ADMIN_BOOTSTRAP_PASSWORD
+  // In development: fallback to 'sarthakraj726' if not set
+  const bootstrapPassword =
+    process.env.ADMIN_BOOTSTRAP_PASSWORD ||
+    (process.env.NODE_ENV !== 'production' ? 'sarthakraj726' : undefined);
+
+  if (!bootstrapPassword) {
+    console.error(
+      '[Admin Auth] ADMIN_BOOTSTRAP_NOT_CONFIGURED: Super Admin account has no password hash and ADMIN_BOOTSTRAP_PASSWORD is not configured in production.'
+    );
+    return { success: false, error: 'Invalid Admin ID or Password.' };
+  }
+
+  const matches = constantTimeCompare(password, bootstrapPassword);
+  if (!matches) {
+    return { success: false, error: 'Invalid Admin ID or Password.' };
+  }
+
+  // Bootstrapped successfully: initialize salted scrypt hash, mark requiresPasswordChange, persist, and audit
+  const newHash = hashPasswordSync(password);
+  user.passwordHash = newHash;
+  user.requiresPasswordChange = true;
+  db.updateUser(user.id, {
+    passwordHash: newHash,
+    requiresPasswordChange: true,
+  });
+
+  db.createAuditLog({
+    actorId: user.id,
+    actorName: user.name,
+    action: 'SUPER_ADMIN_BOOTSTRAPPED',
+    targetType: 'user',
+    targetId: user.id,
+    details: `Designated Super Admin (${user.email}) initialized credentials via one-time bootstrap authentication. Password rotation required.`,
+  });
+
   return {
     success: true,
     user,
-    requiresPasswordChange: !!user.requiresPasswordChange,
+    requiresPasswordChange: true,
   };
 }

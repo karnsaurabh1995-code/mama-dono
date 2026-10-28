@@ -104,3 +104,22 @@ export function maskContact(contact: string): string {
   }
   return '******';
 }
+
+
+/**
+ * Validates and sanitizes a return URL to prevent open redirect vulnerabilities.
+ * Only allows relative paths on the same origin (starting with a single '/').
+ */
+export function getSafeReturnUrl(rawUrl: string | null | undefined, defaultUrl = '/admin'): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return defaultUrl;
+  const trimmed = rawUrl.trim();
+  if (
+    !trimmed.startsWith('/') ||
+    trimmed.startsWith('//') ||
+    trimmed.startsWith('/\\') ||
+    trimmed.includes(':')
+  ) {
+    return defaultUrl;
+  }
+  return trimmed;
+}

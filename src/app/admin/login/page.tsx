@@ -16,11 +16,12 @@ import {
 } from 'lucide-react';
 import { DokindLogo } from '@/components/common/DokindLogo';
 import { Button } from '@/components/ui/Button';
+import { getSafeReturnUrl } from '@/lib/utils';
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/admin';
+  const returnUrl = getSafeReturnUrl(searchParams.get('returnUrl'));
 
   // State
   const [identifier, setIdentifier] = useState('');

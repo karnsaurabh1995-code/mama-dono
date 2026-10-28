@@ -48,9 +48,10 @@ export async function POST(request: NextRequest) {
 
     if (!authResult.success || !authResult.user) {
       recordAdminFailedAttempt(identifier, ip);
+      const isForbidden = authResult.error?.includes('insufficient administrative privileges');
       return NextResponse.json(
         { success: false, error: authResult.error || 'Invalid Admin ID or Password.' },
-        { status: 401 }
+        { status: isForbidden ? 403 : 401 }
       );
     }
 

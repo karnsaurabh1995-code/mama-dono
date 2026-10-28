@@ -216,7 +216,7 @@ async function runVerification() {
   );
 
   // Check 4.4: Authenticate with bootstrap password
-  const authSarthak = await authenticateAdmin('sarthakraj2009', 'sarthak726');
+  const authSarthak = await authenticateAdmin('sarthakraj2009', 'sarthakraj726');
   assert(
     authSarthak.success === true && authSarthak.user?.email === 'sarthakraj726@gmail.com',
     'authenticateAdmin successfully verifies sarthakraj2009 with bootstrap password'
