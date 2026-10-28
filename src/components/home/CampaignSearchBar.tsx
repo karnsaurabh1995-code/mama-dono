@@ -154,7 +154,7 @@ export function CampaignSearchBar() {
                   className="flex items-center justify-between text-xs font-semibold text-[#E84B45] p-2 hover:bg-[#FFF0EF] rounded-lg transition-colors"
                 >
                   <span>See all results for "{query}"</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                 </Link>
               </div>
             </>

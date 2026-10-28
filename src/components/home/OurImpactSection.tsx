@@ -81,12 +81,12 @@ export function OurImpactSection({ stats, title, subtitle, badge }: OurImpactSec
 
             <div className="relative z-10 pt-8 mt-6 border-t border-neutral-800 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-xs text-neutral-400">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>100% Tax Deductible (Section 80G Form 10BE compliant)</span>
               </div>
-              <Link href="/about" className="text-xs font-bold text-[#EF4949] hover:underline flex items-center gap-1">
+              <Link href="/about" className="text-xs font-bold text-[#EF4949] hover:underline inline-flex items-center gap-1.5 whitespace-nowrap">
                 <span>Read Governance Report</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </Link>
             </div>
 
@@ -106,7 +106,7 @@ export function OurImpactSection({ stats, title, subtitle, badge }: OurImpactSec
 
             <div className="absolute bottom-6 left-6 right-6 text-white space-y-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-bold text-white uppercase tracking-wider">
-                <Heart className="w-3 h-3 fill-white" />
+                <Heart className="w-3 h-3 fill-white shrink-0" />
                 Real Story from the Ground
               </span>
               <p className="text-sm sm:text-base font-medium text-neutral-100 leading-snug">

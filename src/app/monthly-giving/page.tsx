@@ -44,20 +44,22 @@ export const MISSIONS = [
     description: 'Rescuing injured community animals, providing critical orthopedic fracture repairs, and feeding 250 sanctuary animals in Bengaluru.',
   },
   {
-    id: 'mission-elderly-care',
+    id: 'mission-elder-care',
     slug: 'mission-elderly-care',
-    title: 'Mission Sahara: Dignified Elderly Healthcare',
+    title: 'Mission Vardaan: Senior Citizen Healthcare & Shelter',
     cause: 'elderly',
     tagline: 'Sponsor monthly doctor visits, geriatric medicines, and warm meals for abandoned elders.',
-    monthlyAmount: 851,
+    monthlyAmount: 850,
     supportersCount: 195,
     impactNote: 'Provides full monthly medications for 2 senior citizens',
-    imageUrl: 'https://images.unsplash.com/photo-1516307365426-bea591f05011?auto=format&fit=crop&w=800&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?auto=format&fit=crop&w=800&q=80',
     description: 'Abandoned seniors often suffer in silence from hypertension, diabetes, and joint disorders. Your monthly support sends mobile geriatric health vans with prescription medicines directly to old-age shelter homes.',
   },
 ];
 
 export default function MonthlyGivingPage() {
+  const dbMissions = db.getMonthlyMissions({ isActive: true });
+  const displayMissions = dbMissions.length > 0 ? dbMissions : MISSIONS;
   const publishedSections = db.getPublishedPageSections('monthly-giving');
   const heroSec = publishedSections.find((s) => s.type === 'hero' && s.isVisible !== false);
   return (
@@ -92,7 +94,7 @@ export default function MonthlyGivingPage() {
         <div className="space-y-4">
           <h2 className="text-2xl font-black text-[#202124]">Active Monthly Missions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {MISSIONS.map((m) => (
+            {displayMissions.map((m) => (
               <MissionCard key={m.id} mission={m} />
             ))}
           </div>

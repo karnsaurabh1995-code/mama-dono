@@ -91,7 +91,7 @@ export default function BadgeStylesAdminPage() {
     },
     {
       id: 'tax_80g',
-      label: '80G Tax Benefit',
+      label: 'Tax Benefits',
       desc: 'Shown only for campaigns confirmed eligible under Section 80G.',
     },
     {

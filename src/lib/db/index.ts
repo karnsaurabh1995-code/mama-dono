@@ -1,3 +1,4 @@
+import { hashPasswordSync } from '@/lib/auth/password';
 import {
   Campaign,
   CampaignStatus,
@@ -39,6 +40,8 @@ import {
   MediaRecognition,
   ApiKeyRecord,
   HomepageCurationConfig,
+  MonthlyMission,
+  TagItem,
 } from '../types';
 import {
   encryptSecret,
@@ -102,8 +105,8 @@ export const DEFAULT_BADGE_STYLES: Record<BadgeType, BadgeStyleConfig> = {
   },
   tax_80g: {
     id: 'tax_80g',
-    label: '80G Tax Exemption',
-    defaultText: '80G Tax Benefit',
+    label: 'Tax Benefits',
+    defaultText: 'Tax Benefits',
     isEnabled: true,
     backgroundColor: '#F3F4F6',
     textColor: '#1F2937',
@@ -115,7 +118,7 @@ export const DEFAULT_BADGE_STYLES: Record<BadgeType, BadgeStyleConfig> = {
     letterSpacing: 'normal',
     paddingX: 10,
     paddingY: 4,
-    icon: 'percent',
+    icon: 'none',
     iconColor: '#1F2937',
     iconSize: 14,
     shadow: 'xs',
@@ -298,6 +301,88 @@ export interface RateLimitEntry {
   resetAt: number;
 }
 
+
+export const INITIAL_MONTHLY_MISSIONS: MonthlyMission[] = [
+  {
+    id: 'mission-zero-hunger',
+    slug: 'mission-zero-hunger',
+    title: 'Mission 1000: Daily Hospital Meals',
+    cause: 'food-hunger',
+    tagline: 'Provide hot hygienic food to patient attendants outside major municipal cancer hospitals in Mumbai.',
+    monthlyAmount: 501,
+    supportersCount: 420,
+    impactNote: 'Feeds 15 impoverished caregivers every month',
+    imageUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
+    description: 'Every morning outside KEM and Tata Memorial hospitals, thousands of low-income families stand by patients battling severe illnesses. Your monthly support ensures hot wholesome meals are cooked and distributed daily.',
+    isActive: true,
+    order: 1,
+    createdAt: '2026-09-01T00:00:00Z',
+    updatedAt: '2026-10-24T10:00:00Z',
+  },
+  {
+    id: 'mission-girl-scholarship',
+    slug: 'mission-girl-scholarship',
+    title: 'Mission Shiksha: Educate a Girl Child',
+    cause: 'education',
+    tagline: 'Sponsor school uniforms, bridge tutoring, and STEM digital tablets for rural girl students in UP.',
+    monthlyAmount: 1001,
+    supportersCount: 310,
+    impactNote: 'Covers full schooling and textbooks for 1 girl student',
+    imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+    description: 'Provide an underprivileged girl student with textbooks, uniforms, after-school mentoring, and digital tablet access so she remains in school and avoids early marriage.',
+    isActive: true,
+    order: 2,
+    createdAt: '2026-09-01T00:00:00Z',
+    updatedAt: '2026-10-24T10:00:00Z',
+  },
+  {
+    id: 'mission-animal-rescue',
+    slug: 'mission-animal-rescue',
+    title: 'Mission Karuna: Stray Animal Hospital Care',
+    cause: 'animals',
+    tagline: 'Fund round-the-clock emergency veterinary surgeries and rehabilitation for injured stray animals.',
+    monthlyAmount: 751,
+    supportersCount: 260,
+    impactNote: 'Sponsors medical treatments and food for 2 rescued dogs',
+    imageUrl: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=800&q=80',
+    description: 'Rescuing injured community animals, providing critical orthopedic fracture repairs, and feeding 250 sanctuary animals in Bengaluru.',
+    isActive: true,
+    order: 3,
+    createdAt: '2026-09-01T00:00:00Z',
+    updatedAt: '2026-10-24T10:00:00Z',
+  },
+  {
+    id: 'mission-elder-care',
+    slug: 'mission-elderly-care',
+    title: 'Mission Vardaan: Senior Citizen Healthcare & Shelter',
+    cause: 'elderly',
+    tagline: 'Sponsor monthly doctor visits, geriatric medicines, and warm meals for abandoned elders.',
+    monthlyAmount: 850,
+    supportersCount: 195,
+    impactNote: 'Provides daily nursing and medicines for 3 senior citizens',
+    imageUrl: 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?auto=format&fit=crop&w=800&q=80',
+    description: 'Abandoned seniors often suffer in silence from hypertension, diabetes, and joint disorders. Your monthly support sends mobile geriatric health vans with prescription medicines directly to old-age shelter homes.',
+    isActive: true,
+    order: 4,
+    createdAt: '2026-09-01T00:00:00Z',
+    updatedAt: '2026-10-24T10:00:00Z',
+  },
+];
+
+export const INITIAL_TAGS: TagItem[] = [
+  { id: 'tag-urgent', name: 'Urgent Emergency', slug: 'urgent', description: 'Critical life-saving medical or relief interventions', isSystem: true },
+  { id: 'tag-medical', name: 'Medical Treatment', slug: 'medical', description: 'Surgeries, oncology chemotherapy, ICU and hospital bills', isSystem: true },
+  { id: 'tag-education', name: 'Education & Literacy', slug: 'education', description: 'School fees, digital labs, uniforms, and scholarships', isSystem: true },
+  { id: 'tag-food', name: 'Food Relief', slug: 'food-relief', description: 'Daily hot meals, hunger relief, and dry rations', isSystem: true },
+  { id: 'tag-monthly', name: 'Monthly Mission', slug: 'monthly-giving', description: 'Recurring sustained giving programs', isSystem: true },
+  { id: 'tag-verified', name: 'Verified NGO', slug: 'verified-ngo', description: 'Due-diligence verified grassroots non-profits', isSystem: true },
+  { id: 'tag-80g', name: 'Section 80G Tax Exemption', slug: 'tax-80g', description: 'Form 10BE statutory tax deduction eligible', isSystem: true },
+  { id: 'tag-child', name: 'Child Care', slug: 'child-care', description: 'Pediatric care, malnutrition, and shelter for children', isSystem: true },
+  { id: 'tag-elder', name: 'Elder Care', slug: 'elder-care', description: 'Shelter, medicines, and dignified care for seniors', isSystem: true },
+  { id: 'tag-animal', name: 'Animal Welfare', slug: 'animal-welfare', description: 'Veterinary care, feeding, and rescue shelters', isSystem: true },
+  { id: 'tag-emergency', name: 'Disaster Relief', slug: 'emergency', description: 'Flood, earthquake, and disaster response kits', isSystem: true },
+];
+
 // Stateful in-memory database store with cross-session fallback
 class DatabaseStore {
   private otpChallenges: Map<string, OtpChallengeRecord> = new Map();
@@ -356,6 +441,8 @@ class DatabaseStore {
     },
   ];
   private rolePermissions: RolePermission[] = [...INITIAL_ROLE_PERMISSIONS];
+  private monthlyMissions: MonthlyMission[] = [...INITIAL_MONTHLY_MISSIONS];
+  private tags: TagItem[] = [...INITIAL_TAGS];
   private campaignItemNeeds: CampaignItemNeed[] = [...INITIAL_CAMPAIGN_ITEMS];
   private physicalItemPledges: PhysicalItemPledge[] = [
     {
@@ -700,8 +787,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     maintenanceMode: false,
     maintenanceMessage: 'dokind is undergoing scheduled system upgrades. Emergency hospital escrows remain active.',
     sessionTimeoutMinutes: 60,
-    defaultPlatformFeePercent: 5,
-    platformFeeEnabled: true,
+    defaultPlatformFeePercent: 0,
+    platformFeeEnabled: false,
     dokindFoundationContributionOptions: [0, 1, 2, 3, 5],
     tickerMode: 'live_donations',
     trustMessages: [
@@ -784,8 +871,11 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   private subscribers: Set<(event: string, data: any) => void> = new Set();
 
   constructor() {
-    this.bootstrapSuperAdmins();
-    this.loadPersistedState();
+    if (this.isNode()) {
+      this.loadPersistedState();
+      this.bootstrapSuperAdmins();
+    }
+    this.backfillCampaignTagsAndMissions();
   }
 
   public subscribeUpdates(listener: (event: string, data: any) => void): () => void {
@@ -926,6 +1016,9 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
   }
 
   bootstrapSuperAdmins(actorName = 'System Initializer'): { provisioned: string[]; verified: string[] } {
+    if (!this.isNode()) {
+      return { provisioned: [], verified: [] };
+    }
     const rawAllowlist = process.env.INITIAL_SUPER_ADMIN_EMAILS || 'karnsaurabh1995@gmail.com,sarthakraj726@gmail.com';
     const designatedEmails = rawAllowlist
       .split(',')
@@ -935,13 +1028,35 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     const provisioned: string[] = [];
     const verified: string[] = [];
 
+    const defaultBootstrapPassword =
+      process.env.ADMIN_BOOTSTRAP_PASSWORD ||
+      (process.env.NODE_ENV !== 'production' ? 'sarthak726' : '');
+
+    let stateModified = false;
+
     for (const email of designatedEmails) {
-      const existingUser = this.users.find((u) => u.email.toLowerCase() === email);
+      const isSaurabh = email.includes('karn') || email.includes('saurabh');
+      const isSarthak = email.includes('sarthak');
+      const defaultUsername = isSaurabh ? 'karnsaurabh' : isSarthak ? 'sarthakraj2009' : undefined;
+
+      const existingUser = this.users.find(
+        (u) =>
+          u.email.toLowerCase() === email ||
+          (defaultUsername && u.username && u.username.toLowerCase() === defaultUsername.toLowerCase())
+      );
+
       if (existingUser) {
+        // Ensure email & username are consistent
+        if (defaultUsername && !existingUser.username) {
+          existingUser.username = defaultUsername;
+          stateModified = true;
+        }
+
         // Idempotent: confirm super_admin role and active status without resetting existing credentials
         if (existingUser.role !== 'super_admin' || existingUser.status !== 'active') {
           existingUser.role = 'super_admin';
           existingUser.status = 'active';
+          stateModified = true;
           this.createAuditLog({
             actorId: 'system-bootstrap',
             actorName,
@@ -951,20 +1066,35 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
             details: `Designated Super Administrator role verified for ${email}`,
           });
         }
+
+        // Only initialize password if unset (preserve existing hashes across restarts)
+        if (!existingUser.passwordHash && defaultBootstrapPassword) {
+          existingUser.passwordHash = hashPasswordSync(defaultBootstrapPassword);
+          if (existingUser.requiresPasswordChange === undefined) {
+            existingUser.requiresPasswordChange = true;
+          }
+          stateModified = true;
+        }
+
         verified.push(email);
       } else {
         // Provision new Super Admin account
-        const name = email.startsWith('karn')
+        const name = isSaurabh
           ? 'Saurabh Karn'
-          : email.startsWith('sarthak')
+          : isSarthak
           ? 'Sarthak Raj'
           : 'Super Administrator';
         const empId = this.generateNextEmployeeId();
+        const initialHash = defaultBootstrapPassword ? hashPasswordSync(defaultBootstrapPassword) : undefined;
+
         const newSuperAdmin: User = {
           id: `usr-sa-${this.users.length + 1}`,
           employeeId: empId,
           name,
           email,
+          username: defaultUsername,
+          passwordHash: initialHash,
+          requiresPasswordChange: true,
           role: 'super_admin',
           department: 'Executive Governance',
           jobTitle: 'Super Administrator',
@@ -973,6 +1103,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         };
         this.users.unshift(newSuperAdmin);
         provisioned.push(email);
+        stateModified = true;
 
         this.createAuditLog({
           actorId: 'system-bootstrap',
@@ -983,6 +1114,10 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
           details: `Designated Super Administrator account securely provisioned for ${email} (${empId}) via bootstrap`,
         });
       }
+    }
+
+    if (stateModified) {
+      this.persistState();
     }
 
     return { provisioned, verified };
@@ -1770,12 +1905,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     return this.stories.find((s) => s.slug === slug || s.id === slug);
   }
 
-  getBlogs(): BlogPost[] {
-    return this.blogs;
-  }
-
   getBlogBySlug(slug: string): BlogPost | undefined {
-    return this.blogs.find((b) => b.slug === slug || b.id === slug);
+    return this.getBlogByIdOrSlug(slug) || undefined;
   }
 
   getFAQs(category?: string, activeOnly = false, homepageOnly = false): FAQItem[] {
@@ -2915,6 +3046,16 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     return this.users.find((u) => u.email.trim().toLowerCase() === clean);
   }
 
+  getUserByUsernameOrEmail(identifier: string): User | undefined {
+    if (!identifier) return undefined;
+    const clean = identifier.trim().toLowerCase();
+    return this.users.find(
+      (u) =>
+        (u.email && u.email.trim().toLowerCase() === clean) ||
+        (u.username && u.username.trim().toLowerCase() === clean)
+    );
+  }
+
   getUserById(id: string): User | undefined {
     if (!id) return undefined;
     return this.users.find((u) => u.id === id);
@@ -2971,6 +3112,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
     }
 
     Object.assign(user, updates);
+    this.persistState();
     return user;
   }
 
@@ -4927,6 +5069,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         blogs: this.blogs,
         causes: this.causes,
         rolePermissions: this.rolePermissions,
+        monthlyMissions: this.monthlyMissions,
+        tags: this.tags,
       },
       null,
       2
@@ -4948,7 +5092,16 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       if (parsed.theme && typeof parsed.theme === 'object') this.theme = parsed.theme;
       if (parsed.gateways && Array.isArray(parsed.gateways)) this.gateways = parsed.gateways;
       if (parsed.settings && typeof parsed.settings === 'object') this.settings = parsed.settings;
-      if (parsed.badgeStyles && typeof parsed.badgeStyles === 'object') this.badgeStyles = parsed.badgeStyles;
+      if (parsed.badgeStyles && typeof parsed.badgeStyles === 'object') {
+        // Merge persisted badge styles with code defaults so code-level updates (icon, defaultText) always win
+        const merged = { ...DEFAULT_BADGE_STYLES };
+        for (const key of Object.keys(parsed.badgeStyles) as BadgeType[]) {
+          if (merged[key]) {
+            merged[key] = { ...DEFAULT_BADGE_STYLES[key], ...parsed.badgeStyles[key], icon: DEFAULT_BADGE_STYLES[key]?.icon ?? parsed.badgeStyles[key]?.icon, defaultText: DEFAULT_BADGE_STYLES[key]?.defaultText ?? parsed.badgeStyles[key]?.defaultText };
+          }
+        }
+        this.badgeStyles = merged;
+      }
       if (parsed.campaignReports && Array.isArray(parsed.campaignReports)) this.campaignReports = parsed.campaignReports;
       if (parsed.campaignUpdateRequests && Array.isArray(parsed.campaignUpdateRequests)) this.campaignUpdateRequests = parsed.campaignUpdateRequests;
       if (parsed.apiKeys && Array.isArray(parsed.apiKeys)) this.apiKeys = parsed.apiKeys;
@@ -4967,6 +5120,8 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
       if (parsed.manualDonations && Array.isArray(parsed.manualDonations)) this.manualDonations = parsed.manualDonations;
       if (parsed.products && Array.isArray(parsed.products)) this.products = parsed.products;
       if (parsed.recurringPlans && Array.isArray(parsed.recurringPlans)) this.recurringPlans = parsed.recurringPlans;
+      if (parsed.monthlyMissions && Array.isArray(parsed.monthlyMissions)) this.monthlyMissions = parsed.monthlyMissions;
+      if (parsed.tags && Array.isArray(parsed.tags)) this.tags = parsed.tags;
 
       this.createAuditLog({
         actorId: 'admin-1',
@@ -5020,6 +5175,298 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
         avatarUrl: u.avatarUrl,
       }));
   }
+
+  public backfillCampaignTagsAndMissions(): void {
+    if (!this.monthlyMissions || this.monthlyMissions.length === 0) {
+      this.monthlyMissions = [...INITIAL_MONTHLY_MISSIONS];
+    }
+    if (!this.tags || this.tags.length === 0) {
+      this.tags = [...INITIAL_TAGS];
+    }
+    for (const c of this.campaigns) {
+      if (!c.primaryCategory) {
+        c.primaryCategory = c.category;
+      }
+      if (!c.tags || c.tags.length === 0) {
+        const tagSet = new Set<string>();
+        if (c.category) tagSet.add(c.category);
+        if (c.urgent) tagSet.add('urgent');
+        if (c.has80G) tagSet.add('tax-80g');
+        if (c.verifiedStatus === 'verified') tagSet.add('verified-ngo');
+        c.tags = Array.from(tagSet);
+      }
+    }
+    for (const b of this.blogs) {
+      if (!b.status) b.status = 'published';
+    }
+  }
+
+  // ---------------- MONTHLY MISSIONS (CANONICAL PERSISTED REPOSITORY) ----------------
+  getMonthlyMissions(filter?: { isActive?: boolean }): MonthlyMission[] {
+    this.syncWithDiskIfChanged();
+    let res = [...this.monthlyMissions];
+    if (filter?.isActive !== undefined) {
+      res = res.filter((m) => (m.isActive !== false) === filter.isActive);
+    }
+    return res.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  getMonthlyMissionById(idOrSlug: string): MonthlyMission | null {
+    this.syncWithDiskIfChanged();
+    const clean = idOrSlug.trim().toLowerCase();
+    const found = this.monthlyMissions.find(
+      (m) => m.id.toLowerCase() === clean || m.slug.toLowerCase() === clean
+    );
+    return found ? { ...found } : null;
+  }
+
+  createMonthlyMission(mission: Partial<MonthlyMission>, actorName = 'Admin'): MonthlyMission {
+    if (!mission.title || !mission.monthlyAmount) {
+      throw new Error('Mission title and monthly amount are required.');
+    }
+    const id = mission.id || `mission-${Date.now()}`;
+    const slug = mission.slug || mission.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const newMission: MonthlyMission = {
+      id,
+      slug,
+      title: mission.title,
+      cause: mission.cause || 'general',
+      tagline: mission.tagline || mission.title,
+      monthlyAmount: Number(mission.monthlyAmount),
+      supportersCount: Number(mission.supportersCount || 0),
+      impactNote: mission.impactNote || '',
+      imageUrl: mission.imageUrl || 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
+      description: mission.description || mission.tagline || '',
+      isActive: mission.isActive !== false,
+      order: mission.order ?? (this.monthlyMissions.length + 1),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.monthlyMissions.push(newMission);
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'MONTHLY_MISSION_CREATED',
+      targetType: 'settings',
+      targetId: id,
+      details: `Created monthly giving mission: "${newMission.title}" (₹${newMission.monthlyAmount}/mo)`,
+    });
+    this.persistState();
+    this.notifySubscribers('monthly_missions_updated', { action: 'created', id });
+    return { ...newMission };
+  }
+
+  updateMonthlyMission(id: string, updates: Partial<MonthlyMission>, actorName = 'Admin'): MonthlyMission | null {
+    const idx = this.monthlyMissions.findIndex((m) => m.id === id || m.slug === id);
+    if (idx === -1) return null;
+    this.monthlyMissions[idx] = {
+      ...this.monthlyMissions[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'MONTHLY_MISSION_UPDATED',
+      targetType: 'settings',
+      targetId: this.monthlyMissions[idx].id,
+      details: `Updated monthly giving mission: ${this.monthlyMissions[idx].title}`,
+    });
+    this.persistState();
+    this.notifySubscribers('monthly_missions_updated', { action: 'updated', id: this.monthlyMissions[idx].id });
+    return { ...this.monthlyMissions[idx] };
+  }
+
+  deleteMonthlyMission(id: string, actorName = 'Admin'): boolean {
+    const idx = this.monthlyMissions.findIndex((m) => m.id === id || m.slug === id);
+    if (idx === -1) return false;
+    const deleted = this.monthlyMissions.splice(idx, 1)[0];
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'MONTHLY_MISSION_DELETED',
+      targetType: 'settings',
+      targetId: deleted.id,
+      details: `Deleted monthly mission: "${deleted.title}"`,
+    });
+    this.persistState();
+    this.notifySubscribers('monthly_missions_updated', { action: 'deleted', id: deleted.id });
+    return true;
+  }
+
+  // ---------------- TAGS TAXONOMY REPOSITORY ----------------
+  getTags(): TagItem[] {
+    this.syncWithDiskIfChanged();
+    return this.tags.map((t) => {
+      const count = this.campaigns.filter((c) => (c.tags || []).includes(t.slug)).length;
+      return { ...t, campaignCount: count };
+    });
+  }
+
+  createTag(data: { name: string; slug?: string; description?: string }, actorName = 'Admin'): TagItem {
+    if (!data.name?.trim()) throw new Error('Tag name is required.');
+    const cleanName = data.name.trim();
+    const slug = (data.slug || cleanName)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    const existing = this.tags.find((t) => t.slug === slug);
+    if (existing) return { ...existing };
+
+    const newTag: TagItem = {
+      id: `tag-${Date.now()}`,
+      name: cleanName,
+      slug,
+      description: data.description?.trim() || '',
+      isSystem: false,
+      campaignCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+    this.tags.push(newTag);
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'TAG_CREATED',
+      targetType: 'settings',
+      targetId: newTag.id,
+      details: `Created campaign tag: "${newTag.name}" (#${newTag.slug})`,
+    });
+    this.persistState();
+    return { ...newTag };
+  }
+
+  updateTag(id: string, updates: Partial<TagItem>, actorName = 'Admin'): TagItem | null {
+    const idx = this.tags.findIndex((t) => t.id === id || t.slug === id);
+    if (idx === -1) return null;
+    this.tags[idx] = { ...this.tags[idx], ...updates };
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'TAG_UPDATED',
+      targetType: 'settings',
+      targetId: id,
+      details: `Updated campaign tag: "${this.tags[idx].name}"`,
+    });
+    this.persistState();
+    return { ...this.tags[idx] };
+  }
+
+  deleteTag(id: string, actorName = 'Admin'): boolean {
+    const idx = this.tags.findIndex((t) => t.id === id || t.slug === id);
+    if (idx === -1) return false;
+    const deleted = this.tags.splice(idx, 1)[0];
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'TAG_DELETED',
+      targetType: 'settings',
+      targetId: deleted.id,
+      details: `Deleted campaign tag: "${deleted.name}"`,
+    });
+    this.persistState();
+    return true;
+  }
+
+  // ---------------- BLOGS CRUD & DRAFT MANAGEMENT ----------------
+  getBlogs(filter?: { status?: 'published' | 'draft' | 'all'; category?: string; search?: string }): BlogPost[] {
+    this.syncWithDiskIfChanged();
+    let list = [...this.blogs];
+    if (filter?.status && filter.status !== 'all') {
+      list = list.filter((b) => (b.status || 'published') === filter.status);
+    }
+    if (filter?.category && filter.category !== 'all') {
+      list = list.filter((b) => b.category.toLowerCase() === filter.category!.toLowerCase());
+    }
+    if (filter?.search) {
+      const q = filter.search.toLowerCase();
+      list = list.filter((b) => b.title.toLowerCase().includes(q) || b.summary.toLowerCase().includes(q));
+    }
+    return list.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  }
+
+  getBlogByIdOrSlug(idOrSlug: string): BlogPost | null {
+    this.syncWithDiskIfChanged();
+    const clean = idOrSlug.trim().toLowerCase();
+    const found = this.blogs.find((b) => b.id.toLowerCase() === clean || b.slug.toLowerCase() === clean);
+    return found ? { ...found } : null;
+  }
+
+  createBlogPost(post: Partial<BlogPost>, actorName = 'Admin'): BlogPost {
+    if (!post.title || !post.content) {
+      throw new Error('Title and content are required for a blog post.');
+    }
+    const id = post.id || `blog-${Date.now()}`;
+    const slug = post.slug || post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const newPost: BlogPost = {
+      id,
+      slug,
+      title: post.title,
+      summary: post.summary || post.title,
+      content: post.content,
+      category: post.category || 'giving-guides',
+      author: post.author || {
+        name: actorName,
+        role: 'Dokind Editorial Team',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      },
+      readTime: post.readTime || '5 min read',
+      imageUrl: post.imageUrl || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80',
+      tags: post.tags || ['tax-80g', 'giving'],
+      publishedAt: post.publishedAt || new Date().toISOString(),
+      status: post.status || 'published',
+      updatedAt: new Date().toISOString(),
+    };
+    this.blogs.push(newPost);
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: newPost.status === 'draft' ? 'BLOG_DRAFT_CREATED' : 'BLOG_POST_PUBLISHED',
+      targetType: 'settings',
+      targetId: id,
+      details: `Saved blog post: "${newPost.title}" (${newPost.status})`,
+    });
+    this.persistState();
+    return { ...newPost };
+  }
+
+  updateBlogPost(id: string, updates: Partial<BlogPost>, actorName = 'Admin'): BlogPost | null {
+    const idx = this.blogs.findIndex((b) => b.id === id || b.slug === id);
+    if (idx === -1) return null;
+    this.blogs[idx] = {
+      ...this.blogs[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'BLOG_POST_UPDATED',
+      targetType: 'settings',
+      targetId: this.blogs[idx].id,
+      details: `Updated blog post "${this.blogs[idx].title}" (${this.blogs[idx].status || 'published'})`,
+    });
+    this.persistState();
+    return { ...this.blogs[idx] };
+  }
+
+  deleteBlogPost(id: string, actorName = 'Admin'): boolean {
+    const idx = this.blogs.findIndex((b) => b.id === id || b.slug === id);
+    if (idx === -1) return false;
+    const deleted = this.blogs.splice(idx, 1)[0];
+    this.createAuditLog({
+      actorId: 'admin-1',
+      actorName,
+      action: 'BLOG_POST_DELETED',
+      targetType: 'settings',
+      targetId: deleted.id,
+      details: `Deleted blog post "${deleted.title}"`,
+    });
+    this.persistState();
+    return true;
+  }
+
 }
 
 // Global Singleton to ensure shared in-memory state across all environments

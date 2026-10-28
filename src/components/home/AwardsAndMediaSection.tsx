@@ -123,11 +123,8 @@ export function AwardsAndMediaSection({
                 </p>
 
                 {/* Footer Meta */}
-                <div className="flex items-center justify-between pt-2 text-[10px] text-neutral-400 font-medium">
-                  <span>{item.publishedOn ? `Coverage • ${item.publishedOn}` : 'Verified Press Coverage'}</span>
-                  <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                    Verified
-                  </span>
+                <div className="flex items-center pt-2 text-[10px] text-neutral-400 font-medium">
+                  <span>{item.publishedOn ? `Coverage • ${item.publishedOn}` : 'Press Coverage'}</span>
                 </div>
               </div>
             );

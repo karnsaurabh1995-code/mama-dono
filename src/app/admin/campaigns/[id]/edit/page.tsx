@@ -18,6 +18,8 @@ import {
   DollarSign,
   ShieldAlert,
   Sliders,
+  Tag,
+  X,
   ExternalLink,
 } from 'lucide-react';
 
@@ -29,6 +31,29 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [toastMessage, setToastMessage] = useState('');
+  const [newTagInput, setNewTagInput] = useState('');
+
+  const availableTags = db.getTags();
+
+  const handleToggleTag = (tagName: string) => {
+    if (!campaign) return;
+    const currentTags = campaign.tags || [];
+    const exists = currentTags.includes(tagName);
+    const updatedTags = exists ? currentTags.filter((t) => t !== tagName) : [...currentTags, tagName];
+    setCampaign({ ...campaign, tags: updatedTags });
+  };
+
+  const handleAddNewTag = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campaign || !newTagInput.trim()) return;
+    const cleanTag = newTagInput.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (!cleanTag) return;
+    const currentTags = campaign.tags || [];
+    if (!currentTags.includes(cleanTag)) {
+      setCampaign({ ...campaign, tags: [...currentTags, cleanTag] });
+    }
+    setNewTagInput('');
+  };
 
   useEffect(() => {
     const found = db.getCampaignById(campaignId) || db.getCampaignBySlug(campaignId);
@@ -256,6 +281,123 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
                   <option value="completed">Completed (Goal Achieved)</option>
                   <option value="suspended">Suspended (Under Review)</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Category & Multi-Tag Assignment */}
+            <div className="bg-white p-5 rounded-2xl border border-[#E2E4E9] shadow-2xs space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-[#E84B45]" />
+                  <h3 className="text-sm font-bold text-[#202124]">Category &amp; Multi-Tag</h3>
+                </div>
+                <span className="text-[10px] text-neutral-400 font-mono">Taxonomy</span>
+              </div>
+
+              {/* Primary Category Selector */}
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 mb-1">
+                  Primary Cause Category *
+                </label>
+                <select
+                  value={campaign.primaryCategory || campaign.category}
+                  onChange={(e) => {
+                    const selected = e.target.value as CauseCategory;
+                    setCampaign({ ...campaign, primaryCategory: selected, category: selected });
+                  }}
+                  className="w-full bg-white border border-[#E2E4E9] rounded-xl px-3 py-2 text-xs font-semibold text-neutral-800 focus:outline-none focus:border-[#E84B45]"
+                >
+                  <option value="medical">Medical &amp; Critical Illness</option>
+                  <option value="education">Child Education &amp; Scholarships</option>
+                  <option value="food-hunger">Daily Meals &amp; Hunger Relief</option>
+                  <option value="animals">Animal Welfare &amp; Rescue</option>
+                  <option value="essential-supplies">Essential Supplies &amp; Relief Kits</option>
+                </select>
+              </div>
+
+              {/* Multi-Tag Picker */}
+              <div className="space-y-2 pt-2 border-t border-neutral-100">
+                <label className="block text-xs font-bold text-neutral-700">
+                  Campaign Tags &amp; Sub-Themes
+                </label>
+                <p className="text-[11px] text-neutral-500">
+                  Select tags to categorize this campaign for curated homepage sections and reports.
+                </p>
+
+                {/* Active Tags */}
+                <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 bg-neutral-50 rounded-xl border border-neutral-200">
+                  {(campaign.tags || []).length === 0 ? (
+                    <span className="text-[11px] text-neutral-400 italic">No tags assigned yet. Click tags below or type a custom tag.</span>
+                  ) : (
+                    (campaign.tags || []).map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#E84B45]/10 text-[#E84B45] border border-[#E84B45]/20"
+                      >
+                        <span>#{t}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTag(t)}
+                          className="hover:text-rose-700 rounded-full"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+
+                {/* Available Suggestions */}
+                <div className="pt-1">
+                  <span className="text-[10px] font-bold uppercase text-neutral-400 block mb-1">
+                    Suggested Tags:
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {availableTags.map((tag) => {
+                      const isSelected = (campaign.tags || []).includes(tag.name);
+                      return (
+                        <button
+                          type="button"
+                          key={tag.id}
+                          onClick={() => handleToggleTag(tag.name)}
+                          className={`text-[11px] px-2 py-0.5 rounded-lg border transition-colors ${
+                            isSelected
+                              ? 'bg-[#202124] text-white border-[#202124] font-bold'
+                              : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-100'
+                          }`}
+                        >
+                          #{tag.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Add Custom Tag Form */}
+                <div className="pt-2 flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add custom tag (e.g. cardiac-care)..."
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddNewTag(e as any);
+                      }
+                    }}
+                    className="flex-1 bg-white border border-[#E2E4E9] rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#E84B45]"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddNewTag as any}
+                    className="text-xs"
+                  >
+                    Add Tag
+                  </Button>
+                </div>
               </div>
             </div>
 

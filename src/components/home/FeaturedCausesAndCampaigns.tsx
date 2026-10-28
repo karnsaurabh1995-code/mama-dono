@@ -62,14 +62,14 @@ export function FeaturedCausesAndCampaigns({
 
           {/* Section Action Link */}
           <div className="text-center pt-12">
-            <Link href={ctaLink || '/campaigns'}>
+            <Link href={ctaLink || '/campaigns'} className="inline-block">
               <Button
                 variant="outline"
                 size="lg"
-                className="border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold text-xs sm:text-sm px-8 py-3.5 rounded-xl transition shadow-2xs group"
+                className="border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold text-xs sm:text-sm px-8 py-3.5 rounded-xl transition shadow-2xs group inline-flex items-center justify-center gap-2 whitespace-nowrap"
+                rightIcon={<ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />}
               >
                 <span>{ctaText || 'View All Active Campaigns'}</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>

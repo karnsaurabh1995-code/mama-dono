@@ -122,7 +122,7 @@ export function NewsletterSection({
                       className="bg-[#202124] hover:bg-black text-white font-bold text-xs px-6 py-3 rounded-xl shrink-0 transition shadow-md flex items-center justify-center gap-1.5"
                     >
                       <span>Subscribe</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                     </Button>
                   </div>
                   {error && <p className="text-xs text-white font-semibold">{error}</p>}
@@ -193,7 +193,7 @@ export function NewsletterSection({
                     className="bg-[#202124] hover:bg-black text-white font-bold text-xs px-6 py-3 rounded-xl shrink-0 transition shadow-md flex items-center justify-center gap-1.5"
                   >
                     <span>Subscribe</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                   </Button>
                 </div>
                 {error && <p className="text-xs text-white/90 font-medium text-left">{error}</p>}

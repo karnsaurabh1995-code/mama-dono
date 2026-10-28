@@ -56,8 +56,8 @@ function calculateScaleFactor(tier: ScreenTier): number {
 
 export function useScreenFit() {
   const [fitState, setFitState] = useState<ScreenFitState>({
-    width: typeof window !== 'undefined' ? window.innerWidth : 1280,
-    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+    width: 1280,
+    height: 800,
     tier: 'laptop',
     orientation: 'landscape',
     isTouch: false,

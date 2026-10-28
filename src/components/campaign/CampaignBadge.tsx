@@ -68,22 +68,7 @@ export function CampaignBadge({
       case 'check':
         return <CheckCircle2 {...iconProps} />;
       case 'percent':
-        return (
-          <span
-            style={{
-              fontSize: Math.max(9, iconSize - 2),
-              backgroundColor: iconColor,
-              color: '#FFFFFF',
-              padding: '0 3px',
-              borderRadius: '3px',
-              fontWeight: 800,
-              lineHeight: 1,
-            }}
-            className="shrink-0 font-mono"
-          >
-            80G
-          </span>
-        );
+        return <Percent {...iconProps} />;
       case 'clock':
         return <Clock {...iconProps} />;
       case 'tag':
@@ -226,7 +211,7 @@ export function CampaignBadgeGroup({
       <CampaignBadge
         key="80g"
         type="tax_80g"
-        text={variant === 'detail' ? '50% Tax Exemption (Sec 80G)' : '80G Benefit'}
+        text="Tax Benefits"
         variant={variant}
       />
     );

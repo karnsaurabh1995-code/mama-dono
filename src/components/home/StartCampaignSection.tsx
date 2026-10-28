@@ -120,14 +120,21 @@ export function StartCampaignSection({
 
             {/* CTA Buttons */}
             <div className="pt-3 flex flex-wrap items-center gap-4">
-              <Link href={ctaLink || '/start-campaign'}>
-                <Button size="lg" className="bg-[#EF4949] hover:bg-[#D93838] text-white font-bold text-sm px-7 py-3.5 shadow-md rounded-xl flex items-center gap-2">
+              <Link href={ctaLink || '/start-campaign'} className="inline-block">
+                <Button
+                  size="lg"
+                  className="bg-[#EF4949] hover:bg-[#D93838] text-white font-bold text-sm px-7 py-3.5 shadow-md rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap"
+                  rightIcon={<ArrowRight className="w-4 h-4 shrink-0" />}
+                >
                   <span>{ctaText || 'Start a Fundraiser Now'}</span>
-                  <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="/how-it-works">
-                <Button variant="outline" size="lg" className="border-neutral-300 text-neutral-800 hover:bg-neutral-50 font-bold text-sm px-6 py-3.5 rounded-xl">
+              <Link href="/how-it-works" className="inline-block">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-neutral-300 text-neutral-800 hover:bg-neutral-50 font-bold text-sm px-6 py-3.5 rounded-xl inline-flex items-center justify-center whitespace-nowrap"
+                >
                   Learn How It Works
                 </Button>
               </Link>

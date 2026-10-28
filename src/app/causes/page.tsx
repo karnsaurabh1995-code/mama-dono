@@ -60,10 +60,10 @@ export default function CausesDirectoryPage() {
                     </span>
                     <Link
                       href={`/causes/${cause.slug}`}
-                      className="text-[#E84B45] font-bold inline-flex items-center gap-1 hover:underline group-hover:translate-x-0.5 transition-transform"
+                      className="text-[#E84B45] font-bold inline-flex items-center gap-1 hover:underline group-hover:translate-x-0.5 transition-transform whitespace-nowrap"
                     >
                       <span>Explore</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                     </Link>
                   </div>
                 </div>

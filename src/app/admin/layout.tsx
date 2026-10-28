@@ -8,37 +8,24 @@ import { db } from '@/lib/db';
 import { UserRole } from '@/lib/types';
 import { DokindLogo, DokindMark } from '@/components/common/DokindLogo';
 import {
+  LogOut,
+  ShieldCheck,
   LayoutDashboard,
+  HeartHandshake,
+  DollarSign,
+  FileSpreadsheet,
+  BookOpen,
+  Shield,
   LayoutList,
   Paintbrush,
   Layers,
-  Palette,
-  Image as ImageIcon,
-  HeartHandshake,
-  CheckSquare,
   Bookmark,
   Building2,
-  DollarSign,
-  ArrowRightLeft,
+  ImageIcon,
   CreditCard,
-  RotateCcw,
-  Undo2,
-  BarChart3,
-  FileSpreadsheet,
-  Users,
-  BookOpen,
-  Quote,
-  FileInput,
-  Mail,
-  Send,
-  Globe2,
-  Megaphone,
-  LifeBuoy,
   History,
-  Workflow,
   Settings,
-  Shield,
-  Tag,
+  KeyRound,
   Search,
   Bell,
   ChevronDown,
@@ -48,12 +35,10 @@ import {
   ExternalLink,
   Lock,
   UserCheck,
-  HelpCircle,
-  Award,
-  KeyRound,
+  MoreHorizontal,
 } from 'lucide-react';
 
-interface SidebarItem {
+interface NavItem {
   id: string;
   label: string;
   href: string;
@@ -61,23 +46,25 @@ interface SidebarItem {
   badge?: number | string;
   badgeColor?: string;
   roles?: UserRole[];
-}
-
-interface SidebarGroup {
-  groupTitle: string;
-  items: SidebarItem[];
+  matchPrefixes?: string[];
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  // Bypass admin dashboard layout for dedicated admin login screen
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
   const { user, role, switchRole } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreToolsOpen, setMoreToolsOpen] = useState(true);
   const [menuSearch, setMenuSearch] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
-  // Dynamic pending counts (initialized to empty object for identical SSR and initial client render contract)
+  // Dynamic pending counts from database
   const [pendingCounts, setPendingCounts] = useState<{
     approvals?: number;
     ngos?: number;
@@ -85,7 +72,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }>({});
 
   useEffect(() => {
-    // 1. Initial post-hydration load from DB
     const loadCounts = () => {
       const approvals = db.getCampaigns().filter((c) => c.status === 'submitted' || c.status === 'under_review').length;
       const ngos = db.getOrganizations().filter((o) => o.verificationStatus === 'pending').length;
@@ -95,7 +81,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     loadCounts();
 
-    // 2. Synchronize with authoritative server API
     fetch('/api/admin/pending-counts')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -112,166 +97,186 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
   }, []);
 
-  const sidebarGroups: SidebarGroup[] = [
+  // Primary 6 administrative sections
+  const primaryNavItems: NavItem[] = [
     {
-      groupTitle: 'Core & Experience',
-      items: [
-        { id: '1', label: 'Overview', href: '/admin', icon: LayoutDashboard },
-        { id: '2c', label: 'Homepage Placements', href: '/admin/homepage-curation', icon: LayoutList },
-        { id: '2', label: 'Website Builder', href: '/admin/website-builder', icon: Paintbrush },
-        { id: '3', label: 'Pages & Content', href: '/admin/pages', icon: Layers },
-        { id: '4', label: 'Theme & Appearance', href: '/admin/theme', icon: Palette },
-        { id: '5', label: 'Media Library', href: '/admin/media', icon: ImageIcon },
-      ],
+      id: 'overview',
+      label: 'Overview',
+      href: '/admin',
+      icon: LayoutDashboard,
+      matchPrefixes: ['/admin$'],
     },
     {
-      groupTitle: 'Campaigns & Causes',
-      items: [
-        { id: '6', label: 'Campaigns Control', href: '/admin/campaigns', icon: HeartHandshake },
-        {
-          id: '7',
-          label: 'Campaign Approvals',
-          href: '/admin/campaigns/approvals',
-          icon: CheckSquare,
-          badge: pendingCounts.approvals && pendingCounts.approvals > 0 ? pendingCounts.approvals : undefined,
-          badgeColor: 'bg-amber-500 text-white',
-        },
-        { id: '8', label: 'Causes & Categories', href: '/admin/causes', icon: Bookmark },
-        {
-          id: '9',
-          label: 'Organizations & KYC',
-          href: '/admin/organizations',
-          icon: Building2,
-          badge: pendingCounts.ngos && pendingCounts.ngos > 0 ? pendingCounts.ngos : undefined,
-          badgeColor: 'bg-blue-500 text-white',
-        },
-      ],
+      id: 'campaigns',
+      label: 'Campaigns',
+      href: '/admin/campaigns',
+      icon: HeartHandshake,
+      badge: pendingCounts.approvals && pendingCounts.approvals > 0 ? pendingCounts.approvals : undefined,
+      badgeColor: 'bg-amber-500 text-white',
+      matchPrefixes: ['/admin/campaigns'],
     },
     {
-      groupTitle: 'Finances & Gateway',
-      items: [
-        { id: '10', label: 'Donations Ledger', href: '/admin/donations', icon: DollarSign },
-        {
-          id: '11',
-          label: 'Transactions & Wire',
-          href: '/admin/transactions',
-          icon: ArrowRightLeft,
-          badge: pendingCounts.wires && pendingCounts.wires > 0 ? pendingCounts.wires : undefined,
-          badgeColor: 'bg-emerald-600 text-white',
-        },
-        { id: '12', label: 'Payment Gateways', href: '/admin/payment-gateways', icon: CreditCard },
-        { id: '13', label: 'Recurring Subscriptions', href: '/admin/recurring', icon: RotateCcw },
-        { id: '14', label: 'Refunds Engine', href: '/admin/refunds', icon: Undo2, badge: '1', badgeColor: 'bg-rose-500 text-white' },
-      ],
+      id: 'finance',
+      label: 'Finance Hub',
+      href: '/admin/finance',
+      icon: DollarSign,
+      badge: pendingCounts.wires && pendingCounts.wires > 0 ? pendingCounts.wires : undefined,
+      badgeColor: 'bg-emerald-600 text-white',
+      roles: ['super_admin', 'admin', 'support_admin', 'finance'],
+      matchPrefixes: ['/admin/finance', '/admin/donations', '/admin/transactions', '/admin/refunds'],
     },
     {
-      groupTitle: 'Intelligence & Team',
-      items: [
-        { id: '15', label: 'Financial Analytics', href: '/admin/analytics', icon: BarChart3 },
-        { id: '15b', label: 'Campaign Analytics', href: '/admin/analytics/campaigns', icon: BarChart3 },
-        { id: '16', label: 'Export Reports', href: '/admin/reports', icon: FileSpreadsheet },
-        { id: '17', label: 'Users & Permissions', href: '/admin/users', icon: Users },
-        { id: '17b', label: 'Team & Staff', href: '/admin/team', icon: Shield, roles: ['super_admin', 'admin', 'support_admin'] },
-      ],
+      id: 'reports',
+      label: 'Reports & Exports',
+      href: '/admin/reports',
+      icon: FileSpreadsheet,
+      roles: ['super_admin', 'admin', 'support_admin', 'finance', 'marketer'],
+      matchPrefixes: ['/admin/reports'],
     },
     {
-      groupTitle: 'CMS & Growth',
-      items: [
-        { id: '18', label: 'Blog & Impact Stories', href: '/admin/blogs', icon: BookOpen },
-        { id: '18b', label: 'FAQ Management', href: '/admin/faqs', icon: HelpCircle },
-        { id: '19', label: 'Testimonials', href: '/admin/testimonials', icon: Quote },
-        { id: '19b', label: 'Media Recognition', href: '/admin/recognition', icon: Award },
-        { id: '20', label: 'Forms & Leads', href: '/admin/forms', icon: FileInput },
-        { id: '21', label: 'Email Templates', href: '/admin/email-templates', icon: Mail },
-        { id: '22', label: 'Newsletter & Marketing', href: '/admin/newsletter', icon: Send },
-        { id: '22b', label: 'Newsletter Artwork', href: '/admin/settings/newsletter-appearance', icon: Palette },
-        { id: '23', label: 'SEO & URL Redirects', href: '/admin/seo', icon: Globe2 },
-        { id: '24', label: 'Announcements & Placements', href: '/admin/announcements', icon: Megaphone },
-      ],
+      id: 'blogs',
+      label: 'Blog Studio',
+      href: '/admin/blogs',
+      icon: BookOpen,
+      roles: ['super_admin', 'admin', 'support_admin', 'content_writer', 'content_editor', 'marketer'],
+      matchPrefixes: ['/admin/blogs'],
     },
     {
-      groupTitle: 'System & Security',
-      items: [
-        { id: '25', label: 'Support Desk', href: '/admin/support', icon: LifeBuoy },
-        { id: '26', label: 'Audit Logs Ledger', href: '/admin/audit-logs', icon: History },
-        { id: '27', label: 'Integrations & Webhooks', href: '/admin/integrations', icon: Workflow },
-        {
-          id: '27c',
-          label: 'API Keys & Secrets',
-          href: '/admin/api-keys',
-          icon: KeyRound,
-          badge: 'Superior Admin',
-          badgeColor: 'bg-rose-100 text-[#E84B45] font-semibold text-[10px]',
-          roles: ['super_admin'],
-        },
-        { id: '28', label: 'Settings & Backups', href: '/admin/settings', icon: Settings },
-        { id: '28b', label: 'Badge & Tag Styles', href: '/admin/settings/badge-styles', icon: Tag },
-      ],
+      id: 'team',
+      label: 'Team & Roles',
+      href: '/admin/team',
+      icon: Shield,
+      roles: ['super_admin', 'admin', 'support_admin'],
+      matchPrefixes: ['/admin/team', '/admin/users'],
     },
   ];
 
-  // RBAC permission check for a single role
-  const canRoleAccess = (role: UserRole, item: SidebarItem): boolean => {
-    if (item.roles && !item.roles.includes(role)) {
-      return false;
-    }
-    // Admin, Support Admin, and Super Admin have broad full administrative control
-    if (role === 'super_admin' || role === 'admin' || role === 'support_admin') {
-      return true;
-    }
-    // Marketer: Strictly marketing, attribution, SEO, campaigns performance reports, newsletter
-    if (role === 'marketer') {
-      return ['1', '5', '15b', '16', '18', '19', '19b', '21', '22', '22b', '23', '24'].includes(item.id);
-    }
-    // Lead Generator: Campaigns Control, Approvals queue, Causes & Categories, Organizations, Media & Leads
-    if (role === 'lead_generator') {
-      return ['1', '5', '6', '7', '8', '9', '18', '20', '24'].includes(item.id);
-    }
-    // Content Writer & Editor: Prepare campaign drafts, stories, FAQs, media, updates & tracking
-    if (role === 'content_writer' || role === 'content_editor') {
-      return ['1', '3', '5', '6', '7', '8', '18', '18b', '19', '19b', '24'].includes(item.id);
-    }
-    // Reviewer & Head Staff: Review queue, approvals, campaigns, KYC organizations, support
-    if (role === 'reviewer' || role === 'head_staff') {
-      return ['1', '6', '7', '8', '9', '15b', '25'].includes(item.id);
-    }
-    if (role === 'finance') {
-      return ['1', '10', '11', '12', '13', '14', '15', '16', '26'].includes(item.id);
-    }
-    if (role === 'campaign_manager') {
-      return ['1', '6', '7', '8', '15b', '18', '24'].includes(item.id);
-    }
-    if (role === 'support_staff') {
-      return ['1', '10', '18b', '25'].includes(item.id);
-    }
-    if (role === 'ops_admin') {
-      return !['4', '12', '17b', '27', '27c', '28'].includes(item.id);
-    }
-    return false;
-  };
+  // Secondary management & configuration tools
+  const secondaryNavItems: NavItem[] = [
+    {
+      id: 'homepage-curation',
+      label: 'Homepage Placements',
+      href: '/admin/homepage-curation',
+      icon: LayoutList,
+      roles: ['super_admin', 'admin', 'support_admin', 'marketer'],
+      matchPrefixes: ['/admin/homepage-curation'],
+    },
+    {
+      id: 'website-builder',
+      label: 'Website Builder',
+      href: '/admin/website-builder',
+      icon: Paintbrush,
+      roles: ['super_admin', 'admin', 'support_admin'],
+      matchPrefixes: ['/admin/website-builder'],
+    },
+    {
+      id: 'pages',
+      label: 'Pages & Content',
+      href: '/admin/pages',
+      icon: Layers,
+      roles: ['super_admin', 'admin', 'support_admin', 'content_writer', 'content_editor'],
+      matchPrefixes: ['/admin/pages'],
+    },
+    {
+      id: 'causes',
+      label: 'Causes & Taxonomy',
+      href: '/admin/causes',
+      icon: Bookmark,
+      roles: ['super_admin', 'admin', 'support_admin', 'campaign_manager'],
+      matchPrefixes: ['/admin/causes'],
+    },
+    {
+      id: 'organizations',
+      label: 'Organizations & KYC',
+      href: '/admin/organizations',
+      icon: Building2,
+      badge: pendingCounts.ngos && pendingCounts.ngos > 0 ? pendingCounts.ngos : undefined,
+      badgeColor: 'bg-blue-500 text-white',
+      roles: ['super_admin', 'admin', 'support_admin', 'reviewer', 'head_staff'],
+      matchPrefixes: ['/admin/organizations'],
+    },
+    {
+      id: 'media',
+      label: 'Media Library',
+      href: '/admin/media',
+      icon: ImageIcon,
+      roles: ['super_admin', 'admin', 'support_admin', 'content_writer', 'content_editor', 'marketer'],
+      matchPrefixes: ['/admin/media'],
+    },
+    {
+      id: 'payment-gateways',
+      label: 'Payment Gateways',
+      href: '/admin/payment-gateways',
+      icon: CreditCard,
+      roles: ['super_admin', 'admin'],
+      matchPrefixes: ['/admin/payment-gateways'],
+    },
+    {
+      id: 'audit-logs',
+      label: 'Audit Logs Ledger',
+      href: '/admin/audit-logs',
+      icon: History,
+      roles: ['super_admin', 'admin', 'support_admin', 'finance'],
+      matchPrefixes: ['/admin/audit-logs'],
+    },
+    {
+      id: 'settings',
+      label: 'Settings & Backups',
+      href: '/admin/settings',
+      icon: Settings,
+      roles: ['super_admin', 'admin'],
+      matchPrefixes: ['/admin/settings'],
+    },
+    {
+      id: 'api-keys',
+      label: 'API Keys & Secrets',
+      href: '/admin/api-keys',
+      icon: KeyRound,
+      badge: 'Super Admin',
+      badgeColor: 'bg-rose-100 text-[#E84B45] font-semibold text-[10px]',
+      roles: ['super_admin'],
+      matchPrefixes: ['/admin/api-keys'],
+    },
+  ];
 
-  // RBAC permission check: Check across employee's roles (up to 2 roles evaluated)
-  const canAccess = (item: SidebarItem): boolean => {
+  // RBAC permission check
+  const canAccess = (item: NavItem): boolean => {
+    if (!item.roles || item.roles.length === 0) return true;
     const evaluatedRoles: UserRole[] = [];
     if (role) evaluatedRoles.push(role);
     if (user?.secondaryRole && !evaluatedRoles.includes(user.secondaryRole) && (!role || role === user?.role)) {
       evaluatedRoles.push(user.secondaryRole);
     }
-    if (evaluatedRoles.length === 0) {
-      return true;
-    }
-    return evaluatedRoles.some((r) => canRoleAccess(r, item));
+    if (evaluatedRoles.length === 0) return true;
+    if (evaluatedRoles.includes('super_admin')) return true;
+    return evaluatedRoles.some((r) => item.roles?.includes(r));
   };
 
-  // Filter items by search
-  const filteredGroups = sidebarGroups.map((g) => ({
-    ...g,
-    items: g.items.filter(
-      (item) =>
-        canAccess(item) &&
-        (menuSearch === '' || item.label.toLowerCase().includes(menuSearch.toLowerCase()))
-    ),
-  })).filter((g) => g.items.length > 0);
+  const isItemActive = (item: NavItem) => {
+    if (item.href === '/admin') {
+      return pathname === '/admin';
+    }
+    if (item.matchPrefixes) {
+      return item.matchPrefixes.some((prefix) => {
+        if (prefix.endsWith('$')) {
+          return pathname === prefix.replace('$', '');
+        }
+        return pathname.startsWith(prefix);
+      });
+    }
+    return pathname.startsWith(item.href);
+  };
+
+  const filterItems = (items: NavItem[]) => {
+    return items.filter((item) => {
+      if (!canAccess(item)) return false;
+      if (!menuSearch) return true;
+      return item.label.toLowerCase().includes(menuSearch.toLowerCase());
+    });
+  };
+
+  const visiblePrimary = filterItems(primaryNavItems);
+  const visibleSecondary = filterItems(secondaryNavItems);
 
   // Generate breadcrumb
   const currentPathSegments = pathname.split('/').filter(Boolean);
@@ -284,17 +289,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ----------------- DESKTOP SIDEBAR ----------------- */}
       <aside
         className={`hidden md:flex flex-col border-r border-[#E2E4E9] bg-white transition-all duration-300 z-30 shrink-0 ${
-          collapsed ? 'w-20' : 'w-72'
+          collapsed ? 'w-20' : 'w-64'
         }`}
       >
         {/* Brand Header */}
         <div className="h-16 border-b border-[#E2E4E9] flex items-center justify-between px-4 bg-white">
           {!collapsed ? (
             <Link href="/admin" className="flex items-center gap-2">
-              <DokindLogo size="sm" showTagline tagline="Admin Command" />
+              <DokindLogo size="sm" showTagline tagline="Admin Workspace" />
             </Link>
           ) : (
-            <Link href="/admin" className="mx-auto" title="dokind Admin">
+            <Link href="/admin" className="mx-auto" title="Dokind Admin">
               <DokindMark size={32} />
             </Link>
           )}
@@ -308,14 +313,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
 
-        {/* Search input in sidebar */}
+        {/* Quick Search in sidebar */}
         {!collapsed && (
           <div className="p-3 border-b border-[#E2E4E9] bg-neutral-50/50">
             <div className="relative">
-              <Search className="w-4 h-4 text-neutral-400 absolute left-2.5 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-2.5" />
               <input
                 type="text"
-                placeholder="Jump to setting..."
+                placeholder="Jump to tool or setting..."
                 value={menuSearch}
                 onChange={(e) => setMenuSearch(e.target.value)}
                 className="w-full bg-white border border-[#E2E4E9] rounded-lg pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-[#E84B45] transition-colors"
@@ -332,48 +337,100 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         )}
 
-        {/* Scrollable Nav Groups */}
+        {/* Scrollable Nav: Primary 6 sections + Collapsible Operations */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
-          {filteredGroups.map((group, gIdx) => (
-            <div key={gIdx} className="space-y-1">
-              {!collapsed && (
-                <h4 className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 px-3 pb-1">
-                  {group.groupTitle}
-                </h4>
-              )}
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    title={collapsed ? item.label : undefined}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all group ${
-                      isActive
-                        ? 'bg-[#E84B45] text-white shadow-sm font-semibold'
-                        : 'text-[#555B63] hover:text-[#202124] hover:bg-neutral-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 truncate">
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-neutral-500 group-hover:text-[#202124]'}`} />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
-                    </div>
+          {/* Primary Administrative Sections */}
+          <div className="space-y-1">
+            {!collapsed && (
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 px-3 pb-1">
+                Workspace
+              </h4>
+            )}
+            {visiblePrimary.map((item) => {
+              const Icon = item.icon;
+              const active = isItemActive(item);
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  title={collapsed ? item.label : undefined}
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
+                    active
+                      ? 'bg-[#E84B45] text-white shadow-sm'
+                      : 'text-[#555B63] hover:text-[#202124] hover:bg-neutral-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 truncate">
+                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-neutral-500 group-hover:text-[#202124]'}`} />
+                    {!collapsed && <span className="truncate">{item.label}</span>}
+                  </div>
 
-                    {!collapsed && item.badge && (
-                      <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                          item.badgeColor || (isActive ? 'bg-white text-[#E84B45]' : 'bg-neutral-200 text-neutral-800')
+                  {!collapsed && item.badge && (
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        item.badgeColor || (active ? 'bg-white text-[#E84B45]' : 'bg-neutral-200 text-neutral-800')
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Secondary Operations & Settings */}
+          {visibleSecondary.length > 0 && (
+            <div className="pt-2 border-t border-neutral-100 space-y-1">
+              {!collapsed ? (
+                <button
+                  onClick={() => setMoreToolsOpen(!moreToolsOpen)}
+                  className="w-full flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-neutral-400 px-3 py-1 hover:text-neutral-700 transition"
+                >
+                  <span>Operations & Settings</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${moreToolsOpen ? '' : '-rotate-90'}`} />
+                </button>
+              ) : (
+                <div className="h-px bg-neutral-200 my-2" />
+              )}
+
+              {(moreToolsOpen || menuSearch !== '' || collapsed) && (
+                <div className="space-y-1 pt-1">
+                  {visibleSecondary.map((item) => {
+                    const Icon = item.icon;
+                    const active = isItemActive(item);
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        title={collapsed ? item.label : undefined}
+                        className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all group ${
+                          active
+                            ? 'bg-neutral-900 text-white shadow-xs font-semibold'
+                            : 'text-[#6B7280] hover:text-[#202124] hover:bg-neutral-100'
                         }`}
                       >
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
+                        <div className="flex items-center gap-3 truncate">
+                          <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-neutral-400 group-hover:text-[#202124]'}`} />
+                          {!collapsed && <span className="truncate">{item.label}</span>}
+                        </div>
+
+                        {!collapsed && item.badge && (
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              item.badgeColor || (active ? 'bg-white/20 text-white' : 'bg-neutral-200 text-neutral-700')
+                            }`}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ))}
+          )}
         </div>
 
         {/* Sidebar Footer with Live Site link */}
@@ -395,25 +452,53 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
           <div className="relative w-80 bg-white h-full flex flex-col z-10 shadow-2xl">
             <div className="h-16 border-b border-[#E2E4E9] flex items-center justify-between px-4">
-              <span className="font-bold text-sm">Navigation Menu</span>
+              <span className="font-bold text-sm">Dokind Admin</span>
               <button onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-md hover:bg-neutral-100">
                 <X className="w-5 h-5 text-neutral-500" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {filteredGroups.map((g, idx) => (
-                <div key={idx} className="space-y-1">
-                  <h4 className="text-[10px] font-bold uppercase text-neutral-400 px-2">{g.groupTitle}</h4>
-                  {g.items.map((item) => {
+              <div className="space-y-1">
+                <h4 className="text-[10px] font-bold uppercase text-neutral-400 px-2 pb-1">Primary Workspace</h4>
+                {visiblePrimary.map((item) => {
+                  const Icon = item.icon;
+                  const active = isItemActive(item);
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold ${
+                        active ? 'bg-[#E84B45] text-white' : 'text-neutral-700 hover:bg-neutral-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-200 text-neutral-800">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {visibleSecondary.length > 0 && (
+                <div className="pt-2 border-t border-neutral-100 space-y-1">
+                  <h4 className="text-[10px] font-bold uppercase text-neutral-400 px-2 pb-1">Operations & Settings</h4>
+                  {visibleSecondary.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.href;
+                    const active = isItemActive(item);
                     return (
                       <Link
                         key={item.id}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium ${
-                          isActive ? 'bg-[#E84B45] text-white' : 'text-neutral-600 hover:bg-neutral-100'
+                          active ? 'bg-neutral-900 text-white' : 'text-neutral-600 hover:bg-neutral-100'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -429,7 +514,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     );
                   })}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -440,7 +525,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Top Navbar */}
         <header className="h-16 bg-white border-b border-[#E2E4E9] flex items-center justify-between px-4 sm:px-6 z-20 shrink-0">
           <div className="flex items-center gap-3">
-            {/* Mobile menu trigger */}
             <button
               onClick={() => setMobileMenuOpen(true)}
               className="md:hidden p-2 rounded-lg text-neutral-600 hover:bg-neutral-100"
@@ -460,59 +544,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Right Header Utilities */}
           <div className="flex items-center gap-3">
-            {/* Live simulation banner indicator */}
-            <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-800">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              Test Mode Active
-            </div>
-
-            {/* Role Switcher for Pair-Programming & Verification */}
-            <div className="relative">
-              <button
-                onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#E2E4E9] bg-neutral-50 hover:bg-neutral-100 text-xs font-semibold transition-colors"
-                title="Switch active role to test RBAC gating"
-              >
-                <Lock className="w-3.5 h-3.5 text-neutral-500" />
-                <span className="capitalize">{role?.replace('_', ' ') || 'Admin'}</span>
-                <ChevronDown className="w-3 h-3 text-neutral-400" />
-              </button>
-
-              {roleSwitcherOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-[#E2E4E9] py-1.5 z-50 text-xs"
-                  onMouseLeave={() => setRoleSwitcherOpen(false)}
-                >
-                  <div className="px-3 py-1.5 border-b border-neutral-100 text-[11px] text-neutral-400 font-semibold uppercase">
-                    Simulate Role (RBAC)
-                  </div>
-                  {[
-                    { r: 'super_admin' as const, label: 'Super Admin (Full Access)' },
-                    { r: 'admin' as const, label: 'Platform Admin' },
-                    { r: 'support_admin' as const, label: 'Support Admin' },
-                    { r: 'marketer' as const, label: 'Marketer (SEO & Analytics)' },
-                    { r: 'lead_generator' as const, label: 'Lead Generator' },
-                    { r: 'content_writer' as const, label: 'Content Writer' },
-                    { r: 'head_staff' as const, label: 'Head Staff (Reviewer)' },
-                    { r: 'finance' as const, label: 'Finance & Compliance' },
-                    { r: 'ops_admin' as const, label: 'Operations Admin' },
-                  ].map((item) => (
-                    <button
-                      key={item.r}
-                      onClick={() => {
-                        switchRole(item.r);
-                        setRoleSwitcherOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-neutral-50 transition-colors ${
-                        role === item.r ? 'text-[#E84B45] font-bold bg-[#E84B45]/5' : 'text-neutral-700'
-                      }`}
-                    >
-                      <span>{item.label}</span>
-                      {role === item.r && <UserCheck className="w-3.5 h-3.5" />}
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Verified Admin Role Badge */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-800">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="capitalize">{user?.secondaryRole ? `${(role || user.role).replace('_', ' ')} • ${user.secondaryRole.replace('_', ' ')}` : (role || user?.role || 'Super Admin').replace('_', ' ')}</span>
             </div>
 
             {/* Notifications Dropdown */}
@@ -556,7 +591,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     )}
                     {(pendingCounts.wires || 0) > 0 && (
                       <Link
-                        href="/admin/transactions"
+                        href="/admin/finance"
                         onClick={() => setNotificationsOpen(false)}
                         className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
                       >
@@ -602,6 +637,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     : (role?.replace('_', ' ') || 'Super Admin')}
                 </span>
               </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch('/api/admin/auth/logout', { method: 'POST' });
+                  } finally {
+                    window.location.href = '/admin/login';
+                  }
+                }}
+                title="Sign Out of Admin Console"
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ml-1"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </header>

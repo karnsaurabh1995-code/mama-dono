@@ -105,13 +105,13 @@ export function PreviewCampaignGrid() {
 
         {/* View All CTA */}
         <div className="text-center pt-8">
-          <Link href="/campaigns">
+          <Link href="/campaigns" className="inline-block">
             <button
               type="button"
-              className="px-8 py-3.5 rounded-xl border-2 border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-extrabold text-xs transition duration-200 inline-flex items-center gap-2 cursor-pointer shadow-2xs"
+              className="px-8 py-3.5 rounded-xl border-2 border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-extrabold text-xs transition duration-200 inline-flex items-center justify-center gap-2 cursor-pointer shadow-2xs whitespace-nowrap"
             >
               <span>View All Active Campaigns</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
           </Link>
         </div>

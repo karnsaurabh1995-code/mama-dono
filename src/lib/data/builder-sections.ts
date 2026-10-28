@@ -13,8 +13,8 @@ export const INITIAL_HOME_SECTIONS: PageSection[] = [
     order: 0,
     isVisible: true,
     settings: {
-      bgColor: '#FAF9F6',
-      textColor: '#202124',
+      bgColor: '#0A0A0C',
+      textColor: '#FFFFFF',
       padding: 'spacious',
       showBadge: true,
       layout: 'carousel',

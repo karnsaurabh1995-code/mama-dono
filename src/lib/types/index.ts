@@ -20,6 +20,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  username?: string;
   role: UserRole;
   secondaryRole?: UserRole; // Up to 2 roles per employee maximum
   roles?: UserRole[]; // Max 2 roles: [role] or [role, secondaryRole]
@@ -141,6 +142,8 @@ export interface Campaign {
   shortDescription: string;
   story: string;
   category: CauseCategory;
+  primaryCategory?: CauseCategory;
+  tags?: string[];
   campaignType: CampaignType;
   goalAmount: number;
   raisedAmount: number;
@@ -204,6 +207,7 @@ export interface Campaign {
     id: string;
     name: string;
     email: string;
+    username?: string;
     role: UserRole;
     department?: string;
     jobTitle?: string;
@@ -504,10 +508,14 @@ export interface ImpactStory {
   imageUrl: string;
   author: string;
   category: CauseCategory;
+  primaryCategory?: CauseCategory;
+  tags?: string[];
   campaignId?: string;
   beneficiaryName: string;
   impactMetrics: { label: string; value: string }[];
   publishedAt: string;
+  status?: 'published' | 'draft';
+  updatedAt?: string;
 }
 
 export interface BlogPost {
@@ -526,6 +534,8 @@ export interface BlogPost {
   imageUrl: string;
   tags: string[];
   publishedAt: string;
+  status?: 'published' | 'draft';
+  updatedAt?: string;
 }
 
 export interface FAQItem {
@@ -601,6 +611,33 @@ export interface HomepageCurationConfig {
   featuredCampaignIds: string[]; // Campaigns featured in the Cause & Campaign Discovery Grid
   monthlyMissionIds: string[]; // Campaigns or missions in the Monthly Giving Section
   urgentCampaignIds?: string[]; // Campaigns highlighted with emergency/urgent banners
+}
+
+export interface MonthlyMission {
+  id: string;
+  slug: string;
+  title: string;
+  cause: string;
+  tagline: string;
+  monthlyAmount: number;
+  supportersCount: number;
+  impactNote: string;
+  imageUrl: string;
+  description?: string;
+  isActive?: boolean;
+  order?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TagItem {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  isSystem?: boolean;
+  campaignCount?: number;
+  createdAt?: string;
 }
 
 export interface MediaRecognition {

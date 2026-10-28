@@ -57,7 +57,7 @@ export default function DonationCheckoutPage() {
   const [amount, setAmount] = useState<number>(itemsSubtotal > 0 ? itemsSubtotal : initialAmount);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [tipPercent, setTipPercent] = useState<number>(0); // voluntary tip
-  const [dokindContribPercent, setDokindContribPercent] = useState<number>(2); // optional 2% Dokind Foundation fund
+  const [dokindContribPercent, setDokindContribPercent] = useState<number>(0); // optional Dokind Foundation fund (defaults to 0%)
   const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
   const [isRecurring, setIsRecurring] = useState<boolean>(campaign?.campaignType === 'monthly');
   const [donorName, setDonorName] = useState<string>(user?.name || '');
@@ -460,50 +460,58 @@ export default function DonationCheckoutPage() {
             </div>
           </div>
 
-          {/* Section 2: Transparent Accounting & Optional Dokind Foundation Support */}
+          {/* Section 2: 0% Platform Fee & Optional Additional Dokind Support */}
           <div className="bg-white p-6 rounded-2xl border border-[#E8E6E1] shadow-2xs space-y-4">
-            {/* Transparent 5% Platform Fee Deduction Display */}
+            {/* Transparent 0% Platform Fee Guarantee Display */}
             <div className="bg-[#FAF9F6] p-4 rounded-xl border border-[#E8E6E1] space-y-2.5 text-xs">
               <div className="flex items-center justify-between pb-2 border-b border-neutral-200">
                 <span className="font-bold text-[#202124] flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Transparent Campaign Allocation</span>
+                  <span>0% Platform Fee Guarantee</span>
                 </span>
-                <span className="text-[11px] font-mono text-neutral-500">5% Operational Platform Fee</span>
+                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  100% Goes to Campaign
+                </span>
               </div>
               <div className="flex justify-between text-[#555B63]">
-                <span>Base Donation Amount:</span>
+                <span>Donation to Campaign:</span>
                 <span className="font-mono font-semibold text-[#202124]">{formatINR(effectiveAmount)}</span>
               </div>
               <div className="flex justify-between text-[#555B63]">
-                <span>dokind Platform Fee (5% deducted):</span>
-                <span className="font-mono font-semibold text-rose-600">- {formatINR(platformFeeAmount)}</span>
+                <span>Platform Fee Deducted:</span>
+                <span className="font-mono font-semibold text-emerald-600">₹0 (0% Deducted)</span>
               </div>
+              {dokindContribAmount > 0 && (
+                <div className="flex justify-between text-[#555B63]">
+                  <span>Optional Dokind Platform Support ({dokindContribPercent}%):</span>
+                  <span className="font-mono font-semibold text-[#EF4949]">+ {formatINR(dokindContribAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-dashed border-neutral-200">
                 <span>Net Raised For This Campaign:</span>
-                <span className="font-mono">{formatINR(netCampaignAmount)}</span>
+                <span className="font-mono">{formatINR(netCampaignAmount)} (100%)</span>
               </div>
             </div>
 
-            {/* Optional Additional Contribution to Dokind Foundation Donation Fund */}
+            {/* Optional Additional Contribution Selected by Donor */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-[#202124] flex items-center gap-1.5">
                     <Heart className="w-4 h-4 text-[#EF4949] fill-[#EF4949]" />
-                    <span>Dokind Foundation Support (Optional Extra)</span>
+                    <span>Support Dokind (Optional Fee / Tip)</span>
                   </h3>
                   <p className="text-xs text-[#555B63] mt-0.5">
-                    dokind coordinates medical verifications and emergency donor support across India. Add an optional voluntary contribution on top of your gift.
+                    Dokind charges 0% fees from fundraisers. Add an optional voluntary contribution if you wish to help sustain our platform.
                   </p>
                 </div>
                 <span className="text-xs font-bold text-[#EF4949] font-mono">
-                  + {formatINR(dokindContribAmount)}
+                  {dokindContribAmount > 0 ? `+ ${formatINR(dokindContribAmount)}` : '₹0'}
                 </span>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap text-xs">
-                {[0, 1, 2, 3, 5].map((pct) => (
+                {[0, 2, 5, 8, 10].map((pct) => (
                   <button
                     key={pct}
                     type="button"
@@ -514,7 +522,7 @@ export default function DonationCheckoutPage() {
                         : 'bg-[#FAF9F6] text-[#555B63] border-[#E8E6E1] hover:bg-neutral-200'
                     }`}
                   >
-                    {pct === 0 ? '0% (No extra)' : pct === 2 ? '2% (Recommended)' : `${pct}%`}
+                    {pct === 0 ? '0% (No extra fee)' : `${pct}% (+${formatINR(Math.round((effectiveAmount * pct) / 100))})`}
                   </button>
                 ))}
               </div>
@@ -685,7 +693,7 @@ export default function DonationCheckoutPage() {
                 {formatINR(totalPayable)}
               </span>
               <span className="text-[11px] text-neutral-400 block">
-                {formatINR(effectiveAmount)} base donation {dokindContribAmount > 0 ? `+ ${formatINR(dokindContribAmount)} Dokind Foundation` : ''} (Net {formatINR(netCampaignAmount)} to cause)
+                {formatINR(effectiveAmount)} to campaign (100%) {dokindContribAmount > 0 ? `+ ${formatINR(dokindContribAmount)} optional Dokind support` : ''}
               </span>
             </div>
 

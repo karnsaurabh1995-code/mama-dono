@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { db } from '@/lib/db';
+import { useAuth } from '@/lib/auth/context';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { ChevronRight, ArrowLeft, Clock, Calendar, Share2, Tag } from 'lucide-react';
@@ -11,9 +12,12 @@ import { ChevronRight, ArrowLeft, Clock, Calendar, Share2, Tag } from 'lucide-re
 export default function BlogPostDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
+  const { user } = useAuth();
   const post = db.getBlogBySlug(slug);
 
-  if (!post) {
+  const isStaff = user && ['super_admin', 'admin', 'content_writer', 'content_editor', 'marketer'].includes(user.role);
+
+  if (!post || (post.status === 'draft' && !isStaff)) {
     return (
       <div className="py-24 text-center max-w-md mx-auto px-4 space-y-4">
         <h1 className="text-xl font-bold text-[#202124]">Article Not Found</h1>

@@ -166,6 +166,15 @@ export async function sendMsg91Otp(params: {
     }
   }
 
+  // Production fail-closed safety check
+  if (process.env.NODE_ENV === 'production') {
+    return {
+      success: false,
+      message: 'SMS verification gateway is currently unavailable. Please use email verification.',
+      provider: 'unconfigured',
+    };
+  }
+
   // Development / Mock Flow (Safe Local Testing)
   // Generates a mock OTP stored in memory for 10 minutes
   const mockCode = Math.floor(100000 + Math.random() * 900000).toString().slice(0, length);
@@ -177,9 +186,7 @@ export async function sendMsg91Otp(params: {
   };
 
   // Structured operational log without logging secret authkeys
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[DOKIND MSG91 MOCK] Sent OTP "${mockCode}" to ${norm.masked} (Expires in ${expiry}m)`);
-  }
+  console.log(`[DOKIND MSG91 MOCK] Sent OTP "${mockCode}" to ${norm.masked} (Expires in ${expiry}m)`);
 
   return {
     success: true,
@@ -188,7 +195,7 @@ export async function sendMsg91Otp(params: {
     provider: 'mock',
     // In dev mode, return mock code strictly in non-production for testing utilities
     requestId: `mock-${Date.now()}`,
-    rawResponse: process.env.NODE_ENV !== 'production' ? { devOtpHint: mockCode } : undefined,
+    rawResponse: { devOtpHint: mockCode },
   };
 }
 

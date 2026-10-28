@@ -71,14 +71,14 @@ export function MonthlyDonationSection({
             </div>
           </div>
 
-          <Link href={ctaLink || '/monthly-giving'} className="shrink-0">
+          <Link href={ctaLink || '/monthly-giving'} className="shrink-0 inline-block">
             <Button
               variant="outline"
               size="md"
-              className="border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-1.5"
+              className="border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold text-xs px-5 py-2.5 rounded-xl transition inline-flex items-center justify-center gap-2 whitespace-nowrap"
+              rightIcon={<ArrowRight className="w-3.5 h-3.5 shrink-0" />}
             >
               <span>{ctaText || 'Explore All Monthly Missions'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           </Link>
         </div>

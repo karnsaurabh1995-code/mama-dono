@@ -8,13 +8,13 @@ import {
   Mail,
   Phone,
   MapPin,
-  ShieldCheck,
   CheckCircle2,
   Lock,
   ArrowRight,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { DokindLogo } from '../common/DokindLogo';
+import { PaymentLogosRow } from '../common/PaymentLogos';
 import { useSiteSettings } from '@/providers/SiteSettingsProvider';
 
 export function Footer() {
@@ -30,7 +30,6 @@ export function Footer() {
     return null;
   }
 
-
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) {
@@ -44,7 +43,7 @@ export function Footer() {
   return (
     <footer className="bg-[#1A1B1E] text-[#A1A7B2] pt-16 pb-12 border-t border-neutral-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-neutral-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12">
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center group inline-flex">
@@ -55,20 +54,9 @@ export function Footer() {
               India’s transparent crowdfunding platform bridging donors directly to emergency surgeries, child education, food relief, and audited grassroots non-profit missions.
             </p>
 
-            {/* Trust and Compliance Badges */}
-            <div className="pt-2 flex flex-col gap-2 text-xs text-neutral-400">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#25845B]" />
-                <span>{settings.darpanPortalRef || 'NITI Aayog NGO-Darpan Portal Recognized'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-amber-500" />
-                <span>256-bit Bank Grade Encrypted Razorpay Gateway</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#25845B]" />
-                <span>Section 80G Tax Exemption Receipts (Form 10BE)</span>
-              </div>
+            {/* Payment Method Logos (UPI, GPay, PhonePe, Visa, Mastercard, RuPay) */}
+            <div className="pt-3">
+              <PaymentLogosRow />
             </div>
           </div>
 
@@ -195,31 +183,8 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Payment Methods and Regulatory Bar */}
-        <div className="py-6 border-b border-neutral-800 flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-400">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="font-semibold text-neutral-300">Accepted Indian Payment Methods:</span>
-            <span className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-[11px] font-mono">
-              UPI (GPay / PhonePe / Paytm)
-            </span>
-            <span className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-[11px] font-mono">
-              RuPay / Visa / Mastercard
-            </span>
-            <span className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-[11px] font-mono">
-              Net Banking (50+ Banks)
-            </span>
-            <span className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-[11px] font-mono">
-              Razorpay Secured
-            </span>
-          </div>
-
-          <div className="text-[11px] text-neutral-500">
-            * 50% Tax Deduction under Sec 80G available for eligible Indian donor contributions.
-          </div>
-        </div>
-
         {/* Legal & Copyright */}
-        <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
+        <div className="pt-8 border-t border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
           <p>© {new Date().getFullYear()} {settings.platformName} Foundation. All rights reserved. Registered under Indian Societies Act.</p>
 
           <div className="flex items-center gap-5 flex-wrap">
@@ -243,6 +208,13 @@ export function Footer() {
             </Link>
             <Link href="/accessibility" className="hover:text-neutral-300 transition-colors">
               Accessibility
+            </Link>
+            <Link
+              href="/admin/login"
+              className="hover:text-neutral-300 transition-colors inline-flex items-center gap-1.5 text-neutral-500"
+            >
+              <Lock className="w-3 h-3" />
+              <span>Admin Login</span>
             </Link>
           </div>
         </div>

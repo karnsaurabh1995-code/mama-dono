@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 32009",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 32009",
     "lint": "eslint",
     "security:check": "tsx security/runner.ts",
-    "security:test:payment": "tsx security/tests/razorpay-security.test.ts"
+    "security:test:payment": "tsx security/tests/razorpay-security.test.ts",
+    "verify:admin": "tsx scripts/verify-admin-rebuild.ts",
+    "verify:hydration": "tsx scripts/verify-hydration-fix.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
@@ -21,7 +23,8 @@
     "nodemailer": "^10.2.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

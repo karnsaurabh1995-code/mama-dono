@@ -75,9 +75,13 @@ export function MissionCard({ mission }: { mission: MissionProps }) {
         </div>
 
         <Link href={`/monthly-giving/${mission.slug}`} className="block w-full">
-          <Button variant="primary" size="md" className="w-full justify-center font-bold">
+          <Button
+            variant="primary"
+            size="md"
+            className="w-full justify-center font-bold inline-flex items-center gap-2 whitespace-nowrap"
+            rightIcon={<ArrowRight className="w-4 h-4 shrink-0" />}
+          >
             <span>Join Mission</span>
-            <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
         </Link>
       </div>

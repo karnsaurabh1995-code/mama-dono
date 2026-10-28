@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   PlusCircle,
   Shield,
+  Lock,
 } from 'lucide-react';
 import { DokindLogo } from '../common/DokindLogo';
 import { useAuth } from '@/lib/auth/context';
@@ -78,11 +79,11 @@ export function Header() {
   const navLinks: { label: string; href: string; badge?: string }[] = [
     { label: 'Explore Campaigns', href: '/campaigns' },
     { label: 'Monthly Giving', href: '/monthly-giving' },
-    { label: 'Product Giving', href: '/product-giving' },
+    { label: 'Stories', href: '/blog' },
     { label: 'How It Works', href: '/how-it-works' },
     { label: 'Impact', href: '/impact' },
   ];
-  // Note: /causes directory remains fully supported across platform routes and search
+  // Note: /causes directory and /product-giving remain fully supported across platform routes
 
   const getDashboardHref = (userRole: UserRole | null) => {
     switch (userRole) {
@@ -135,37 +136,21 @@ export function Header() {
           <span>{settings.maintenanceMessage || 'Platform maintenance in progress. All donations and campaigns remain secure.'}</span>
         </div>
       )}
-      {!settings.maintenanceMode && settings.topBanner && (
-        <div className={`px-4 py-1.5 text-center text-xs font-medium flex items-center justify-center gap-2 border-b ${
-          settings.topBanner.type === 'urgent'
-            ? 'bg-[#EF4949] text-white border-red-700'
-            : settings.topBanner.type === 'success'
-            ? 'bg-emerald-600 text-white border-emerald-700'
-            : 'bg-[#202124] text-white border-neutral-700'
-        }`}>
-          <span>{settings.topBanner.message}</span>
-          {settings.topBanner.link && (
-            <Link href={settings.topBanner.link} className="underline font-bold ml-1 hover:opacity-80">
-              Learn more &rarr;
-            </Link>
-          )}
-        </div>
-      )}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#EAE7E2] transition-all shadow-xs">
       <div className="w-full max-w-[1560px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10">
         <div className="flex items-center justify-between h-18 sm:h-20 gap-4 lg:gap-6 xl:gap-8">
-          {/* 1. LEFT REGION: dokind Wordmark (starts flush with zero excess transparent padding) */}
+          {/* 1. LEFT REGION: Dokind Wordmark */}
           <Link
             href="/"
             className="flex items-center shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#EF4949] rounded-lg -ml-1 sm:-ml-1.5 lg:-ml-2"
-            aria-label="dokind home"
+            aria-label="Dokind home"
           >
             <DokindLogo variant="dark" size="md" showTagline={false} />
           </Link>
 
-          {/* 2. MIDDLE REGION: Desktop Navigation Links (Centralized and biased slightly right) */}
+          {/* 2. MIDDLE REGION: Desktop Navigation Links (Centralized) */}
           <nav
-            className="hidden lg:flex items-center gap-5 xl:gap-7 2xl:gap-9 shrink-0 mx-auto lg:translate-x-2 xl:translate-x-4"
+            className="hidden lg:flex items-center gap-5 xl:gap-7 2xl:gap-8 shrink-0 mx-auto"
             aria-label="Main Navigation"
           >
             {navLinks.map((link) => {
@@ -189,12 +174,12 @@ export function Header() {
             })}
           </nav>
 
-          {/* 3. RIGHT REGION: Actions in strict sequence:
+          {/* 3. RIGHT REGION: Actions in clean sequence:
               (1) Compact Search Icon,
               (2) Donate Now (#EF4949),
               (3) Start a Fundraiser,
               (4) User Profile Chip / Login */}
-          <div className="hidden lg:flex items-center gap-3 xl:gap-3.5 shrink-0 pl-2 xl:pl-4">
+          <div className="hidden lg:flex items-center gap-3 xl:gap-3.5 2xl:gap-4 shrink-0 pl-1 xl:pl-2">
             {/* Action 1: Compact Search Icon & Popover */}
             <div className="relative" ref={searchContainerRef}>
               <button
@@ -267,7 +252,7 @@ export function Header() {
               <span>Start a Fundraiser</span>
             </Link>
 
-            {/* Action 4: User Profile Chip (NO role badge, clean avatar fallback) */}
+            {/* Action 4: User Profile Chip / Donor Log In */}
             <div className="relative">
               {!isLoaded ? (
                 <HeaderAccountSkeleton variant="desktop" />
@@ -323,7 +308,7 @@ export function Header() {
                           className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 text-[#555B63]"
                         >
                           <Heart className="w-4 h-4 text-neutral-500" />
-                          <span>My Donations & 80G Receipts</span>
+                          <span>My Donations &amp; 80G Receipts</span>
                         </Link>
                         <Link
                           href="/account/recurring"
@@ -358,7 +343,7 @@ export function Header() {
                     e.preventDefault();
                     openLogin();
                   }}
-                  className="inline-flex items-center justify-center text-xs xl:text-sm font-semibold text-[#202124] hover:text-[#EF4949] px-4.5 xl:px-5 py-2.5 rounded-full hover:bg-[#FAF9F6] border border-[#EAE7E2] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center justify-center text-xs xl:text-sm font-semibold text-[#202124] hover:text-[#EF4949] px-4.5 xl:px-5.5 py-2.5 rounded-full hover:bg-[#FAF9F6] border border-[#EAE7E2] hover:border-neutral-300 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
                 >
                   Log In
                 </Link>
@@ -457,7 +442,7 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
               className="w-full inline-flex items-center justify-center py-2.5 px-4 rounded-xl text-xs font-bold bg-[#EF4949] hover:bg-[#D9363E] text-white transition-colors shadow-xs"
             >
-              Explore Campaigns & Donate
+              Explore Campaigns &amp; Donate
             </Link>
 
             {/* Mobile Account / Dashboard Action */}
@@ -494,6 +479,18 @@ export function Header() {
                 Sign In / Register
               </button>
             )}
+
+            {/* Understated Admin Login on Mobile */}
+            <div className="pt-2 flex items-center justify-center">
+              <Link
+                href="/admin/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-700 transition-colors py-1 px-3 rounded-lg hover:bg-neutral-100"
+              >
+                <Lock className="w-3 h-3 text-neutral-400" />
+                <span>Admin Login</span>
+              </Link>
+            </div>
           </div>
         </div>
       )}

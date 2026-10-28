@@ -28,7 +28,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-lg transition-all focus:outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
+      'inline-flex items-center justify-center font-medium rounded-lg transition-all focus:outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer whitespace-nowrap select-none';
 
     const variants = {
       primary: 'bg-[#EF4949] text-white hover:bg-[#D9363E] shadow-sm active:scale-[0.99]',
@@ -41,10 +41,25 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizes = {
-      sm: 'text-xs px-3 py-1.5 gap-1.5 h-8',
-      md: 'text-sm px-4 py-2.5 gap-2 h-10',
-      lg: 'text-base px-6 py-3.5 gap-2.5 h-12',
+      sm: 'text-xs px-3 py-1.5 gap-1.5 min-h-[32px] h-auto',
+      md: 'text-sm px-4 py-2.5 gap-2 min-h-[40px] h-auto',
+      lg: 'text-base px-6 py-3.5 gap-2.5 min-h-[48px] h-auto',
     };
+
+    const content = (
+      <>
+        {isLoading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+        {!isLoading && leftIcon && (
+          <span className="inline-flex items-center shrink-0">{leftIcon}</span>
+        )}
+        <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
+          {children}
+        </span>
+        {!isLoading && rightIcon && (
+          <span className="inline-flex items-center shrink-0">{rightIcon}</span>
+        )}
+      </>
+    );
 
     if (as === 'span') {
       return (
@@ -52,10 +67,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           className={cn(baseStyles, variants[variant], sizes[size], className)}
           aria-disabled={disabled || isLoading}
         >
-          {isLoading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
-          {!isLoading && leftIcon}
-          <span>{children}</span>
-          {!isLoading && rightIcon}
+          {content}
         </span>
       );
     }
@@ -67,10 +79,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       >
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
-        {!isLoading && leftIcon}
-        <span>{children}</span>
-        {!isLoading && rightIcon}
+        {content}
       </button>
     );
   }

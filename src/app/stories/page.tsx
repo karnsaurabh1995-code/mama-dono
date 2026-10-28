@@ -71,10 +71,10 @@ export default function StoriesDirectoryPage() {
 
                 <Link
                   href={`/stories/${story.slug}`}
-                  className="mt-3 flex items-center justify-between text-xs font-semibold text-[#E84B45] hover:underline"
+                  className="mt-3 inline-flex items-center justify-between w-full text-xs font-semibold text-[#E84B45] hover:underline"
                 >
                   <span>Read Full Journey</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                 </Link>
               </div>
             </div>

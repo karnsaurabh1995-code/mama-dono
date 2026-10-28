@@ -102,19 +102,19 @@ export function PreviewStartCampaignBanner() {
 
             {/* CTA Buttons */}
             <div className="pt-3 flex flex-wrap items-center gap-4">
-              <Link href="/start-campaign">
+              <Link href="/start-campaign" className="inline-block">
                 <button
                   type="button"
-                  className="bg-[#EF4949] hover:bg-[#D93838] text-white font-bold text-xs sm:text-sm px-7 py-3.5 shadow-md rounded-xl flex items-center gap-2 transition cursor-pointer"
+                  className="bg-[#EF4949] hover:bg-[#D93838] text-white font-bold text-xs sm:text-sm px-7 py-3.5 shadow-md rounded-xl inline-flex items-center justify-center gap-2 transition cursor-pointer whitespace-nowrap"
                 >
                   <span>Start a Fundraiser Now</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
               </Link>
-              <Link href="/how-it-works">
+              <Link href="/how-it-works" className="inline-block">
                 <button
                   type="button"
-                  className="border border-neutral-300 text-neutral-800 hover:bg-neutral-50 font-bold text-xs sm:text-sm px-6 py-3.5 rounded-xl transition cursor-pointer"
+                  className="border border-neutral-300 text-neutral-800 hover:bg-neutral-50 font-bold text-xs sm:text-sm px-6 py-3.5 rounded-xl transition cursor-pointer inline-flex items-center justify-center whitespace-nowrap"
                 >
                   Learn How It Works
                 </button>

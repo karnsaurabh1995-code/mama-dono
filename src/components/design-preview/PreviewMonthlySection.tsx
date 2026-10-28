@@ -91,12 +91,13 @@ export function PreviewMonthlySection() {
                     {formatINR(m.monthlyAmount)} <span className="text-[10px] font-normal text-neutral-500">/ month</span>
                   </span>
                 </div>
-                <Link href="/design-preview/campaign">
+                <Link href="/design-preview/campaign" className="inline-block">
                   <button
                     type="button"
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                   >
-                    Join Mission
+                    <span>Join Mission</span>
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                   </button>
                 </Link>
               </div>
@@ -119,13 +120,13 @@ export function PreviewMonthlySection() {
               </p>
             </div>
           </div>
-          <Link href="/monthly-giving">
+          <Link href="/monthly-giving" className="inline-block">
             <button
               type="button"
-              className="px-5 py-2.5 rounded-xl border border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="px-5 py-2.5 rounded-xl border border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold text-xs transition inline-flex items-center justify-center gap-2 cursor-pointer shrink-0 whitespace-nowrap"
             >
               <span>Explore All Monthly Missions</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           </Link>
         </div>

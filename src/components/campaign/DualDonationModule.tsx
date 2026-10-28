@@ -277,12 +277,12 @@ export function DualDonationModule({
             <Link
               href={totalProductsAmount > 0 ? productsCheckoutUrl : '#'}
               aria-disabled={totalProductsAmount === 0}
-              className={`w-full inline-flex items-center justify-center gap-2 bg-[#EF4949] hover:bg-[#D9363E] text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-md transition-all ${
+              className={`w-full inline-flex items-center justify-center gap-2 bg-[#EF4949] hover:bg-[#D9363E] text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-md transition-all whitespace-nowrap ${
                 totalProductsAmount === 0 ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.99]'
               }`}
             >
               <span>DONATE PRODUCTS ({formatINR(totalProductsAmount)})</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </Link>
 
             <p className="text-[10px] text-center text-neutral-400">
@@ -377,11 +377,11 @@ export function DualDonationModule({
           <div className="pt-2">
             <Link
               href={monetaryCheckoutUrl}
-              className="w-full inline-flex items-center justify-center gap-2 bg-[#EF4949] hover:bg-[#D9363E] text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-md transition-all cursor-pointer active:scale-[0.99]"
+              className="w-full inline-flex items-center justify-center gap-2 bg-[#EF4949] hover:bg-[#D9363E] text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-md transition-all cursor-pointer active:scale-[0.99] whitespace-nowrap"
             >
               <Heart className="w-4 h-4 fill-white shrink-0" />
               <span>DONATE {formatINR(effectiveMonetaryAmount || 1001)} NOW</span>
-              <ArrowRight className="w-4 h-4 ml-1 shrink-0" />
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </Link>
           </div>
 

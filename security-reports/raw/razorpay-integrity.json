@@ -1,7 +1,7 @@
 {
-  "executedAt": "2026-10-26T18:39:28.854Z",
-  "totalChecks": 11,
-  "passedChecks": 11,
+  "executedAt": "2026-10-28T06:11:28.754Z",
+  "totalChecks": 10,
+  "passedChecks": 10,
   "failedChecks": 0,
   "checks": [
     {
@@ -44,13 +44,7 @@
       "passed": true,
       "severity": "Critical",
       "description": "Replaying completed payment notifications does not duplicate monetary totals or supporter count.",
-      "details": "Initial: 1042500, 1st complete: 1042600, After 3 replays: 1042600"
-    },
-    {
-      "checkName": "Server-Side Item Price & Calculation Enforcement",
-      "passed": true,
-      "severity": "High",
-      "description": "Server authoritatively enforces item unit prices and total calculation."
+      "details": "Initial: 0, 1st complete: 100, After 3 replays: 100"
     },
     {
       "checkName": "Timing Attack Resistance (crypto.timingSafeEqual)",
