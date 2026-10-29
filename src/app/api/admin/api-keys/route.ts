@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 import { maskSecret } from '@/lib/security/crypto-vault';
 
 /**
@@ -12,13 +12,9 @@ import { maskSecret } from '@/lib/security/crypto-vault';
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-    if (!session || session.role !== 'super_admin') {
-      return NextResponse.json(
-        { error: 'ACCESS DENIED: Super Administrator authority strictly required to inspect API credentials' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const keys = db.getApiKeys(session).map((k) => ({
       ...k,
@@ -40,13 +36,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || session.role !== 'super_admin') {
-      return NextResponse.json(
-        { error: 'ACCESS DENIED: Super Administrator authority required' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { action, id, data, updates, newSecret } = body;
@@ -108,10 +100,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || session.role !== 'super_admin') {
-      return NextResponse.json({ error: 'ACCESS DENIED: Super Administrator authority required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 import { getMsg91Status } from '@/lib/auth/msg91';
 
 export async function GET() {
   try {
-    const user = await getServerSession();
-    if (!user || !['super_admin', 'admin', 'support_admin'].includes(user.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'support_admin']);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const status = getMsg91Status();
     return NextResponse.json({

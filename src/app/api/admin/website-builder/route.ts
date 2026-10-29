@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { publishingRepo } from '@/lib/publishing/repository';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 import { PageSection, PageSectionType } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -100,10 +100,9 @@ function validateSections(sections: any[]): { valid: boolean; error?: string; cl
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'content_editor', 'content_writer'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Content Editor or Administrator role required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'content_editor', 'content_writer']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const { searchParams } = new URL(request.url);
     const rawSlug = searchParams.get('slug') || 'home';
@@ -128,10 +127,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'content_editor'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Platform Administrator or Content Editor role required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'content_editor']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const rawSlug = body.slug || body.pageSlug || 'home';

@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { UserRole } from '@/lib/types';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
-const ALLOWED_ADMIN_ROLES = ['super_admin', 'admin', 'marketer', 'content_writer'];
+const WRITE_ROLES: UserRole[] = ['super_admin', 'admin', 'marketer', 'content_writer', 'content_editor'];
 
 export async function GET() {
   try {
+    const auth = await requireAdminApiAccess();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const faqs = db.getFAQs();
     return NextResponse.json({
       success: true,
@@ -22,10 +26,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Administrator access required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(WRITE_ROLES);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { question, answer, category = 'donor', showOnHomepage = true, isActive = true } = body;
@@ -66,14 +69,12 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(WRITE_ROLES);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
 
-    // Reorder mode
     if (body.reorder && Array.isArray(body.orderedIds)) {
       const reordered = db.reorderFAQs(body.orderedIds, session.name || 'Admin User');
       try {
@@ -111,7 +112,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({
       success: true,
       faq: updated,
-      message: `FAQ updated.`,
+      message: 'FAQ updated.',
     });
   } catch (error: any) {
     console.error('[API /api/admin/faqs PUT] Error:', error);
@@ -121,10 +122,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

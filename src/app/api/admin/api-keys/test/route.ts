@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 import { decryptSecret } from '@/lib/security/crypto-vault';
 
 /**
@@ -13,13 +13,9 @@ import { decryptSecret } from '@/lib/security/crypto-vault';
 export async function POST(request: Request) {
   const startTime = Date.now();
   try {
-    const session = await getServerSession();
-    if (!session || session.role !== 'super_admin') {
-      return NextResponse.json(
-        { error: 'ACCESS DENIED: Super Administrator authority required to ping API connections' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { id } = body;

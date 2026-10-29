@@ -9,6 +9,7 @@
     "lint": "eslint",
     "security:check": "tsx security/runner.ts",
     "security:test:payment": "tsx security/tests/razorpay-security.test.ts",
+    "test:admin-security": "tsx scripts/test-staff-admin-security.ts",
     "verify:admin": "tsx scripts/verify-admin-rebuild.ts",
     "verify:hydration": "tsx scripts/verify-hydration-fix.ts"
   },
@@ -23,6 +24,7 @@
     "nodemailer": "^10.2.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.7.0",
     "write-excel-file": "^4.1.1"
   },

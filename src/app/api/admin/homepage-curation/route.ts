@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'marketer', 'content_writer', 'campaign_manager'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'marketer', 'content_writer', 'campaign_manager', 'content_editor']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const curation = db.getHomepageCuration();
     const campaigns = db.getCampaigns();
@@ -48,10 +47,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'marketer', 'content_writer', 'campaign_manager'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized to modify homepage placements' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'marketer', 'campaign_manager', 'content_editor']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { heroCampaignIds, featuredCampaignIds, monthlyMissionIds, urgentCampaignIds } = body;

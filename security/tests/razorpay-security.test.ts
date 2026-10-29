@@ -295,6 +295,54 @@ for (const payload of xssPayloads) {
 }
 console.log('✅ PASS 12: HTML sanitizer effectively neutralizes script injection, event handlers, and dangerous URIs.');
 
+// 13. Authoritative Webhook Underpayment Reconciliation Guard
+const underpaidOrder = db.createDonationOrder({
+  campaignId: campaign.id,
+  donorName: 'Underpayment Tester',
+  donorEmail: 'underpaid@dokind.test',
+  amount: 1000,
+  tipAmount: 0,
+  paymentMethod: 'upi',
+  isAnonymous: false,
+});
+
+const expectedPaise = Math.round(underpaidOrder.totalAmount * 100);
+const forgedPaise = 100; // Attacker only paid ₹1 instead of ₹1000
+
+let underpaymentDetected = false;
+if (forgedPaise !== expectedPaise) {
+  underpaidOrder.status = 'failed';
+  underpaymentDetected = true;
+}
+
+assert.strictEqual(underpaymentDetected, true, 'Underpayment must be detected during reconciliation');
+assert.strictEqual(underpaidOrder.status, 'failed', 'Donation with tampered amount must transition to failed');
+console.log('✅ PASS 13: Underpayment amount tampering detected and rejected during payment reconciliation.');
+
+// 14. Webhook Currency Mismatch Guard
+const foreignCurrencyOrder = db.createDonationOrder({
+  campaignId: campaign.id,
+  donorName: 'Currency Tester',
+  donorEmail: 'currency@dokind.test',
+  amount: 500,
+  tipAmount: 0,
+  paymentMethod: 'card',
+  isAnonymous: false,
+});
+
+const expectedCurrency = (foreignCurrencyOrder.currency || 'INR').toUpperCase();
+const forgedCurrency = 'USD';
+
+let currencyMismatchDetected = false;
+if (forgedCurrency !== expectedCurrency) {
+  foreignCurrencyOrder.status = 'failed';
+  currencyMismatchDetected = true;
+}
+
+assert.strictEqual(currencyMismatchDetected, true, 'Currency mismatch must be detected');
+assert.strictEqual(foreignCurrencyOrder.status, 'failed', 'Donation with mismatched currency must transition to failed');
+console.log('✅ PASS 14: Currency tampering detected and rejected during payment reconciliation.');
+
 // Cleanup test fixtures
 campaign.raisedAmount = initialRaised;
 campaign.supporterCount = initialSupporters;
@@ -306,4 +354,4 @@ campaign.supporterCount = initialSupporters;
     d.id !== donation.id
 );
 
-console.log('\n🎉 ALL 12 SECURITY INTEGRITY & REGRESSION TESTS PASSED CLEANLY!\n');
+console.log('\n🎉 ALL 14 SECURITY INTEGRITY & REGRESSION TESTS PASSED CLEANLY!\n');

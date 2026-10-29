@@ -11,7 +11,6 @@ import {
   AlertCircle,
   CheckCircle2,
   ArrowRight,
-  KeyRound,
   ShieldAlert,
 } from 'lucide-react';
 import { DokindLogo } from '@/components/common/DokindLogo';
@@ -39,7 +38,7 @@ export default function AdminLoginPage() {
   const [changeError, setChangeError] = useState('');
   const [changeSuccess, setChangeSuccess] = useState(false);
 
-  // Check if already authenticated
+  // Check if already authenticated with active staff session
   useEffect(() => {
     fetch('/api/admin/auth/me')
       .then((res) => (res.ok ? res.json() : null))
@@ -60,7 +59,7 @@ export default function AdminLoginPage() {
     setError('');
 
     if (!identifier.trim()) {
-      setError('Please enter your Admin ID or registered email.');
+      setError('Please enter your Staff ID or registered email.');
       return;
     }
     if (!password) {
@@ -93,7 +92,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Successful login -> Redirect
+      // Successful login -> Redirect to authorized destination
       router.push(returnUrl);
       router.refresh();
     } catch {
@@ -168,15 +167,15 @@ export default function AdminLoginPage() {
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-semibold text-neutral-300">
             <Lock className="w-3 h-3 text-[#EF4949]" />
-            <span>Administrative Workspace</span>
+            <span>Dokind Staff Portal</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-            {mustChangePassword ? 'Set Permanent Password' : 'Sign In to Admin Console'}
+            {mustChangePassword ? 'Set Permanent Password' : 'Staff Sign In'}
           </h2>
           <p className="text-xs text-neutral-400">
             {mustChangePassword
               ? 'First-time login detected. Create your personal secure password.'
-              : 'Authorized personnel only. Sessions are cryptographically signed and audited.'}
+              : 'Restricted workspace for authorized Dokind personnel only.'}
           </p>
         </div>
 
@@ -195,14 +194,14 @@ export default function AdminLoginPage() {
               {/* Identifier */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-neutral-300">
-                  Admin ID or Registered Email
+                  Staff ID or Official Email
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="e.g. sarthakraj2009 or admin@dokind.org"
+                    placeholder="e.g. sarthakraj2009 or staff@dokind.org"
                     autoComplete="username"
                     required
                     className="w-full bg-[#101216] border border-neutral-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#EF4949] focus:ring-1 focus:ring-[#EF4949] transition-all"
@@ -261,11 +260,7 @@ export default function AdminLoginPage() {
               <div className="pt-4 border-t border-neutral-800 text-[11px] text-neutral-400 space-y-2">
                 <div className="flex items-center gap-2 text-neutral-400">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>NIST SP 800-63B compliant password protection</span>
-                </div>
-                <div className="flex items-center gap-2 text-neutral-400">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span>HMAC-SHA256 signed HttpOnly sessions</span>
+                  <span>Restricted system: unauthorized access attempts are logged and monitored.</span>
                 </div>
               </div>
             </form>
@@ -275,7 +270,7 @@ export default function AdminLoginPage() {
               <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs flex items-start gap-2">
                 <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
                 <span>
-                  As a security precaution for newly provisioned admin accounts, please choose your personal permanent password before continuing.
+                  First-time access detected. Please set your permanent confidential password to continue.
                 </span>
               </div>
 

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession, setServerSession } from '@/lib/auth/server';
+import { setServerSession } from '@/lib/auth/server';
+import { getCurrentStaffSession } from '@/lib/auth/admin-guard';
 import { verifyPassword, hashPassword, validatePasswordStrength } from '@/lib/auth/password';
 import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const sessionUser = await getServerSession();
+    const sessionUser = await getCurrentStaffSession();
 
     if (!sessionUser || !sessionUser.id) {
       return NextResponse.json(
@@ -77,12 +78,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Hash and persist new password
+    // Hash and persist new password with session revocation
+    const nowIso = new Date().toISOString();
     const newHash = await hashPassword(newPassword);
     const updatedUser = db.updateUser(fullUser.id, {
       passwordHash: newHash,
       requiresPasswordChange: false,
-      lastResetAt: new Date().toISOString(),
+      lastResetAt: nowIso,
+      sessionRevokedAt: nowIso,
     });
 
     if (!updatedUser) {

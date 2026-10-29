@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { UserRole } from '@/lib/types';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
-const ALLOWED_ADMIN_ROLES = ['super_admin', 'admin', 'marketer'];
+const WRITE_ROLES: UserRole[] = ['super_admin', 'admin', 'marketer', 'ops_admin'];
 
 export async function GET() {
   try {
+    const auth = await requireAdminApiAccess(WRITE_ROLES);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const redirects = db.getRedirectRules();
     const settings = db.getSiteSettings();
 
@@ -29,14 +33,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(WRITE_ROLES);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
 
-    // If updating SEO metadata
     if (body.type === 'seo') {
       const { metaTitle, metaDescription, gaId } = body;
       const updatedSettings = db.updateSiteSettings(
@@ -67,7 +69,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // Creating a redirect rule
     const { fromPath, toPath, statusCode = 301, isActive = true } = body;
     if (!fromPath || !toPath) {
       return NextResponse.json({ error: 'Both fromPath and toPath are required' }, { status: 400 });
@@ -102,10 +103,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(WRITE_ROLES);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { id, updates } = body;
@@ -138,10 +138,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

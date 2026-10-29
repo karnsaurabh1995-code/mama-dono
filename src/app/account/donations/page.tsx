@@ -2,13 +2,20 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth/context';
 import { db } from '@/lib/db';
 import { formatINR, formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { ChevronRight, FileText, Heart, ShieldCheck, ArrowLeft } from 'lucide-react';
 
 export default function AccountDonationsListPage() {
-  const donations = db.getDonations({ status: 'succeeded' });
+  const { user } = useAuth();
+  const userEmail = user?.email?.toLowerCase().trim();
+  const userId = user?.id;
+
+  const donations = db.getDonations({ status: 'succeeded' }).filter(
+    (d) => (userEmail && d.donorEmail?.toLowerCase().trim() === userEmail) || (user?.phone && d.donorPhone === user.phone)
+  );
 
   return (
     <div className="py-10 bg-[#FAF9F6] min-h-screen">

@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { db } from '@/lib/db';
+import { useAuth } from '@/lib/auth/context';
 import { formatINR, formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import {
@@ -20,11 +21,23 @@ export default function TaxReceiptViewPage() {
   const params = useParams();
   const id = params?.id as string;
   const donation = db.getDonationById(id);
+  const { user } = useAuth();
 
-  if (!donation) {
+  const userEmail = user?.email?.toLowerCase().trim();
+  const userId = user?.id;
+  const isOwner =
+    user &&
+    (user.role === 'super_admin' ||
+      user.role === 'admin' ||
+      user.role === 'finance' ||
+      (user?.phone && donation?.donorPhone === user.phone) ||
+      (userEmail && donation?.donorEmail?.toLowerCase().trim() === userEmail));
+
+  if (!donation || !isOwner) {
     return (
       <div className="py-24 text-center max-w-md mx-auto px-4 space-y-4">
-        <h1 className="text-xl font-bold text-[#202124]">Receipt Not Found</h1>
+        <h1 className="text-xl font-bold text-[#202124]">Receipt Not Found or Access Denied</h1>
+        <p className="text-xs text-[#555B63]">You do not have authorization to view this receipt, or it does not exist.</p>
         <Link href="/account/donations">
           <Button variant="primary">Return to Donations</Button>
         </Link>

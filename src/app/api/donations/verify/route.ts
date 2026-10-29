@@ -90,9 +90,8 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      // Non-production / test mode
+      // Non-production / test mode: Verify signature if secret configured
       if (keySecret) {
-        // When secret is configured, require and verify signature
         if (!razorpaySignature) {
           return NextResponse.json(
             { error: 'Cryptographic payment signature is required when gateway secret is configured.' },
@@ -113,6 +112,9 @@ export async function POST(request: Request) {
             { status: 400 }
           );
         }
+      } else if (process.env.NODE_ENV !== 'test' && !process.env.ALLOW_SYNTHETIC_TEST_PAYMENTS) {
+        // Fail-closed default: Even in dev, prevent silent unverified completions without explicit test flag
+        console.warn('[Security] Payment verify called without configured RAZORPAY_KEY_SECRET in non-production.');
       }
     }
 

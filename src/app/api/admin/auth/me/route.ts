@@ -1,26 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth/server';
+import { getCurrentStaffSession } from '@/lib/auth/admin-guard';
 import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    const sessionUser = await getServerSession();
+    const staffUser = await getCurrentStaffSession();
 
-    if (!sessionUser || !sessionUser.id) {
+    if (!staffUser || !staffUser.id) {
       return NextResponse.json({ authenticated: false, user: null });
     }
 
-    const fullUser = db.getUserById(sessionUser.id);
+    const fullUser = db.getUserById(staffUser.id);
     const requiresPasswordChange = fullUser ? !!fullUser.requiresPasswordChange : false;
 
     return NextResponse.json({
       authenticated: true,
       user: {
-        id: sessionUser.id,
-        name: sessionUser.name,
-        email: sessionUser.email,
-        username: (sessionUser as any).username || fullUser?.username,
-        role: sessionUser.role,
+        id: staffUser.id,
+        name: staffUser.name,
+        email: staffUser.email,
+        username: staffUser.username || fullUser?.username,
+        role: staffUser.role,
         requiresPasswordChange,
       },
     });

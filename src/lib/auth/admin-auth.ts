@@ -14,15 +14,24 @@ const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 const ALLOWED_ADMIN_ROLES: UserRole[] = [
   'super_admin',
-  'reviewer',
+  'admin',
+  'ops_admin',
+  'support_admin',
   'finance',
+  'reviewer',
+  'campaign_manager',
   'content_editor',
-  'fundraiser',
-  'organization_manager',
+  'content_writer',
+  'marketer',
+  'support_staff',
+  'head_staff',
+  'lead_generator',
 ];
 
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
+  const forwarded =
+    request.headers.get('x-vercel-forwarded-for') ||
+    request.headers.get('x-forwarded-for');
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
@@ -137,15 +146,13 @@ export async function authenticateAdmin(
   }
 
   // Determine bootstrap secret:
-  // In production: must be explicitly provided via ADMIN_BOOTSTRAP_PASSWORD
-  // In development: fallback to 'sarthakraj726' if not set
-  const bootstrapPassword =
-    process.env.ADMIN_BOOTSTRAP_PASSWORD ||
-    (process.env.NODE_ENV !== 'production' ? 'sarthakraj726' : undefined);
+  // Must be explicitly provided via ADMIN_BOOTSTRAP_PASSWORD environment variable.
+  // Hardcoded fallback credentials in deployable source code are strictly prohibited.
+  const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
   if (!bootstrapPassword) {
     console.error(
-      '[Admin Auth] ADMIN_BOOTSTRAP_NOT_CONFIGURED: Super Admin account has no password hash and ADMIN_BOOTSTRAP_PASSWORD is not configured in production.'
+      '[Admin Auth] ADMIN_BOOTSTRAP_NOT_CONFIGURED: Designated Super Admin account has no password hash and ADMIN_BOOTSTRAP_PASSWORD is not set in environment.'
     );
     return { success: false, error: 'Invalid Admin ID or Password.' };
   }

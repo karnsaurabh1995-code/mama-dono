@@ -1,36 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-
-    // Verify authorized staff or allow preview
-    const staffRoles = [
-      'super_admin',
-      'admin',
-      'support_admin',
-      'ops_admin',
-      'marketer',
-      'content_writer',
-      'content_editor',
-      'lead_generator',
-      'campaign_manager',
-      'head_staff',
-      'reviewer',
-      'finance',
-      'support_staff',
-    ];
-
-    const hasAccess =
-      !session ||
-      staffRoles.includes(session.role) ||
-      (session.secondaryRole && staffRoles.includes(session.secondaryRole));
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const auth = await requireAdminApiAccess();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const approvals = db
       .getCampaigns()
@@ -44,12 +21,9 @@ export async function GET() {
       approvals,
       ngos,
       wires,
-      timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to retrieve pending counts' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error('[API /api/admin/pending-counts GET] Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

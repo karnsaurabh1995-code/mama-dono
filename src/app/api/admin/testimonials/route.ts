@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { UserRole } from '@/lib/types';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
-const ALLOWED_ADMIN_ROLES = ['super_admin', 'admin', 'marketer', 'content_writer'];
+const WRITE_ROLES: UserRole[] = ['super_admin', 'admin', 'marketer', 'content_writer', 'content_editor'];
 
 export async function GET() {
   try {
+    const auth = await requireAdminApiAccess();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const testimonials = db.getTestimonials();
     return NextResponse.json({
       success: true,
@@ -22,10 +26,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Administrator access required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(WRITE_ROLES);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { authorName, role, quote, avatarUrl, rating = 5, featured = true, badge = 'Verified' } = body;
@@ -65,10 +67,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(WRITE_ROLES);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { id, updates } = body;
@@ -102,10 +102,8 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

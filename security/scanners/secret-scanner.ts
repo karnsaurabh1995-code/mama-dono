@@ -37,7 +37,7 @@ export async function runSecretScanner(rootDir: string, rawDir: string): Promise
     try {
       const gitleaksReportPath = path.join(rawDir, 'gitleaks-report.json');
       try {
-        execSync(`gitleaks detect --source "${rootDir}" --no-banner --report-format json --report-path "${gitleaksReportPath}"`, {
+        execSync(`gitleaks detect --source "${rootDir}" --no-banner --report-format json --report-path "${gitleaksReportPath}" --gitleaks-ignore-path "${path.join(rootDir, '.gitleaksignore')}"`, {
           cwd: rootDir,
           stdio: 'pipe',
         });
@@ -49,7 +49,16 @@ export async function runSecretScanner(rootDir: string, rawDir: string): Promise
         const rawContent = fs.readFileSync(gitleaksReportPath, 'utf8');
         if (rawContent.trim().length > 0) {
           const leaks = JSON.parse(rawContent);
+          const ignoreFile = path.join(rootDir, '.gitleaksignore');
+          const ignoreSet = new Set(
+            fs.existsSync(ignoreFile)
+              ? fs.readFileSync(ignoreFile, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean)
+              : []
+          );
           for (const leak of leaks) {
+            if (leak.Fingerprint && ignoreSet.has(leak.Fingerprint)) {
+              continue;
+            }
             findings.push({
               id: `LEAK-${leak.RuleID || 'SECRET'}-${path.basename(leak.File || 'unknown')}-${leak.StartLine || 0}`,
               title: `Exposed Credential: ${leak.Description || leak.RuleID}`,

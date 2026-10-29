@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Admin role required for database export' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const snapshot = db.exportDatabaseSnapshot();
     return new Response(snapshot, {
@@ -28,10 +27,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Super Admin or Admin role required for snapshot restore' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const rawSnapshot = typeof body === 'string' ? body : JSON.stringify(body);

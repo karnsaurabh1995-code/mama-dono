@@ -251,8 +251,8 @@ export default function LoginPage() {
     }
   };
 
-  // ---------------- EMAIL / PASSWORD HANDLER (PRESERVED) ----------------
-  const handleEmailLogin = (e: React.FormEvent) => {
+  // ---------------- EMAIL / PASSWORD HANDLER (SERVER-VERIFIED) ----------------
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     const cleanEmail = email.trim().toLowerCase();
@@ -261,19 +261,41 @@ export default function LoginPage() {
       return;
     }
 
-    login(cleanEmail);
-
-    const safeTarget = getSafeRedirectUrl();
-    if (safeTarget) {
-      router.push(safeTarget);
+    if (!password) {
+      setError('Please provide your password.');
       return;
     }
 
-    // Role-aware default destination
-    if (db.isDesignatedSuperAdmin(cleanEmail) || cleanEmail.includes('admin') || cleanEmail.includes('staff')) {
-      router.push('/admin');
-    } else {
-      router.push('/account');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        if (data.isAdminRedirect) {
+          setError('Administrative accounts must authenticate via the Dokind Admin Portal. Redirecting...');
+          setTimeout(() => router.push('/admin/login'), 1200);
+          return;
+        }
+        setError(data.error || 'Invalid email or password.');
+        setLoading(false);
+        return;
+      }
+
+      setUserSession(data.user);
+      const safeTarget = getSafeRedirectUrl();
+      if (safeTarget) {
+        router.push(safeTarget);
+      } else {
+        router.push(data.redirectUrl || '/account');
+      }
+    } catch {
+      setError('Login network error. Please try again.');
+      setLoading(false);
     }
   };
 

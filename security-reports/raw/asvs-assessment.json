@@ -1,46 +1,21 @@
 {
   "standard": "OWASP ASVS 5.0",
   "version": "5.0.0",
-  "evaluatedAt": "2026-10-28T06:11:28.759Z",
+  "evaluatedAt": "2026-10-29T14:11:42.053Z",
   "totalControls": 25,
-  "passedCount": 18,
-  "failedCount": 2,
+  "passedCount": 20,
+  "failedCount": 0,
   "manualVerificationCount": 5,
-  "complianceScorePercent": 72,
+  "complianceScorePercent": 80,
   "controls": [
     {
       "id": "V1.1.1",
       "title": "Secure Architecture & Gateway Segregation",
       "category": "Architecture",
       "level": "L1",
-      "status": "failed",
-      "notes": "Automated checks identified 24 relevant finding(s).",
-      "relatedFindings": [
-        "LEAK-generic-api-key-gitleaks-report.json-9",
-        "LEAK-generic-api-key-gitleaks-report.json-10",
-        "LEAK-generic-api-key-gitleaks-report.json-30",
-        "LEAK-generic-api-key-gitleaks-report.json-31",
-        "LEAK-generic-api-key-gitleaks-report.json-51",
-        "LEAK-generic-api-key-gitleaks-report.json-52",
-        "LEAK-generic-api-key-gitleaks-report.json-72",
-        "LEAK-generic-api-key-gitleaks-report.json-73",
-        "LEAK-generic-api-key-gitleaks-report.json-93",
-        "LEAK-generic-api-key-gitleaks-report.json-94",
-        "LEAK-generic-api-key-gitleaks-report.json-114",
-        "LEAK-generic-api-key-gitleaks-report.json-115",
-        "LEAK-generic-api-key-gitleaks-report.json-135",
-        "LEAK-generic-api-key-gitleaks-report.json-136",
-        "LEAK-generic-api-key-gitleaks-report.json-156",
-        "LEAK-generic-api-key-gitleaks-report.json-157",
-        "LEAK-generic-api-key-verify-admin-integration.ts-43",
-        "LEAK-generic-api-key-verify-admin-integration.ts-145",
-        "LEAK-generic-api-key-razorpay-security.test.ts-9",
-        "LEAK-generic-api-key-razorpay-integrity.ts-22",
-        "LEAK-generic-api-key-api-keys.ts-59",
-        "LEAK-generic-api-key-api-keys.ts-124",
-        "LEAK-generic-api-key-api-keys.ts-219",
-        "LEAK-generic-api-key-api-keys.ts-267"
-      ]
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
     },
     {
       "id": "V1.2.1",
@@ -200,12 +175,9 @@
       "title": "Server-Side Razorpay Signature Verification",
       "category": "Payment Integrity",
       "level": "L1",
-      "status": "failed",
-      "notes": "Automated checks identified 2 relevant finding(s).",
-      "relatedFindings": [
-        "LEAK-generic-api-key-razorpay-security.test.ts-9",
-        "LEAK-generic-api-key-razorpay-integrity.ts-22"
-      ]
+      "status": "passed",
+      "notes": "Verified by automated scanning and configuration check.",
+      "relatedFindings": []
     },
     {
       "id": "V11.1.2",

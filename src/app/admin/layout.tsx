@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { db } from '@/lib/db';
 import { UserRole } from '@/lib/types';
+import { isStaffRole } from '@/lib/auth/constants';
 import { DokindLogo, DokindMark } from '@/components/common/DokindLogo';
 import {
   LogOut,
@@ -56,7 +57,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname === '/admin/login') {
     return <>{children}</>;
   }
-  const { user, role, switchRole } = useAuth();
+  const router = useRouter();
+  const { user, role, isLoaded } = useAuth();
+
+  useEffect(() => {
+    if (pathname === '/admin/login') return;
+    if (isLoaded && (!user || user.status === 'suspended' || !isStaffRole(role || user?.role))) {
+      const returnUrl = encodeURIComponent(pathname);
+      router.push(`/admin/login?returnUrl=${returnUrl}`);
+    }
+  }, [isLoaded, user, pathname, router]);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreToolsOpen, setMoreToolsOpen] = useState(true);
@@ -283,6 +293,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const breadcrumbTitle = currentPathSegments.length > 1
     ? currentPathSegments[currentPathSegments.length - 1].replace(/-/g, ' ').toUpperCase()
     : 'OVERVIEW';
+
+  if (pathname !== '/admin/login' && (!isLoaded || !user)) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-[#E84B45] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-medium text-[#7C8087]">Verifying administrative authority...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F6F8] flex text-[#202124] font-sans antialiased">

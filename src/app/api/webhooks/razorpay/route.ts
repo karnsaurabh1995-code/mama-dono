@@ -76,6 +76,31 @@ export async function POST(request: Request) {
       if (orderId && paymentId) {
         const donation = db.getDonations().find((d) => d.razorpayOrderId === orderId);
         if (donation) {
+          // Authoritative Amount and Currency Reconciliation Check
+          const expectedPaise = Math.round(donation.totalAmount * 100);
+          const receivedPaise = Number(paymentEntity?.amount);
+          const expectedCurrency = (donation.currency || 'INR').toUpperCase();
+          const receivedCurrency = String(paymentEntity?.currency || 'INR').toUpperCase();
+
+          if (receivedPaise !== expectedPaise || receivedCurrency !== expectedCurrency) {
+            console.error(
+              `[SECURITY ANOMALY] Payment amount/currency mismatch! Expected: ${expectedPaise} ${expectedCurrency}, Received: ${receivedPaise} ${receivedCurrency} for order: ${orderId}`
+            );
+            donation.status = 'failed';
+            db.createAuditLog({
+              actorId: 'system',
+              actorName: 'Razorpay Reconciliation Guard',
+              action: 'PAYMENT_AMOUNT_MISMATCH_TAMPER_DETECTED',
+              targetType: 'donation',
+              targetId: donation.id,
+              details: `Expected ${expectedPaise} ${expectedCurrency}, received ${receivedPaise} ${receivedCurrency}`,
+            });
+            return NextResponse.json(
+              { error: 'Payment amount or currency mismatch with authoritative order record.' },
+              { status: 400 }
+            );
+          }
+
           db.verifyAndCompletePayment({
             razorpayOrderId: orderId,
             razorpayPaymentId: paymentId,

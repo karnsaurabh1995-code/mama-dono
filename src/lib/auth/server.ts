@@ -1,8 +1,29 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
-import { User } from '@/lib/types';
+import { User, UserRole } from '@/lib/types';
 import { db } from '@/lib/db';
 import { DEMO_USERS, INITIAL_SUPER_ADMIN_ACCOUNTS } from './constants';
+
+export const STAFF_ADMIN_ROLES: UserRole[] = [
+  'super_admin',
+  'admin',
+  'ops_admin',
+  'support_admin',
+  'finance',
+  'reviewer',
+  'campaign_manager',
+  'content_editor',
+  'content_writer',
+  'marketer',
+  'support_staff',
+  'head_staff',
+  'lead_generator',
+];
+
+export function isStaffRole(role?: string): boolean {
+  if (!role) return false;
+  return STAFF_ADMIN_ROLES.includes(role as UserRole);
+}
 
 function getAuthSecret(): string {
   const secret = process.env.AUTH_SECRET;
@@ -80,22 +101,7 @@ export async function getServerSession(): Promise<User | null> {
       }
     }
 
-    // 2. Backward compatibility in non-production environments for legacy JSON cookies
-    if (!sessionData && process.env.NODE_ENV !== 'production') {
-      try {
-        const decoded = decodeURIComponent(sessionCookie);
-        const parsed = JSON.parse(decoded);
-        if (parsed && parsed.id) {
-          sessionData = {
-            id: parsed.id,
-            sessionCreatedAt: parsed.sessionCreatedAt || new Date().toISOString(),
-          };
-        }
-      } catch {
-        sessionData = null;
-      }
-    }
-
+    // 2. Reject any unsigned or tampered session token unconditionally
     if (!sessionData || !sessionData.id) {
       return null;
     }
@@ -192,4 +198,57 @@ export async function setServerSession(user: User): Promise<void> {
 export async function clearServerSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete('dokind_session');
+}
+
+/**
+ * DAL GUARD: Enforces that the current request has a valid, non-suspended authenticated user session.
+ */
+export async function requireAuthenticatedUser(): Promise<User> {
+  const session = await getServerSession();
+  if (!session || session.status === 'suspended') {
+    throw new Error('UNAUTHORIZED: Authentication required');
+  }
+  return session;
+}
+
+/**
+ * DAL GUARD: Enforces that the current session possesses one of the allowed roles.
+ */
+export async function requireRole(allowedRoles: UserRole[]): Promise<User> {
+  const user = await requireAuthenticatedUser();
+  const hasRole =
+    allowedRoles.includes(user.role) ||
+    (user.secondaryRole && allowedRoles.includes(user.secondaryRole)) ||
+    (user.roles && user.roles.some((r) => allowedRoles.includes(r)));
+
+  if (!hasRole) {
+    throw new Error('FORBIDDEN: Insufficient permissions');
+  }
+  return user;
+}
+
+/**
+ * DAL GUARD: Enforces that the current session possesses an internal administrative/staff role.
+ */
+export async function requireAdminRole(): Promise<User> {
+  return requireRole(STAFF_ADMIN_ROLES);
+}
+
+/**
+ * DAL GUARD: Enforces resource ownership to prevent Insecure Direct Object References (IDOR).
+ * Super Admins and Platform Admins are permitted for administrative oversight.
+ */
+export async function requireResourceOwnership(resourceOwnerId: string, resourceOwnerEmail?: string): Promise<User> {
+  const user = await requireAuthenticatedUser();
+  if (user.role === 'super_admin' || user.role === 'admin') {
+    return user;
+  }
+  const isOwner =
+    user.id === resourceOwnerId ||
+    (resourceOwnerEmail && user.email?.toLowerCase().trim() === resourceOwnerEmail.toLowerCase().trim());
+
+  if (!isOwner) {
+    throw new Error('FORBIDDEN: Access denied: You do not own this resource');
+  }
+  return user;
 }

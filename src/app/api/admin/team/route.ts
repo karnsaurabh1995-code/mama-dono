@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { UserRole } from '@/lib/types';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 /**
  * ADMIN TEAM & STAFF MANAGEMENT API
@@ -13,14 +14,13 @@ import { getServerSession } from '@/lib/auth/server';
  * DELETE: Permanently deletes an employee with constraint validation
  */
 
-const ALLOWED_ADMIN_ROLES = ['super_admin', 'admin', 'support_admin'];
+const ALLOWED_ADMIN_ROLES: UserRole[] = ['super_admin', 'admin', 'support_admin'];
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Administrator authority required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(ALLOWED_ADMIN_ROLES);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const employees = db.getEmployees(session);
     return NextResponse.json({
@@ -35,13 +35,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Only platform Administrators can provision staff accounts' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { name, email, employeeId, role, secondaryRole, roles, department, jobTitle, status, assignedCampaigns, internalNotes } = body;
@@ -93,13 +89,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Only platform Administrators can modify staff accounts' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { id, updates } = body;
@@ -130,13 +122,9 @@ export async function PUT(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Only platform Administrators can alter employee state' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { id, action, status, roles, reason } = body;
@@ -208,13 +196,9 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !ALLOWED_ADMIN_ROLES.includes(session.role)) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Only platform Administrators can delete employee accounts' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

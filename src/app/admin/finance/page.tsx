@@ -134,9 +134,11 @@ export default function AdminFinanceHubPage() {
     if (!selectedDonationForRefund || !refundReason.trim()) return;
 
     try {
-      const actor = user
-        ? { id: user.id, name: user.name, role: user.role }
-        : { id: 'usr-finance-1', name: 'Finance Administrator', role: 'finance' as const };
+      if (!user || (!['finance', 'super_admin'].includes(user.role))) {
+        notify('Unauthorized: Finance or Super Admin authority required to process refunds.');
+        return;
+      }
+      const actor = { id: user.id, name: user.name, role: user.role };
 
       db.processRefund(selectedDonationForRefund.id, refundReason.trim(), actor);
       refreshData();

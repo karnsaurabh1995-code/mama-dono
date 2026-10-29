@@ -42,9 +42,11 @@ export default function RefundsEnginePage() {
     }
 
     try {
-      const actor = user
-        ? { id: user.id, name: user.name, role: user.role }
-        : { id: 'user-finance-1', name: 'Finance Admin', role: 'finance' as const };
+      if (!user || (!['finance', 'super_admin'].includes(user.role))) {
+        alert('Unauthorized: Finance or Super Admin authority required to process refunds.');
+        return;
+      }
+      const actor = { id: user.id, name: user.name, role: user.role };
       const res = db.processRefund(selectedDonationId, refundReason.trim(), actor);
       setDonations([...db.getDonations()]);
       setShowProcessModal(false);

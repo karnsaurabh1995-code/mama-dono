@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 import { maskSecret } from '@/lib/security/crypto-vault';
 
 /**
@@ -12,10 +12,9 @@ import { maskSecret } from '@/lib/security/crypto-vault';
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'finance'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Gateway credentials restricted' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'finance']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const gateways = db.getGateways().map((gw) => ({
       ...gw,
@@ -36,13 +35,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'finance'].includes(session.role)) {
-      return NextResponse.json(
-        { error: 'Unauthorized: High-level authority required to configure payment gateways' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'finance']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { id, updates } = body;

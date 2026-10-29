@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,11 +18,9 @@ function sanitizeHtmlContent(html: string): string {
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-    const authorized = ['super_admin', 'admin', 'content_writer', 'content_editor', 'marketer', 'support_admin'];
-    if (!session || !authorized.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized to view blog studio' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'content_writer', 'content_editor', 'marketer', 'support_admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const blogs = db.getBlogs({ status: 'all' });
     return NextResponse.json({ success: true, blogs });
@@ -33,11 +31,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
-    const authorized = ['super_admin', 'admin', 'content_writer', 'content_editor', 'marketer'];
-    if (!session || !authorized.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Content Editor credentials required.' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'content_writer', 'content_editor', 'marketer']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { id, title, slug, summary, content, category, readTime, imageUrl, tags, status } = body;
@@ -117,11 +113,9 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession();
-    const authorized = ['super_admin', 'admin', 'content_editor'];
-    if (!session || !authorized.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized to delete blog articles' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'content_editor']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

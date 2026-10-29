@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 import { SiteSettings } from '@/lib/types';
 
 /**
@@ -13,10 +13,9 @@ import { SiteSettings } from '@/lib/types';
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'support_admin', 'marketer', 'ops_admin'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Administrator access required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'support_admin', 'marketer', 'ops_admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const settings = db.getSiteSettings();
     return NextResponse.json({
@@ -31,13 +30,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'support_admin'].includes(session.role)) {
-      return NextResponse.json(
-        { error: 'Unauthorized: High-level administrative authority required to modify site settings' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'support_admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     if (!body || typeof body !== 'object') {

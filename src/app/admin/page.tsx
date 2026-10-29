@@ -1,9 +1,12 @@
 import { db } from '@/lib/db';
+import { requireAdminPageAccess } from '@/lib/auth/admin-guard';
 import { AdminOverviewClient, type AdminOverviewSnapshot } from './AdminOverviewClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminOverviewPage() {
+  await requireAdminPageAccess();
+
   const periodDays = 30;
   const metrics = db.getAdminMetrics(periodDays);
   const auditLogs = db.getAuditLogs().slice(0, 6);

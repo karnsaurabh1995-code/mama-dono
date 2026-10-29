@@ -19,8 +19,14 @@ import {
 
 export default function DonorDashboardPage() {
   const { user } = useAuth();
-  const donations = db.getDonations({ status: 'succeeded' }).slice(0, 4);
-  const recurringPlans = db.getRecurringPlans(user?.email);
+  const userEmail = user?.email?.toLowerCase().trim();
+  const userId = user?.id;
+
+  const userDonations = db.getDonations({ status: 'succeeded' }).filter(
+    (d) => (userEmail && d.donorEmail?.toLowerCase().trim() === userEmail) || (user?.phone && d.donorPhone === user.phone)
+  );
+  const donations = userDonations.slice(0, 4);
+  const recurringPlans = userEmail ? db.getRecurringPlans(userEmail) : [];
 
   const totalDonated = donations.reduce((acc, d) => acc + d.amount, 0);
 

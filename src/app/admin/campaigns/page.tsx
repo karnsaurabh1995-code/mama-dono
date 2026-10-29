@@ -1,9 +1,15 @@
 import { db } from '@/lib/db';
+import { requireAdminPageAccess } from '@/lib/auth/admin-guard';
 import { AdminCampaignsClient } from './AdminCampaignsClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminCampaignsPage() {
+  await requireAdminPageAccess(
+    ['super_admin', 'admin', 'campaign_manager', 'reviewer', 'head_staff', 'content_editor'],
+    '/admin/campaigns'
+  );
+
   const initialCampaigns = db.getCampaigns();
   const initialTags = db.getTags();
   const initialCuration = db.getHomepageCuration();

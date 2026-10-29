@@ -3,9 +3,14 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV !== 'production';
 
 // In development, Turbopack and Webpack HMR require 'ws:' and 'wss:' for Fast Refresh.
+// In production, 'unsafe-eval' is strictly eliminated to prevent script execution vectors.
+const scriptSrc = isDev
+  ? "'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com"
+  : "'self' 'unsafe-inline' https://checkout.razorpay.com";
+
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com;
+  script-src ${scriptSrc};
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https://images.unsplash.com;
   font-src 'self' data: https://fonts.gstatic.com;

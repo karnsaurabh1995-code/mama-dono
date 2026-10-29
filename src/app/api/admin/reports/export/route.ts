@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 import writeExcelFile, { Row } from 'write-excel-file/node';
 
 export const dynamic = 'force-dynamic';
@@ -24,11 +24,9 @@ function csvEscape(val: unknown): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession();
-    const authorizedRoles = ['super_admin', 'admin', 'finance', 'campaign_manager', 'support_admin'];
-    if (!session || !authorizedRoles.includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Finance or Administrator credentials required.' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin', 'finance', 'campaign_manager', 'support_admin', 'head_staff']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const searchParams = request.nextUrl.searchParams;
     const reportType = searchParams.get('type') || 'donations_ledger';

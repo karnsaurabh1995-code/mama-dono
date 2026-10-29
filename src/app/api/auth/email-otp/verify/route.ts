@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { normalizeEmail, verifyOtpCode } from '@/lib/auth/email-otp';
-import { setServerSession } from '@/lib/auth/server';
+import { setServerSession, isStaffRole } from '@/lib/auth/server';
 import { User } from '@/lib/types';
 import { INITIAL_SUPER_ADMIN_ACCOUNTS, DEMO_USERS } from '@/lib/auth/constants';
 
@@ -71,17 +71,14 @@ export async function POST(req: NextRequest) {
     // 4. Retrieve or register user
     let user: User | undefined = db.getUserByEmail(normEmail);
 
-    // Check designated super admins
-    if (!user && db.isDesignatedSuperAdmin(normEmail)) {
-      user = INITIAL_SUPER_ADMIN_ACCOUNTS.find(
-        (a) => a.email.toLowerCase() === normEmail
-      );
-    }
-
-    // Check demo users
-    if (!user) {
-      user = Object.values(DEMO_USERS).find(
-        (u) => u.email.toLowerCase() === normEmail
+    // Administrative isolation: Staff & Super Admin accounts must authenticate via /admin/login
+    if (db.isDesignatedSuperAdmin(normEmail) || (user && isStaffRole(user.role))) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Administrative accounts must authenticate via the Dokind Admin Portal.',
+        },
+        { status: 403 }
       );
     }
 

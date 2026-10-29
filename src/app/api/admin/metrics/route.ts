@@ -1,37 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession();
-
-    const staffRoles = [
-      'super_admin',
-      'admin',
-      'support_admin',
-      'ops_admin',
-      'marketer',
-      'content_writer',
-      'content_editor',
-      'lead_generator',
-      'campaign_manager',
-      'head_staff',
-      'reviewer',
-      'finance',
-      'support_staff',
-    ];
-
-    const hasAccess =
-      !session ||
-      staffRoles.includes(session.role) ||
-      (session.secondaryRole && staffRoles.includes(session.secondaryRole));
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const auth = await requireAdminApiAccess();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
     const periodDaysParam = searchParams.get('periodDays');
@@ -45,17 +21,16 @@ export async function GET(request: Request) {
     const pendingWires = db.getManualDonations({ status: 'pending' });
 
     return NextResponse.json({
+      success: true,
+      periodDays,
       metrics,
-      campaignsCount: campaigns.length,
-      pendingApprovalsCount: pendingApprovals.length,
-      pendingWiresCount: pendingWires.length,
-      timestamp: new Date().toISOString(),
+      pendingCounts: {
+        approvals: pendingApprovals.length,
+        wires: pendingWires.length,
+      },
     });
   } catch (error: any) {
     console.error('[API /api/admin/metrics GET] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error', message: error?.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

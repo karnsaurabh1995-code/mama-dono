@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getServerSession } from '@/lib/auth/server';
+import { requireAdminApiAccess } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const auth = await requireAdminApiAccess();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const announcements = db.getAnnouncements();
     return NextResponse.json({
       success: true,
@@ -20,10 +23,15 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'marketer', 'content_writer'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Administrator or Marketer access required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess([
+      'super_admin',
+      'admin',
+      'marketer',
+      'content_writer',
+      'content_editor',
+    ]);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { title, message, link, type = 'info', placement = 'top_banner', isActive = true } = body;
@@ -65,10 +73,15 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin', 'marketer', 'content_writer'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess([
+      'super_admin',
+      'admin',
+      'marketer',
+      'content_writer',
+      'content_editor',
+    ]);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const body = await request.json();
     const { id, updates } = body;
@@ -102,10 +115,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession();
-    if (!session || !['super_admin', 'admin'].includes(session.role)) {
-      return NextResponse.json({ error: 'Unauthorized: Super Admin or Admin access required' }, { status: 401 });
-    }
+    const auth = await requireAdminApiAccess(['super_admin', 'admin']);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.staff;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

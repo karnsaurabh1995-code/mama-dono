@@ -1,5 +1,26 @@
 import { User, UserRole } from '../types';
 
+export const STAFF_ADMIN_ROLES: UserRole[] = [
+  'super_admin',
+  'admin',
+  'ops_admin',
+  'support_admin',
+  'finance',
+  'reviewer',
+  'campaign_manager',
+  'content_editor',
+  'content_writer',
+  'marketer',
+  'support_staff',
+  'head_staff',
+  'lead_generator',
+];
+
+export function isStaffRole(role?: string | null): boolean {
+  if (!role) return false;
+  return STAFF_ADMIN_ROLES.includes(role as UserRole);
+}
+
 export const INITIAL_SUPER_ADMIN_ACCOUNTS: User[] = [
   {
     id: 'usr-sa-1',

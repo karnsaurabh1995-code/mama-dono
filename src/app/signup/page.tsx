@@ -19,17 +19,46 @@ export default function SignUpPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const { setUserSession } = useAuth();
+
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email) {
-      setError('Name and Email are required.');
+    setError('');
+    if (!name || !email || !password) {
+      setError('Full Name, Email, and Password are required.');
       return;
     }
-    login(email, role);
-    if (role === 'fundraiser') {
-      router.push('/start-campaign');
-    } else {
-      router.push('/account');
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, pan, password, role }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error || 'Registration failed. Please check your inputs.');
+        setLoading(false);
+        return;
+      }
+
+      setUserSession(data.user);
+      if (data.redirectUrl) {
+        router.push(data.redirectUrl);
+      } else {
+        router.push(role === 'fundraiser' ? '/start-campaign' : '/account');
+      }
+    } catch {
+      setError('Network error during registration. Please try again.');
+      setLoading(false);
     }
   };
 
