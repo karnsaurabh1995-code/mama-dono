@@ -16,11 +16,13 @@ import {
 import { DokindLogo } from '@/components/common/DokindLogo';
 import { Button } from '@/components/ui/Button';
 import { getSafeReturnUrl } from '@/lib/utils';
+import { useAuth } from '@/lib/auth/context';
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = getSafeReturnUrl(searchParams.get('returnUrl'));
+  const { setUserSession } = useAuth();
 
   // State
   const [identifier, setIdentifier] = useState('');
@@ -40,19 +42,26 @@ export default function AdminLoginPage() {
 
   // Check if already authenticated with active staff session
   useEffect(() => {
+    let isMounted = true;
     fetch('/api/admin/auth/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
+        if (!isMounted) return;
         if (data?.authenticated && data?.user) {
+          setUserSession(data.user);
           if (!data.user.requiresPasswordChange) {
-            router.push(returnUrl);
+            window.location.replace(returnUrl);
           } else {
             setMustChangePassword(true);
           }
         }
       })
       .catch(() => {});
-  }, [router, returnUrl]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [returnUrl, setUserSession]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +93,10 @@ export default function AdminLoginPage() {
         return;
       }
 
+      if (data.user) {
+        setUserSession(data.user);
+      }
+
       // Check if first-login password rotation is required
       if (data.requiresPasswordChange) {
         setCurrentPassword(password);
@@ -92,9 +105,8 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Successful login -> Redirect to authorized destination
-      router.push(returnUrl);
-      router.refresh();
+      // Successful login -> Redirect to authorized destination with full navigation
+      window.location.href = returnUrl;
     } catch {
       setError('A network error occurred. Please check your connection and retry.');
       setLoading(false);
@@ -144,9 +156,8 @@ export default function AdminLoginPage() {
 
       setChangeSuccess(true);
       setTimeout(() => {
-        router.push(returnUrl);
-        router.refresh();
-      }, 1200);
+        window.location.href = returnUrl;
+      }, 800);
     } catch {
       setChangeError('A network error occurred while updating your password.');
       setLoading(false);

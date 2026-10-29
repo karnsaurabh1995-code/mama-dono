@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
-import { db } from '@/lib/db';
 import { UserRole } from '@/lib/types';
 import { isStaffRole } from '@/lib/auth/constants';
 import { DokindLogo, DokindMark } from '@/components/common/DokindLogo';
@@ -37,6 +36,7 @@ import {
   Lock,
   UserCheck,
   MoreHorizontal,
+  AlertCircle,
 } from 'lucide-react';
 
 interface NavItem {
@@ -58,15 +58,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
   const router = useRouter();
-  const { user, role, isLoaded } = useAuth();
+  const { user, role, isLoaded, refreshSession } = useAuth();
+  const [timedOut, setTimedOut] = useState(false);
 
+  // Safety timer: Never allow infinite spinning. If verification takes > 4s, trigger recovery UI.
   useEffect(() => {
     if (pathname === '/admin/login') return;
-    if (isLoaded && (!user || user.status === 'suspended' || !isStaffRole(role || user?.role))) {
-      const returnUrl = encodeURIComponent(pathname);
-      router.push(`/admin/login?returnUrl=${returnUrl}`);
+    if (isLoaded) {
+      setTimedOut(false);
+      return;
     }
-  }, [isLoaded, user, pathname, router]);
+
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [isLoaded, pathname]);
+
+  // Server-authorized staff session enforcement
+  useEffect(() => {
+    if (pathname === '/admin/login') return;
+    if (isLoaded) {
+      const activeRole = role || user?.role;
+      const isAuthorized = user && user.status !== 'suspended' && isStaffRole(activeRole);
+      if (!isAuthorized) {
+        const returnUrl = encodeURIComponent(pathname);
+        window.location.replace(`/admin/login?returnUrl=${returnUrl}`);
+      }
+    }
+  }, [isLoaded, user, role, pathname]);
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreToolsOpen, setMoreToolsOpen] = useState(true);
@@ -74,7 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
-  // Dynamic pending counts from database
+  // Dynamic pending counts from API
   const [pendingCounts, setPendingCounts] = useState<{
     approvals?: number;
     ngos?: number;
@@ -82,18 +104,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }>({});
 
   useEffect(() => {
-    const loadCounts = () => {
-      const approvals = db.getCampaigns().filter((c) => c.status === 'submitted' || c.status === 'under_review').length;
-      const ngos = db.getOrganizations().filter((o) => o.verificationStatus === 'pending').length;
-      const wires = db.getManualDonations({ status: 'pending' }).length;
-      setPendingCounts({ approvals, ngos, wires });
-    };
-
-    loadCounts();
-
+    let isMounted = true;
     fetch('/api/admin/pending-counts')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
+        if (!isMounted) return;
         if (data && typeof data.approvals === 'number') {
           setPendingCounts({
             approvals: data.approvals,
@@ -102,9 +117,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           });
         }
       })
-      .catch(() => {
-        // Fallback to local DB counts
-      });
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Primary 6 administrative sections
@@ -294,15 +311,56 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ? currentPathSegments[currentPathSegments.length - 1].replace(/-/g, ' ').toUpperCase()
     : 'OVERVIEW';
 
-  if (pathname !== '/admin/login' && (!isLoaded || !user)) {
-    return (
-      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-[#E84B45] border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-medium text-[#7C8087]">Verifying administrative authority...</p>
+  if (pathname !== '/admin/login') {
+    const activeRole = role || user?.role;
+    const isAuthorized = isLoaded && user && user.status !== 'suspended' && isStaffRole(activeRole);
+
+    if (!isAuthorized) {
+      if (timedOut) {
+        return (
+          <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white p-6 rounded-2xl border border-[#E2E4E9] shadow-sm text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-neutral-900">Session Verification Timeout</h3>
+                <p className="text-xs text-neutral-500 mt-1">
+                  Administrative staff authority could not be confirmed within the expected time limit.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimedOut(false);
+                    refreshSession();
+                  }}
+                  className="flex-1 py-2 px-3 text-xs font-semibold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors"
+                >
+                  Retry Verification
+                </button>
+                <Link
+                  href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}
+                  className="flex-1 py-2 px-3 text-xs font-semibold rounded-xl bg-[#E84B45] hover:bg-[#BD302D] text-white transition-colors flex items-center justify-center"
+                >
+                  Sign In to Admin
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-3 border-[#E84B45] border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs font-medium text-[#7C8087]">Verifying administrative authority...</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return (

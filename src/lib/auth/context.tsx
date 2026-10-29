@@ -13,6 +13,7 @@ interface AuthContextType {
   isLoaded: boolean;
   login: (email: string, role?: UserRole) => void;
   setUserSession: (user: User) => void;
+  refreshSession: () => Promise<User | null>;
   logout: () => void;
   switchRole: (role: UserRole) => void;
   updateProfile: (data: Partial<User>) => void;
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoaded: false,
   login: () => {},
   setUserSession: () => {},
+  refreshSession: async () => null,
   logout: () => {},
   switchRole: () => {},
   updateProfile: () => {},
@@ -47,7 +49,34 @@ export function AuthProvider({
   initialUser?: User | null;
 }) {
   const [user, setUser] = useState<User | null>(initialUser);
-  const [isLoaded, setIsLoaded] = useState(Boolean(initialUser));
+  const [isLoaded, setIsLoaded] = useState<boolean>(Boolean(initialUser));
+
+  const refreshSession = async (): Promise<User | null> => {
+    try {
+      const res = await fetch('/api/admin/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.authenticated && data.user) {
+          setUser(data.user);
+          setIsLoaded(true);
+          try {
+            localStorage.setItem('dokind_user', JSON.stringify(data.user));
+          } catch {}
+          return data.user;
+        }
+      }
+      setUser(null);
+      setIsLoaded(true);
+      try {
+        localStorage.removeItem('dokind_user');
+      } catch {}
+      return null;
+    } catch {
+      setUser(null);
+      setIsLoaded(true);
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (initialUser) {
@@ -56,34 +85,7 @@ export function AuthProvider({
       return;
     }
 
-    // Authoritative check against server session endpoint
-    let isMounted = true;
-    fetch('/api/admin/auth/me')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!isMounted) return;
-        if (data && data.authenticated && data.user) {
-          setUser(data.user);
-          try {
-            localStorage.setItem('dokind_user', JSON.stringify(data.user));
-          } catch {}
-        } else {
-          setUser(null);
-          try {
-            localStorage.removeItem('dokind_user');
-          } catch {}
-        }
-      })
-      .catch(() => {
-        if (isMounted) setUser(null);
-      })
-      .finally(() => {
-        if (isMounted) setIsLoaded(true);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+    refreshSession();
   }, [initialUser]);
 
   const login = async (email: string, _targetRole: UserRole = 'donor') => {
@@ -92,22 +94,12 @@ export function AuthProvider({
 
     // Direct caller to server-verified authentication
     console.warn('[Security] Client-side login() invoked. Directing to server session synchronization.');
-    try {
-      const res = await fetch('/api/admin/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.authenticated && data.user) {
-          setUser(data.user);
-          try {
-            localStorage.setItem('dokind_user', JSON.stringify(data.user));
-          } catch {}
-        }
-      }
-    } catch {}
+    await refreshSession();
   };
 
   const setUserSession = (sessionUser: User) => {
     setUser(sessionUser);
+    setIsLoaded(true);
     try {
       localStorage.setItem('dokind_user', JSON.stringify(sessionUser));
     } catch {}
@@ -147,6 +139,7 @@ export function AuthProvider({
         isLoaded,
         login,
         setUserSession,
+        refreshSession,
         logout,
         switchRole,
         updateProfile,

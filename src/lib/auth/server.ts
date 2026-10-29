@@ -63,6 +63,8 @@ function verifySignature(payload: string, signature: string): boolean {
 
 interface SessionData {
   id: string;
+  email?: string;
+  role?: string;
   sessionCreatedAt: string;
 }
 
@@ -176,6 +178,8 @@ export async function setServerSession(user: User): Promise<void> {
   const cookieStore = await cookies();
   const sessionPayload: SessionData = {
     id: user.id,
+    email: user.email,
+    role: user.role,
     sessionCreatedAt: new Date().toISOString(),
   };
 
