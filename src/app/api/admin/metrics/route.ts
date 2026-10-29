@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       periodDays,
+      campaignsCount: campaigns.length,
       metrics,
       pendingCounts: {
         approvals: pendingApprovals.length,

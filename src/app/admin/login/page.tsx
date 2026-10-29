@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -41,7 +41,10 @@ export default function AdminLoginPage() {
   const [changeSuccess, setChangeSuccess] = useState(false);
 
   // Check if already authenticated with active staff session
+  const hasAttemptedRedirect = useRef(false);
+
   useEffect(() => {
+    if (hasAttemptedRedirect.current) return;
     let isMounted = true;
     fetch('/api/admin/auth/me')
       .then((res) => (res.ok ? res.json() : null))
@@ -50,7 +53,10 @@ export default function AdminLoginPage() {
         if (data?.authenticated && data?.user) {
           setUserSession(data.user);
           if (!data.user.requiresPasswordChange) {
-            window.location.replace(returnUrl);
+            if (!hasAttemptedRedirect.current) {
+              hasAttemptedRedirect.current = true;
+              router.replace(returnUrl);
+            }
           } else {
             setMustChangePassword(true);
           }
@@ -61,7 +67,7 @@ export default function AdminLoginPage() {
     return () => {
       isMounted = false;
     };
-  }, [returnUrl, setUserSession]);
+  }, [returnUrl, setUserSession, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,8 +111,9 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Successful login -> Redirect to authorized destination with full navigation
-      window.location.href = returnUrl;
+      // Successful login -> Redirect to authorized destination with soft navigation
+      hasAttemptedRedirect.current = true;
+      router.replace(returnUrl);
     } catch {
       setError('A network error occurred. Please check your connection and retry.');
       setLoading(false);
@@ -156,7 +163,8 @@ export default function AdminLoginPage() {
 
       setChangeSuccess(true);
       setTimeout(() => {
-        window.location.href = returnUrl;
+        hasAttemptedRedirect.current = true;
+        router.replace(returnUrl);
       }, 800);
     } catch {
       setChangeError('A network error occurred while updating your password.');

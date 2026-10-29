@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
@@ -77,17 +77,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [isLoaded, pathname]);
 
   // Server-authorized staff session enforcement
+  const hasRedirected = useRef(false);
+
   useEffect(() => {
     if (pathname === '/admin/login') return;
+    if (hasRedirected.current) return;
+
     if (isLoaded) {
       const activeRole = role || user?.role;
       const isAuthorized = user && user.status !== 'suspended' && isStaffRole(activeRole);
       if (!isAuthorized) {
+        hasRedirected.current = true;
         const returnUrl = encodeURIComponent(pathname);
-        window.location.replace(`/admin/login?returnUrl=${returnUrl}`);
+        router.replace(`/admin/login?returnUrl=${returnUrl}`);
       }
     }
-  }, [isLoaded, user, role, pathname]);
+  }, [isLoaded, user, role, pathname, router]);
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

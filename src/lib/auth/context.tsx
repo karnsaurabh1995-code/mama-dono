@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { User, UserRole } from '../types';
 import { INITIAL_SUPER_ADMIN_ACCOUNTS, DEMO_USERS } from './constants';
 
@@ -51,7 +51,7 @@ export function AuthProvider({
   const [user, setUser] = useState<User | null>(initialUser);
   const [isLoaded, setIsLoaded] = useState<boolean>(Boolean(initialUser));
 
-  const refreshSession = async (): Promise<User | null> => {
+  const refreshSession = useCallback(async (): Promise<User | null> => {
     try {
       const res = await fetch('/api/admin/auth/me');
       if (res.ok) {
@@ -76,7 +76,7 @@ export function AuthProvider({
       setIsLoaded(true);
       return null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (initialUser) {
@@ -86,26 +86,26 @@ export function AuthProvider({
     }
 
     refreshSession();
-  }, [initialUser]);
+  }, [initialUser, refreshSession]);
 
-  const login = async (email: string, _targetRole: UserRole = 'donor') => {
+  const login = useCallback(async (email: string, _targetRole: UserRole = 'donor') => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) return;
 
     // Direct caller to server-verified authentication
     console.warn('[Security] Client-side login() invoked. Directing to server session synchronization.');
     await refreshSession();
-  };
+  }, [refreshSession]);
 
-  const setUserSession = (sessionUser: User) => {
+  const setUserSession = useCallback((sessionUser: User) => {
     setUser(sessionUser);
     setIsLoaded(true);
     try {
       localStorage.setItem('dokind_user', JSON.stringify(sessionUser));
     } catch {}
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await fetch('/api/admin/auth/logout', { method: 'POST' });
     } catch {
@@ -115,36 +115,41 @@ export function AuthProvider({
     try {
       localStorage.removeItem('dokind_user');
     } catch {}
-  };
+  }, []);
 
-  const switchRole = (_newRole: UserRole) => {
+  const switchRole = useCallback((_newRole: UserRole) => {
     console.warn('[Security] Client-side role switching is permanently disabled. Server authentication required.');
-  };
+  }, []);
 
-  const updateProfile = (data: Partial<User>) => {
-    if (!user) return;
-    const updated = { ...user, ...data };
-    setUser(updated);
-    try {
-      localStorage.setItem('dokind_user', JSON.stringify(updated));
-    } catch {}
-  };
+  const updateProfile = useCallback((data: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...data };
+      try {
+        localStorage.setItem('dokind_user', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      role: user ? user.role : null,
+      isAuthenticated: !!user,
+      isLoaded,
+      login,
+      setUserSession,
+      refreshSession,
+      logout,
+      switchRole,
+      updateProfile,
+    }),
+    [user, isLoaded, login, setUserSession, refreshSession, logout, switchRole, updateProfile]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        role: user ? user.role : null,
-        isAuthenticated: !!user,
-        isLoaded,
-        login,
-        setUserSession,
-        refreshSession,
-        logout,
-        switchRole,
-        updateProfile,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
