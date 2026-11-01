@@ -12,7 +12,8 @@
     "test:admin-security": "tsx scripts/test-staff-admin-security.ts",
     "verify:admin": "tsx scripts/verify-admin-rebuild.ts",
     "verify:hydration": "tsx scripts/verify-hydration-fix.ts",
-    "verify:stability": "tsx scripts/verify-site-stability.ts"
+    "verify:stability": "tsx scripts/verify-site-stability.ts",
+    "test:e2e": "tsx scripts/test-e2e-admin-and-homepage.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

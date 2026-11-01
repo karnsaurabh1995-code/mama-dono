@@ -145,7 +145,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}
               className="w-full py-2.5 px-4 bg-[#E84B45] hover:bg-[#D43B35] text-white text-xs font-bold rounded-xl transition-colors text-center shadow-xs"
             >
-              Sign In to Staff Console
+              Sign In to Admin Console
             </Link>
             <Link
               href="/"

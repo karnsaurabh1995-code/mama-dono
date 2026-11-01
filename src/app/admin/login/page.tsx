@@ -70,11 +70,11 @@ export default function AdminLoginPage() {
     setError('');
 
     if (!identifier.trim()) {
-      setError('Please enter your Staff ID or registered email.');
+      setError('Please enter your Admin ID or registered email.');
       return;
     }
     if (!password) {
-      setError('Please enter your password.');
+      setError('Please enter your admin password.');
       return;
     }
 
@@ -180,15 +180,15 @@ export default function AdminLoginPage() {
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-semibold text-neutral-300">
             <Lock className="w-3 h-3 text-[#EF4949]" />
-            <span>Dokind Staff Portal</span>
+            <span>Dokind Administration Console</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-            {mustChangePassword ? 'Set Permanent Password' : 'Staff Sign In'}
+            {mustChangePassword ? 'Set Permanent Password' : 'Admin Sign In'}
           </h2>
           <p className="text-xs text-neutral-400">
             {mustChangePassword
               ? 'First-time login detected. Create your personal secure password.'
-              : 'Restricted workspace for authorized Dokind personnel only.'}
+              : 'Enter your administrative credentials to access the console.'}
           </p>
         </div>
 
@@ -238,14 +238,14 @@ export default function AdminLoginPage() {
               {/* Identifier */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-neutral-300">
-                  Staff ID or Official Email
+                  Admin ID / Username
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="e.g. sarthakraj2009 or staff@dokind.org"
+                    placeholder="e.g. sarthakraj2009 or admin@dokind.org.in"
                     autoComplete="username"
                     required
                     className="w-full bg-[#101216] border border-neutral-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#EF4949] focus:ring-1 focus:ring-[#EF4949] transition-all"
@@ -256,14 +256,14 @@ export default function AdminLoginPage() {
               {/* Password */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-neutral-300">Password</label>
+                  <label className="block text-xs font-semibold text-neutral-300">Admin Password</label>
                 </div>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
+                    placeholder="Enter your admin password"
                     autoComplete="current-password"
                     required
                     className="w-full bg-[#101216] border border-neutral-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#EF4949] focus:ring-1 focus:ring-[#EF4949] pr-10 transition-all"
@@ -293,7 +293,7 @@ export default function AdminLoginPage() {
                     </>
                   ) : (
                     <>
-                      <span>Sign In</span>
+                      <span>Sign In to Admin Console</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
