@@ -8,6 +8,10 @@ const scriptSrc = isDev
   ? "'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com"
   : "'self' 'unsafe-inline' https://checkout.razorpay.com";
 
+const connectSrc = isDev
+  ? "'self' ws: wss: http: https: data: blob:"
+  : "'self' https://api.razorpay.com https://lumberjack.razorpay.com";
+
 const cspHeader = `
   default-src 'self';
   script-src ${scriptSrc};
@@ -15,7 +19,7 @@ const cspHeader = `
   img-src 'self' data: blob: https://images.unsplash.com;
   font-src 'self' data: https://fonts.gstatic.com;
   frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com;
-  connect-src 'self' ws: wss: http://localhost:* https://localhost:* https://api.razorpay.com https://lumberjack.razorpay.com;
+  connect-src ${connectSrc};
   frame-ancestors 'self';
   base-uri 'self';
   form-action 'self' https://api.razorpay.com;

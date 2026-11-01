@@ -89,8 +89,37 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
 
   // Fetch on mount
   useEffect(() => {
-    refreshSettings();
-  }, [refreshSettings]);
+    let ignore = false;
+    async function initSettings() {
+      try {
+        const res = await fetch('/api/settings/public', {
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache',
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore && data?.success && data?.settings) {
+            setSettings((prev) => ({
+              ...prev,
+              ...data.settings,
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn('[SiteSettingsProvider] Failed to fetch public settings:', err);
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+    initSettings();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   // Real-time synchronization: when admin saves settings, update immediately across all open tabs
   useRealtimeSync(

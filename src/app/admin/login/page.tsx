@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -17,6 +17,7 @@ import { DokindLogo } from '@/components/common/DokindLogo';
 import { Button } from '@/components/ui/Button';
 import { getSafeReturnUrl } from '@/lib/utils';
 import { useAuth } from '@/lib/auth/context';
+import { User } from '@/lib/types';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -39,12 +40,10 @@ export default function AdminLoginPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [changeError, setChangeError] = useState('');
   const [changeSuccess, setChangeSuccess] = useState(false);
+  const [alreadyLoggedIn, setAlreadyLoggedIn] = useState<User | null>(null);
 
   // Check if already authenticated with active staff session
-  const hasAttemptedRedirect = useRef(false);
-
   useEffect(() => {
-    if (hasAttemptedRedirect.current) return;
     let isMounted = true;
     fetch('/api/admin/auth/me')
       .then((res) => (res.ok ? res.json() : null))
@@ -52,13 +51,10 @@ export default function AdminLoginPage() {
         if (!isMounted) return;
         if (data?.authenticated && data?.user) {
           setUserSession(data.user);
-          if (!data.user.requiresPasswordChange) {
-            if (!hasAttemptedRedirect.current) {
-              hasAttemptedRedirect.current = true;
-              router.replace(returnUrl);
-            }
-          } else {
+          if (data.user.requiresPasswordChange) {
             setMustChangePassword(true);
+          } else {
+            setAlreadyLoggedIn(data.user);
           }
         }
       })
@@ -67,7 +63,7 @@ export default function AdminLoginPage() {
     return () => {
       isMounted = false;
     };
-  }, [returnUrl, setUserSession, router]);
+  }, [setUserSession]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +108,6 @@ export default function AdminLoginPage() {
       }
 
       // Successful login -> Redirect to authorized destination with soft navigation
-      hasAttemptedRedirect.current = true;
       router.replace(returnUrl);
     } catch {
       setError('A network error occurred. Please check your connection and retry.');
@@ -163,7 +158,6 @@ export default function AdminLoginPage() {
 
       setChangeSuccess(true);
       setTimeout(() => {
-        hasAttemptedRedirect.current = true;
         router.replace(returnUrl);
       }, 800);
     } catch {
@@ -200,6 +194,37 @@ export default function AdminLoginPage() {
 
         {/* Card */}
         <div className="mt-8 bg-[#181B20] py-8 px-6 shadow-2xl rounded-2xl border border-neutral-800 sm:px-10 relative">
+          {alreadyLoggedIn && !mustChangePassword && (
+            <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs space-y-3 mb-6">
+              <div className="flex items-center gap-2 font-semibold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Signed in as {alreadyLoggedIn.name}</span>
+              </div>
+              <p className="text-[11px] text-emerald-400/80">
+                Staff Role: {String(alreadyLoggedIn.role).replace('_', ' ')}
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => router.push(returnUrl)}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[11px] transition-colors"
+                >
+                  Continue to Console
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await fetch('/api/admin/auth/logout', { method: 'POST' });
+                    setAlreadyLoggedIn(null);
+                  }}
+                  className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-[11px] transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+
           {!mustChangePassword ? (
             /* Login Form */
             <form onSubmit={handleLogin} className="space-y-5">

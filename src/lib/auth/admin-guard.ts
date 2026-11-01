@@ -58,7 +58,14 @@ export async function getCurrentStaffSession(): Promise<User | null> {
   }
 
   // Re-verify against authoritative DatabaseStore record
-  const dbUser = db.getUserById(session.id);
+  let dbUser = db.getUserById(session.id);
+  if (!dbUser && session.email) {
+    dbUser = db.getUsers().find((u) => u.email.toLowerCase() === session.email!.toLowerCase());
+  }
+  if (!dbUser && session.username) {
+    dbUser = db.getUsers().find((u) => u.username === session.username);
+  }
+
   if (!dbUser || dbUser.status === 'suspended') {
     return null;
   }

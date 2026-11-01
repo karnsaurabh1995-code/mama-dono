@@ -11,7 +11,8 @@
     "security:test:payment": "tsx security/tests/razorpay-security.test.ts",
     "test:admin-security": "tsx scripts/test-staff-admin-security.ts",
     "verify:admin": "tsx scripts/verify-admin-rebuild.ts",
-    "verify:hydration": "tsx scripts/verify-hydration-fix.ts"
+    "verify:hydration": "tsx scripts/verify-hydration-fix.ts",
+    "verify:stability": "tsx scripts/verify-site-stability.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

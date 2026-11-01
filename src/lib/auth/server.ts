@@ -111,18 +111,19 @@ export async function getServerSession(): Promise<User | null> {
     // 3. Authoritative lookup in DatabaseStore by ID
     let user: User | undefined = db.getUserById(sessionData.id);
 
-    // 4. Fallback check for designated super admin accounts
+    // 4. Fallback check for designated super admin accounts and email matching
     if (!user) {
       const allUsers = db.getUsers();
-      const match = allUsers.find((u) => u.id === sessionData?.id);
-      if (match) {
-        user = match;
-      }
+      user = allUsers.find(
+        (u) =>
+          u.id === sessionData?.id ||
+          (sessionData.email && u.email && u.email.toLowerCase() === sessionData.email.toLowerCase())
+      );
     }
 
-    if (!user && (sessionData as any).email && db.isDesignatedSuperAdmin((sessionData as any).email)) {
+    if (!user && sessionData.email && db.isDesignatedSuperAdmin(sessionData.email)) {
       user = INITIAL_SUPER_ADMIN_ACCOUNTS.find(
-        (a) => a.email.toLowerCase() === (sessionData as any).email.toLowerCase()
+        (a) => a.email.toLowerCase() === sessionData.email!.toLowerCase()
       );
     }
 

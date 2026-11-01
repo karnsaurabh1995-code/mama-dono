@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { UserRole } from '@/lib/types';
 import { isStaffRole } from '@/lib/auth/constants';
@@ -34,8 +34,6 @@ import {
   X,
   ExternalLink,
   Lock,
-  UserCheck,
-  MoreHorizontal,
   AlertCircle,
 } from 'lucide-react';
 
@@ -52,54 +50,13 @@ interface NavItem {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
-  // Bypass admin dashboard layout for dedicated admin login screen
-  if (pathname === '/admin/login') {
-    return <>{children}</>;
-  }
-  const router = useRouter();
   const { user, role, isLoaded, refreshSession } = useAuth();
   const [timedOut, setTimedOut] = useState(false);
-
-  // Safety timer: Never allow infinite spinning. If verification takes > 4s, trigger recovery UI.
-  useEffect(() => {
-    if (pathname === '/admin/login') return;
-    if (isLoaded) {
-      setTimedOut(false);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setTimedOut(true);
-    }, 4000);
-
-    return () => clearTimeout(timer);
-  }, [isLoaded, pathname]);
-
-  // Server-authorized staff session enforcement
-  const hasRedirected = useRef(false);
-
-  useEffect(() => {
-    if (pathname === '/admin/login') return;
-    if (hasRedirected.current) return;
-
-    if (isLoaded) {
-      const activeRole = role || user?.role;
-      const isAuthorized = user && user.status !== 'suspended' && isStaffRole(activeRole);
-      if (!isAuthorized) {
-        hasRedirected.current = true;
-        const returnUrl = encodeURIComponent(pathname);
-        router.replace(`/admin/login?returnUrl=${returnUrl}`);
-      }
-    }
-  }, [isLoaded, user, role, pathname, router]);
-
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreToolsOpen, setMoreToolsOpen] = useState(true);
   const [menuSearch, setMenuSearch] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
   // Dynamic pending counts from API
   const [pendingCounts, setPendingCounts] = useState<{
@@ -108,7 +65,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     wires?: number;
   }>({});
 
+  const isLoginPage = pathname === '/admin/login';
+  const activeRole = role || user?.role;
+  const isAuthorized = Boolean(user && user.status !== 'suspended' && isStaffRole(activeRole));
+  const verificationTimedOut = !isLoaded && timedOut;
+
+  // Safety timer: Never allow infinite spinning. If verification takes > 4s, trigger recovery UI.
   useEffect(() => {
+    if (isLoginPage || isLoaded) return;
+
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, [isLoaded, isLoginPage]);
+
+  // Dynamic pending counts from API
+  useEffect(() => {
+    if (isLoginPage || !isAuthorized) return;
     let isMounted = true;
     fetch('/api/admin/pending-counts')
       .then((res) => (res.ok ? res.json() : null))
@@ -127,7 +102,62 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isLoginPage, isAuthorized]);
+
+  // Bypass admin dashboard layout for dedicated admin login screen
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  // Loading barrier: Keep layout stable while session initializes
+  if (!isLoaded && !verificationTimedOut) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#E84B45] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-semibold text-neutral-500">Verifying staff credentials...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Access barrier: Render in-place barrier to permanently eliminate inter-route redirect loops.
+  // The server-side guard (requireAdminPageAccess) prevents direct unauthenticated requests.
+  if (!isAuthorized || verificationTimedOut) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-neutral-200 shadow-sm p-8 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-neutral-900">
+              {verificationTimedOut ? 'Session Verification Timeout' : 'Staff Access Required'}
+            </h2>
+            <p className="text-xs text-neutral-500 mt-1">
+              {verificationTimedOut
+                ? 'Could not verify your staff session in time. Please sign in to continue.'
+                : 'You must be signed in with an active Dokind staff account to access this administrative console.'}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 pt-2">
+            <Link
+              href={`/admin/login?returnUrl=${encodeURIComponent(pathname)}`}
+              className="w-full py-2.5 px-4 bg-[#E84B45] hover:bg-[#D43B35] text-white text-xs font-bold rounded-xl transition-colors text-center shadow-xs"
+            >
+              Sign In to Staff Console
+            </Link>
+            <Link
+              href="/"
+              className="w-full py-2.5 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-semibold rounded-xl transition-colors text-center"
+            >
+              Return to dokind.org
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Primary 6 administrative sections
   const primaryNavItems: NavItem[] = [

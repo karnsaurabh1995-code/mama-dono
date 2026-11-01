@@ -90,8 +90,6 @@ export default function HomePage() {
           </div>
         );
       case 'categories':
-      case 'featured_campaigns':
-      case 'products':
         return (
           <FeaturedCausesAndCampaigns
             key={sec.id}
@@ -162,7 +160,14 @@ export default function HomePage() {
     }
   };
 
-  const visibleSections = publishedSections.filter((s) => s.isVisible !== false);
+  const visibleSections = publishedSections.filter(
+    (s) =>
+      s.isVisible !== false &&
+      s.type !== 'featured_campaigns' &&
+      s.type !== 'products' &&
+      s.id !== 'sec-featured-campaigns' &&
+      s.id !== 'sec-product-giving'
+  );
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -190,17 +195,17 @@ export default function HomePage() {
           {/* 4. Monthly Donation Programs Section */}
           <MonthlyDonationSection missions={displayMissions} />
 
-          {/* 5. Start a Campaign Promotional Section */}
-          <StartCampaignSection />
-
-          {/* 6. Our Impact Statistics and Beneficiary Image */}
+          {/* 5. Our Impact Statistics and Beneficiary Image */}
           <OurImpactSection stats={stats} />
 
-          {/* 7. Donor Testimonials Carousel */}
+          {/* 6. Donor Testimonials Carousel */}
           <TestimonialsCarousel testimonials={testimonials} />
 
-          {/* 8. Administrator-Controlled FAQ Section */}
+          {/* 7. Administrator-Controlled FAQ Section */}
           <HomepageFAQSection faqs={faqs} />
+
+          {/* 8. Start a Campaign Promotional Section */}
+          <StartCampaignSection />
         </>
       )}
 

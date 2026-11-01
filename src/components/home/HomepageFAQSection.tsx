@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { FAQItem } from '@/lib/types';
-import { ChevronDown, HelpCircle, ArrowRight, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { ChevronDown, HelpCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface HomepageFAQSectionProps {
@@ -27,7 +27,7 @@ export function HomepageFAQSection({ faqs = [], title, subtitle, badge }: Homepa
   if (displayFaqs.length === 0) return null;
 
   return (
-    <section className="py-20 bg-white border-b border-[#E8E6E1]" aria-label="Frequently Asked Questions">
+    <section className="py-20 bg-[#FAF9F6] border-b border-[#E8E6E1]" aria-label="Frequently Asked Questions">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {/* Section Header */}
         <div className="text-center space-y-3">
@@ -52,8 +52,8 @@ export function HomepageFAQSection({ faqs = [], title, subtitle, badge }: Homepa
                 key={faq.id}
                 className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                   isOpen
-                    ? 'border-[#202124]/30 bg-[#FAF9F6] shadow-sm'
-                    : 'border-[#E8E6E1] bg-white hover:border-neutral-300'
+                    ? 'border-[#202124]/30 bg-white shadow-md'
+                    : 'border-[#E8E6E1] bg-white hover:border-neutral-300 shadow-2xs'
                 }`}
               >
                 <button
@@ -89,7 +89,7 @@ export function HomepageFAQSection({ faqs = [], title, subtitle, badge }: Homepa
         {/* Footer Link to Complete /faq page */}
         <div className="text-center pt-4">
           <Link href="/faq">
-            <Button variant="outline" size="md" className="rounded-full text-xs font-bold" rightIcon={<ArrowRight className="w-4 h-4" />}>
+            <Button variant="outline" size="md" className="border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white font-bold text-xs px-6 py-2.5 rounded-xl transition inline-flex items-center justify-center gap-2 whitespace-nowrap shadow-2xs group" rightIcon={<ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />}>
               Explore All Questions in Help Center
             </Button>
           </Link>

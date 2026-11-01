@@ -21,10 +21,13 @@ export async function GET() {
         email: staffUser.email,
         username: staffUser.username || fullUser?.username,
         role: staffUser.role,
+        secondaryRole: staffUser.secondaryRole || fullUser?.secondaryRole,
+        roles: staffUser.roles || fullUser?.roles || [staffUser.role],
+        status: staffUser.status || fullUser?.status || 'active',
         requiresPasswordChange,
       },
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ authenticated: false, user: null });
   }
 }

@@ -3058,7 +3058,15 @@ With dokind's transparent item-giving model, 100% of sponsored ration kits and w
 
   getUserById(id: string): User | undefined {
     if (!id) return undefined;
-    return this.users.find((u) => u.id === id);
+    const directMatch = this.users.find((u) => u.id === id);
+    if (directMatch) return directMatch;
+    if (id === 'usr-sa-2') {
+      return this.users.find((u) => u.username === 'sarthakraj2009' || u.email === 'sarthakraj726@gmail.com');
+    }
+    if (id === 'usr-sa-1') {
+      return this.users.find((u) => u.email === 'karnsaurabh1995@gmail.com');
+    }
+    return undefined;
   }
 
   getUserByPhone(phone: string): User | undefined {

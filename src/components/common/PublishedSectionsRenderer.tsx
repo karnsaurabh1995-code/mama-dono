@@ -34,7 +34,7 @@ export function PublishedSectionsRenderer({
   tickerEvents = [],
   siteSettings,
 }: PublishedSectionsRendererProps) {
-  const visible = sections.filter((s) => s.isVisible !== false);
+  const visible = sections.filter((s) => s.isVisible !== false && s.type !== 'featured_campaigns' && s.type !== 'products' && s.id !== 'sec-featured-campaigns' && s.id !== 'sec-product-giving');
   if (visible.length === 0) return null;
 
   return (
@@ -69,8 +69,6 @@ export function PublishedSectionsRenderer({
             );
 
           case 'categories':
-          case 'featured_campaigns':
-          case 'products':
             return (
               <FeaturedCausesAndCampaigns
                 key={sec.id}

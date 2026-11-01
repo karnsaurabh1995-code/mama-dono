@@ -40,10 +40,10 @@ export function FeaturedCausesAndCampaigns({
             {badge || 'EXPLORE CAUSES'}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#202124] tracking-tight leading-tight">
-            {title || 'Behind Every Cause Is a Chance to Make a Difference.'}
+            {title || 'Support Causes That Touch Your Heart'}
           </h2>
           <p className="text-xs sm:text-sm text-[#555B63] max-w-xl mx-auto leading-relaxed">
-            {subtitle || 'Choose a cause category below to discover urgent patient needs, community nourishment drives, and educational missions across India.'}
+            {subtitle || 'Choose from 12 vetted impact areas audited against Government NGO Darpan records.'}
           </p>
         </div>
 
